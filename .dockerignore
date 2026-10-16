@@ -1,0 +1,10 @@
+.git
+node_modules
+build
+.react-router
+coverage
+.cache
+.vite
+.env
+.env.*
+*.log
