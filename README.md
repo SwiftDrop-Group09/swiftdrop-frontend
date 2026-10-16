@@ -103,9 +103,11 @@ ignored. Never put secrets in `VITE_*` values: Vite normally embeds them at buil
 time, and container environment changes do not reconfigure a built browser app.
 
 The browser API base is prepared as `VITE_API_BASE_URL=/api`. Development proxies
-`/api`, retaining its prefix, to `DEV_GATEWAY_TARGET`. The provisional default is
-`http://localhost:5000`; no actual gateway port/configuration exists in the current
-backend or infrastructure checkout. There are no API calls in this starter.
+`/api` and `/graphql`, retaining their paths, to `DEV_GATEWAY_TARGET`, whose
+default is `http://localhost:5000`. Run the backend hosts locally and use their
+Gateway for browser requests; see the [shared local infrastructure guide](../swiftdrop-infra/README.md).
+There are no API calls in this starter, and backend feature handlers are not
+implemented yet.
 
 Project architecture describes YARP, Google OIDC, application JWTs, refresh
 sessions, and SSE. Endpoint paths, role claim mappings, browser credential storage,

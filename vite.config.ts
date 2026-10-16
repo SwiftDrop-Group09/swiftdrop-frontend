@@ -25,6 +25,10 @@ export default defineConfig(({ mode }) => {
           target: env.DEV_GATEWAY_TARGET || 'http://localhost:5000',
           changeOrigin: true,
         },
+        '/graphql': {
+          target: env.DEV_GATEWAY_TARGET || 'http://localhost:5000',
+          changeOrigin: true,
+        },
       },
     },
   };
