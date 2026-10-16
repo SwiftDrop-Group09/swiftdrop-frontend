@@ -5,10 +5,33 @@ authentication implementation, mock identities, or example data are included.
 The index route intentionally renders a blank page so frontend development can
 start from a clean base.
 
-## Start development
+## Start in the shared development environment
+
+For routine iteration, developers may run the frontend and backend on the host
+or use their Docker containers. Keep the three repositories side by side.
+For host mode, install the pinned .NET SDK and Node/npm versions, then run
+`npm ci` in this frontend repository. Start the services with:
+
+```sh
+./development/run.sh up --mode host
+```
+
+For Docker mode, start Docker and run:
+
+```sh
+./development/run.sh up --mode docker --build
+```
+
+Open `http://localhost:5173`. For a frontend-only Docker rebuild, use
+`./development/run.sh up --mode docker --build web`. Docker build/start remains
+required acceptance evidence before merging frontend/container changes; host
+mode does not validate the image or Compose routing. See the
+[shared infra guide](../swiftdrop-infra/README.md) for details.
+
+## Frontend-only development
 
 Tested with **Node 24.16.0 LTS and npm 11.13.0**. Select the Node version in
-`.nvmrc` using your version manager. Run these commands from this repository:
+`.nvmrc` using your version manager. To work on the web server outside Compose:
 
 ```powershell
 npm ci
@@ -104,8 +127,8 @@ time, and container environment changes do not reconfigure a built browser app.
 
 The browser API base is prepared as `VITE_API_BASE_URL=/api`. Development proxies
 `/api` and `/graphql`, retaining their paths, to `DEV_GATEWAY_TARGET`, whose
-default is `http://localhost:5000`. Run the backend hosts locally and use their
-Gateway for browser requests; see the [shared local infrastructure guide](../swiftdrop-infra/README.md).
+default is `http://localhost:5000`. In the shared container workflow, the
+frontend Nginx container proxies these paths to the Gateway.
 There are no API calls in this starter, and backend feature handlers are not
 implemented yet.
 
