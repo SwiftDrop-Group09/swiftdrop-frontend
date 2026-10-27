@@ -1,1 +1,214 @@
 @import 'tailwindcss';
+
+.identity-app {
+  min-height: 100vh;
+  font-family: Inter, system-ui, sans-serif;
+  color: #182a30;
+  background: #f2f6f5;
+  font-synthesis: none;
+}
+.identity-app * {
+  box-sizing: border-box;
+}
+.identity-app a {
+  color: #116356;
+  text-underline-offset: 3px;
+}
+.identity-app header {
+  padding: 1.2rem max(1rem, calc((100vw - 1120px) / 2));
+  background: #fff;
+  border-bottom: 1px solid #dce6e1;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.identity-app .brand {
+  font-size: 1.5rem;
+  color: #164d42;
+  font-weight: 800;
+  text-decoration: none;
+}
+.identity-app nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.identity-app main {
+  max-width: 1120px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.identity-app .card {
+  background: white;
+  border: 1px solid #dce6e1;
+  border-radius: 16px;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  margin: 0 auto 1.5rem;
+  max-width: 720px;
+  box-shadow: 0 6px 24px #193d2f06;
+}
+.identity-app .card.wide {
+  max-width: none;
+}
+.identity-app .auth-card {
+  max-width: 520px;
+}
+.identity-app h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 750;
+  line-height: 1.2;
+  margin: 0.3rem 0 1.3rem;
+}
+.identity-app h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+.identity-app h3 {
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.identity-app p {
+  margin: 0.8rem 0;
+  line-height: 1.6;
+}
+.identity-app .eyebrow {
+  color: #267465;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.identity-app form {
+  display: grid;
+  gap: 1rem;
+}
+.identity-app label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.identity-app input,
+.identity-app textarea {
+  width: 100%;
+  font: inherit;
+  border: 1px solid #9db2a9;
+  border-radius: 7px;
+  padding: 0.7rem 0.8rem;
+  color: #182a30;
+  background: white;
+}
+.identity-app textarea {
+  min-height: 100px;
+}
+.identity-app .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+}
+.identity-app .checkbox input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.identity-app button,
+.identity-app .button-link {
+  display: inline-block;
+  background: #146354;
+  color: white;
+  border: 1px solid transparent;
+  padding: 0.7rem 1rem;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: none;
+  margin: 0.3rem 0.4rem 0.3rem 0;
+}
+.identity-app button:hover,
+.identity-app .button-link:hover {
+  background: #0e4b3f;
+}
+.identity-app button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.identity-app button.danger {
+  background: #9e3035;
+}
+.identity-app :focus-visible {
+  outline: 3px solid #dea836;
+  outline-offset: 3px;
+}
+.identity-app [role='alert'],
+.identity-app .field-error {
+  color: #9e3035;
+}
+.identity-app [role='status'] {
+  color: #225f50;
+}
+.identity-app .field-error {
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+.identity-app .google-signin {
+  border-top: 1px solid #dce6e1;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+.identity-app fieldset {
+  border: 1px solid #dce6e1;
+  border-radius: 7px;
+  padding: 1rem;
+  margin: 1.5rem 0 0.5rem;
+}
+.identity-app legend {
+  font-weight: 700;
+  padding: 0 0.4rem;
+}
+.identity-app .table-scroll {
+  overflow-x: auto;
+}
+.identity-app table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.identity-app caption {
+  text-align: left;
+  padding: 0.5rem 0;
+  color: #52685e;
+}
+.identity-app th,
+.identity-app td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #dce6e1;
+  vertical-align: top;
+}
+.identity-app th {
+  background: #f2f6f5;
+  font-weight: 700;
+}
+.identity-app .identifier {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.identity-app .pagination {
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+.identity-app .confirmation {
+  background: #fff8e8;
+  border: 2px solid #c58b19;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.identity-app footer {
+  text-align: center;
+  padding: 1rem;
+  color: #52685e;
+}
