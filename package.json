@@ -10,6 +10,7 @@
   "packageManager": "npm@11.13.0",
   "scripts": {
     "dev": "react-router dev",
+    "dev:booking-test": "vite --config vite.booking-test.config.ts",
     "build": "react-router build",
     "preview": "node scripts/preview.mjs",
     "lint": "react-router typegen && eslint . --max-warnings=0",

@@ -1,5 +1,10 @@
 {
-  "include": ["app/**/*", ".react-router/types/**/*", "*.ts"],
+  "include": [
+    "app/**/*",
+    "test-harness/**/*",
+    ".react-router/types/**/*",
+    "*.ts"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "types": ["node", "vite/client", "vitest/globals"],
