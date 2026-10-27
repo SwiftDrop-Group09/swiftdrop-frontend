@@ -1,9 +1,10 @@
 # SwiftDrop frontend setup
 
-Development setup only. No product screens, portal layouts, business features,
-authentication implementation, mock identities, or example data are included.
-The index route intentionally renders a blank page so frontend development can
-start from a clean base.
+SwiftDrop's shared React application includes the Customer account and Admin
+Identity screens. See [Identity integration](docs/identity-integration.md) for
+implemented routes, browser security, client contracts, verification limits, and
+the independent booking/mobile handoff. Other product features remain owned by
+their feature branches.
 
 ## Start in the shared development environment
 
@@ -40,7 +41,8 @@ npm run dev
 ```
 
 On POSIX shells, use `cp .env.example .env.local`. Open the URL printed by the
-development server (normally `http://localhost:5173`). A blank page is expected.
+development server (normally `http://localhost:5173`). Account API calls require
+the configured Identity backend and browser origin/proxy setup in the handoff.
 
 ## Included dependencies
 
@@ -64,18 +66,20 @@ its build-time root prerender; no production Node application server is required
 ```text
 app/
   root.tsx                  Document, loading/error fallbacks, framework outlet
-  routes.ts                 Blank index and technical unknown-route fallback
+  routes.ts                 Account routes and technical unknown-route fallback
   providers.tsx             TanStack Query provider with an isolated cache
   env.d.ts                  Types for public frontend environment variables
   portals/
-    public/index.tsx        Blank starting route
+    public/index.tsx        Account landing route
     public/not-found.tsx    Minimal client-side 404 handling
-    auth/                   Reserved for authentication screens
-    customer/, courier/, merchant/, dispatcher/, admin/
-                            Reserved for role-specific routes and layouts
-  features/                 Reserved for shared business features
+    auth/                   Login and Customer registration routes
+    customer/profile.tsx    Shared self-profile route
+    admin/users.tsx         Admin users and audit route
+    courier/, merchant/, dispatcher/
+                            Reserved for independently owned product routes
+  features/identity/        Shared session, API, validation, screens and tests
   shared/                   Reserved for general UI, transport, and utilities
-  styles/app.css            Tailwind import; no product styling
+  styles/app.css            Tailwind and scoped account styling
   test/                     DOM test setup and provider cache-isolation test
 .github/                    CI and pull-request template
 scripts/preview.mjs         Static preview of build/client
@@ -114,7 +118,7 @@ use Query hooks for reads, mutations, and invalidation.
 | `npm run check`                           | Formatting, lint, types, tests, production build      |
 
 The infrastructure test verifies Query cache isolation between application
-instances; feature tests should be added alongside implementation. GitHub Actions
+instances; Identity tests cover API, session and screen behavior. GitHub Actions
 runs `npm ci` and `npm run check` on pull requests and pushes to the repository's
 confirmed default branch, `main`, using `.nvmrc` and read-only permissions.
 
@@ -129,14 +133,11 @@ The browser API base is prepared as `VITE_API_BASE_URL=/api`. Development proxie
 `/api` and `/graphql`, retaining their paths, to `DEV_GATEWAY_TARGET`, whose
 default is `http://localhost:5000`. In the shared container workflow, the
 frontend Nginx container proxies these paths to the Gateway.
-There are no API calls in this starter, and backend feature handlers are not
-implemented yet.
-
-Project architecture describes YARP, Google OIDC, application JWTs, refresh
-sessions, and SSE. Endpoint paths, role claim mappings, browser credential storage,
-refresh behavior, and SSE authentication remain unspecified. Implement these from
-approved backend contracts. Do not invent authentication endpoints or duplicate
-backend authorization, pricing, approval, or parcel-transition rules.
+The Identity feature uses the actual versioned backend contract and same-origin
+cookie/CSRF transport. Configure the public Google Web client ID when enabling
+Google sign-in. Follow the [integration handoff](docs/identity-integration.md)
+before claiming deployed TLS/cookie or real Google sign-in verification. Other
+features must reuse the authenticated request seam and server-side authorization.
 
 React Router is configured with `ssr: false`. It still prerenders the root at build
 time: keep module initialization and initial rendering free of browser globals.
