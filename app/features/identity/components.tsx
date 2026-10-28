@@ -20,6 +20,9 @@ export function IdentityShell({ children }: { children: ReactNode }) {
           {user ? (
             <>
               <Link to="/profile">My profile</Link>
+              {user.roles.includes('Courier') && (
+                <Link to="/courier">Courier deliveries</Link>
+              )}
               {user.roles.includes('Admin') && (
                 <Link to="/admin/users">User administration</Link>
               )}
