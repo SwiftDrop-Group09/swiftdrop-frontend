@@ -54,6 +54,11 @@ the retained request. Keep an uncertain session open: closing it loses the
 in-memory key/files. Reopening starts with fresh server reads, not an offline
 write queue or automatic replay with a new key.
 
+Access denial also invalidates in-flight workflow results, so a late write cannot
+restore a receipt after private access ends. Unexpected success codes remain
+unconfirmed outcomes: only the documented 200 receipt confirms delivery, and the
+screen directs an explicit retry of the original request.
+
 ## Verification and boundaries
 
 Run pinned Node 24.16.0/npm 11.13.0, `npm ci`, then `npm run check`.

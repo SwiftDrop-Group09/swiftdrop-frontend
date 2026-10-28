@@ -20,6 +20,7 @@ export class CourierWorkflow {
   private listeners = new Set<() => void>();
   private disposed = false;
   private lifecycle = 0;
+  private revision = 0;
   constructor(private api: CourierApi) {}
   connect() {
     const generation = ++this.lifecycle;
@@ -30,6 +31,7 @@ export class CourierWorkflow {
       });
   }
   denyRead() {
+    this.revision++;
     this.update({
       pending: null,
       busy: false,
@@ -51,6 +53,7 @@ export class CourierWorkflow {
     this.listeners.forEach((f) => f());
   }
   dispose() {
+    this.revision++;
     this.disposed = true;
     this.state = {
       pending: null,
@@ -75,6 +78,7 @@ export class CourierWorkflow {
     if (this.state.pending && attempt) return 'ignored';
     const original = this.state.pending ?? attempt;
     if (!original) return 'ignored';
+    const revision = this.revision;
     this.update({
       pending: original,
       busy: true,
@@ -83,7 +87,7 @@ export class CourierWorkflow {
     });
     try {
       const receipt = await this.api.submit(original);
-      if (this.disposed) return 'ignored';
+      if (this.disposed || revision !== this.revision) return 'ignored';
       this.update({
         pending: null,
         busy: false,
@@ -92,7 +96,7 @@ export class CourierWorkflow {
       });
       return 'success';
     } catch (e) {
-      if (this.disposed) return 'ignored';
+      if (this.disposed || revision !== this.revision) return 'ignored';
       const err = e instanceof CourierError ? e : new CourierError('network');
       if (err.uncertain) {
         this.update({

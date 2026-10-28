@@ -124,6 +124,8 @@ export class CourierError extends Error {
   }
 }
 const messages: Record<string, string> = {
+  invalid_response:
+    'Delivery returned an unconfirmed response. Retry the original request.',
   stale_version:
     'This parcel changed. Reloading its current state; choose a new action.',
   invalid_transition:

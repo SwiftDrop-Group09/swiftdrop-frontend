@@ -187,6 +187,27 @@ describe('Courier contract adapter', () => {
   });
 });
 describe('Courier mutation concurrency', () => {
+  it('ignores a late write result after a read revokes access', async () => {
+    let finish!: (response: Response) => void;
+    const request = vi.fn().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const workflow = new CourierWorkflow(new CourierApi(request));
+    const pending = workflow.submit(
+      statusAttempt(detail(), 'PickedUp', 'Collected'),
+    );
+    workflow.denyRead();
+    finish(response(raw('PickedUp', 3)));
+    expect(await pending).toBe('ignored');
+    expect(workflow.getSnapshot()).toMatchObject({
+      blocked: true,
+      pending: null,
+      receipt: null,
+    });
+  });
   it('freezes a network-uncertain request and explicitly retries the identical key/body', async () => {
     vi.useFakeTimers();
     const request = vi
