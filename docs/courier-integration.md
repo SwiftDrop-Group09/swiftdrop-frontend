@@ -55,7 +55,7 @@ in-memory key/files. Reopening starts with fresh server reads, not an offline
 write queue or automatic replay with a new key.
 
 Access denial also invalidates in-flight workflow results, so a late write cannot
-restore a receipt after private access ends. Unexpected success codes remain
+restore a receipt after private access ends. Unexpected success/redirect codes remain
 unconfirmed outcomes: only the documented 200 receipt confirms delivery, and the
 screen directs an explicit retry of the original request.
 

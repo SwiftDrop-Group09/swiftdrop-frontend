@@ -12,7 +12,7 @@ import { detail, id, page, privateRaw, raw, response } from './test-fixtures';
 import { IdentityError } from '~/features/identity/api';
 afterEach(() => vi.useRealTimers());
 describe('Courier contract adapter', () => {
-  it.each([201, 202])(
+  it.each([201, 202, 301, 302, 303, 307, 308])(
     'does not confirm delivery from an undocumented %s response',
     async (status) => {
       const api = new CourierApi(

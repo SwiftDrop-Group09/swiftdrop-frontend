@@ -239,7 +239,8 @@ export class CourierApi {
       }
       throw new CourierError('network');
     }
-    if (r.ok && r.status !== 200) throw new CourierError('invalid_response');
+    if (r.status >= 200 && r.status < 400 && r.status !== 200)
+      throw new CourierError('invalid_response');
     if (!r.ok) {
       let code =
         r.status === 401
