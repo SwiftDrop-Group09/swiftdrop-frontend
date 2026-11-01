@@ -1,8 +1,10 @@
 name: Frontend checks
 on:
   pull_request:
+    branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
