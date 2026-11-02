@@ -127,7 +127,7 @@ export function GoogleButton({
       sdk?.cancel();
       element?.replaceChildren();
     };
-  }, [session, attempt, disabled]);
+  }, [session, attempt, disabled, text]);
   if (!import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID)
     return <p>Google sign-in is not configured for this deployment.</p>;
   return (
