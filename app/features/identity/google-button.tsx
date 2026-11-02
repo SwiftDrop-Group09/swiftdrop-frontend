@@ -62,9 +62,11 @@ export function loadGoogleSdk(): Promise<GoogleSdk> {
 export function GoogleButton({
   onToken,
   disabled = false,
+  text = 'signin_with',
 }: {
   onToken: (token: string) => Promise<void>;
   disabled?: boolean;
+  text?: 'signin_with' | 'signup_with';
 }) {
   const { session } = useIdentity();
   const container = useRef<HTMLDivElement>(null);
@@ -110,7 +112,7 @@ export function GoogleButton({
           type: 'standard',
           theme: 'outline',
           size: 'large',
-          text: 'signin_with',
+          text,
         });
       })
       .catch(() => {

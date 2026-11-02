@@ -163,6 +163,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         </form>
         <GoogleButton
           key={register ? 'register' : 'login'}
+          text={register ? 'signup_with' : 'signin_with'}
           disabled={restoring || form.formState.isSubmitting}
           onToken={async (token) => {
             setError(null);
