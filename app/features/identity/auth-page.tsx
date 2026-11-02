@@ -161,21 +161,20 @@ export function AuthPage({ register = false }: { register?: boolean }) {
             )}
           </button>
         </form>
-        {!register && (
-          <GoogleButton
-            disabled={restoring || form.formState.isSubmitting}
-            onToken={async (token) => {
-              setError(null);
-              try {
-                await session.google(token);
-                await navigate('/profile', { replace: true });
-              } catch (cause) {
-                setError(safeError(cause));
-                throw cause;
-              }
-            }}
-          />
-        )}
+        <GoogleButton
+          key={register ? 'register' : 'login'}
+          disabled={restoring || form.formState.isSubmitting}
+          onToken={async (token) => {
+            setError(null);
+            try {
+              await session.google(token);
+              await navigate('/profile', { replace: true });
+            } catch (cause) {
+              setError(safeError(cause));
+              throw cause;
+            }
+          }}
+        />
         <p>
           {register ? (
             <>
