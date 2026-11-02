@@ -9,6 +9,7 @@ import {
   useRouteError,
 } from 'react-router';
 import { AppProviders } from './providers';
+import { IdentityProvider } from './features/identity/session';
 import './styles/app.css';
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -39,7 +40,9 @@ export function HydrateFallback() {
 export default function App() {
   return (
     <AppProviders>
-      <Outlet />
+      <IdentityProvider>
+        <Outlet />
+      </IdentityProvider>
     </AppProviders>
   );
 }
