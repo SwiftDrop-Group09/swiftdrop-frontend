@@ -116,7 +116,9 @@
 }
 .identity-app button,
 .identity-app .button-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #146354;
   color: white;
   border: 1px solid transparent;
@@ -127,6 +129,56 @@
   cursor: pointer;
   text-decoration: none;
   margin: 0.3rem 0.4rem 0.3rem 0;
+}
+.identity-app .password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.identity-app .password-field input {
+  padding-right: 2.6rem;
+}
+.identity-app button.password-toggle {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0.35rem;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #52685e;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+.identity-app button.password-toggle:hover {
+  background: rgba(20, 99, 84, 0.08);
+  color: #146354;
+}
+.identity-app button.password-toggle:focus-visible {
+  outline: 2px solid #dea836;
+  outline-offset: 1px;
+}
+.identity-app .btn-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: identity-spin 0.65s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+@keyframes identity-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .identity-app button:hover,
 .identity-app .button-link:hover {

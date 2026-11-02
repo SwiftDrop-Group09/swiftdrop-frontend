@@ -120,6 +120,19 @@ describe('Customer account screens', () => {
     });
     expect(screen.getByLabelText('Password')).toHaveValue('');
   });
+  it('toggles password visibility between password and plain text', async () => {
+    const { user } = mount('/login');
+    const input = screen.getByLabelText('Password');
+    expect(input).toHaveAttribute('type', 'password');
+    const toggle = screen.getByRole('button', { name: 'Show password' });
+    await user.click(toggle);
+    expect(input).toHaveAttribute('type', 'text');
+    expect(
+      screen.getByRole('button', { name: 'Hide password' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(input).toHaveAttribute('type', 'password');
+  });
   it('presents generic login errors and clears the password', async () => {
     const { user } = mount('/login', undefined, (path) =>
       path.endsWith('/auth/login')
