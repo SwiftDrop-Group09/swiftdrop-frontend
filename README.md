@@ -1,9 +1,13 @@
 # SwiftDrop frontend setup
 
-Development setup only. No product screens, portal layouts, business features,
-authentication implementation, mock identities, or example data are included.
-The index route intentionally renders a blank page so frontend development can
-start from a clean base.
+React application foundation with the Phase 6 Customer quote and booking feature
+at `/customer/book`. The public index remains blank. The normal booking route
+requires a Customer session supplied by the application's IAM adapter; it does
+not create a fictional user or implement login/token storage.
+
+The Customer feature can be developed and verified independently using the
+separate local integration test entry described below. Test identities and test
+entry code are excluded from the normal application build.
 
 ## Start in the shared development environment
 
@@ -64,21 +68,24 @@ its build-time root prerender; no production Node application server is required
 ```text
 app/
   root.tsx                  Document, loading/error fallbacks, framework outlet
-  routes.ts                 Blank index and technical unknown-route fallback
+  routes.ts                 Public index, Customer booking and unknown-route fallback
   providers.tsx             TanStack Query provider with an isolated cache
   env.d.ts                  Types for public frontend environment variables
   portals/
     public/index.tsx        Blank starting route
     public/not-found.tsx    Minimal client-side 404 handling
     auth/                   Reserved for authentication screens
-    customer/, courier/, merchant/, dispatcher/, admin/
+    customer/booking.tsx    Customer route, consuming injected session/client adapters
+    courier/, merchant/, dispatcher/, admin/
                             Reserved for role-specific routes and layouts
-  features/                 Reserved for shared business features
+  features/customer-booking/
+                            Quote/confirmation UI, contracts, validation, exact JSON and tests
   shared/                   Reserved for general UI, transport, and utilities
   styles/app.css            Tailwind import; no product styling
   test/                     DOM test setup and provider cache-isolation test
 .github/                    CI and pull-request template
 scripts/preview.mjs         Static preview of build/client
+test-harness/               Separate fictional-session integration entry; not a product route
 public/favicon.ico          Neutral transparent browser favicon
 Dockerfile, nginx.conf      Static container hosting
 ```
@@ -129,14 +136,62 @@ The browser API base is prepared as `VITE_API_BASE_URL=/api`. Development proxie
 `/api` and `/graphql`, retaining their paths, to `DEV_GATEWAY_TARGET`, whose
 default is `http://localhost:5000`. In the shared container workflow, the
 frontend Nginx container proxies these paths to the Gateway.
-There are no API calls in this starter, and backend feature handlers are not
-implemented yet.
+Customer booking uses the implemented Delivery quote/confirmation POST contracts.
+The normal route is closed until an IAM/session adapter is supplied. The test
+entry uses a separate loopback-only Delivery harness and disposable database.
 
-Project architecture describes YARP, Google OIDC, application JWTs, refresh
-sessions, and SSE. Endpoint paths, role claim mappings, browser credential storage,
-refresh behavior, and SSE authentication remain unspecified. Implement these from
-approved backend contracts. Do not invent authentication endpoints or duplicate
-backend authorization, pricing, approval, or parcel-transition rules.
+Project architecture describes YARP, application JWTs, refresh sessions and SSE.
+Real Identity integration remains a separate task. Booking consumes a session
+snapshot, authenticated request adapter and eligible-zone provider; it owns no
+login, refresh, token storage or backend authorization. Production zone selection
+requires an approved Customer-usable source; the Admin zone route is not reused.
+
+## Customer booking development and acceptance
+
+`app/features/customer-booking` implements labelled pickup/delivery/recipient and
+parcel fields, quote preview/decline, explicit confirmation, server-returned
+tracking, validation, expiry and conflict/network recovery. React Hook Form/Zod
+validate usability; Query provides owner-scoped data/mutations without automatic
+mutation retries. All prices and tracking results come from Delivery.
+
+The API codec retains numeric JSON tokens before binary floating-point decoding.
+Large valid totals and exact decimal weights are never rounded through Number.
+Confirmation sends only quoteId/acceptTotal and one retained Idempotency-Key.
+An uncertain outcome retains its original owner/body/key, even after quote expiry;
+only a definite quote_expired/price_mismatch permits a fresh preview/acceptance.
+Session changes clear private UI/cache state and cannot display old responses.
+
+The application's future IAM composition can wrap the route in
+`BookingEnvironmentProvider`. It supplies a current session, authenticated
+request function, zone catalog and owner-scoped pending-attempt store. The
+feature's default store is memory-only. The host session must clear private
+attempts when the principal changes. The normal route never enables test auth
+from a URL, request header or environment flag.
+
+For interactive development before IAM is ready:
+
+1. Start the sibling backend's isolated booking harness (see its
+   [Phase 6 assessment](../swiftdrop-backend/docs/delivery-phase-6-assessment.md)).
+   Its default HTTP address is `http://127.0.0.1:5088`.
+2. In this repository, run `npm run dev:booking-test` and open
+   `http://127.0.0.1:5174`. It is a separate Vite entry with an explicit fictional
+   fixture banner, server-selected Customer and delivery areas from that same
+   disposable database. `BOOKING_TEST_TARGET` may override only a loopback URL.
+3. Estimate, decline or explicitly confirm. The test entry keeps only validated
+   owner/quote/amount/body/key metadata in tab sessionStorage for unknown-outcome
+   reload recovery; it stores no credentials, address or recipient details.
+
+The normal build remains `build/client`; the test entry is not registered in
+React Router, imported by the production root or copied into that output.
+The `/__test/booking-context` fixture endpoint is used only by the test entry.
+It is not a Customer production zone/auth endpoint.
+
+Focused tests cover exact transport and input boundaries, quote/decline,
+confirmation, duplicate clicks, changed input and stale responses, definite
+expiry/repricing, unknown outcomes after local expiry, retained attempts and
+principal changes. Run `npm run check` for formatting, zero-warning lint, strict
+types, all tests and the SPA production build. Browser fixture tests against
+real PostgreSQL are separate from future real-JWT acceptance.
 
 React Router is configured with `ssr: false`. It still prerenders the root at build
 time: keep module initialization and initial rendering free of browser globals.
