@@ -6,6 +6,10 @@ implemented routes, browser security, client contracts, verification limits, and
 the independent booking/mobile handoff. Other product features remain owned by
 their feature branches.
 
+Courier manifest, details, delivery actions, proof and history are available on
+the user-selected Identity base. See [Courier integration](docs/courier-integration.md)
+for contracts, recovery behavior, branch boundaries and verification.
+
 ## Start in the shared development environment
 
 For routine iteration, developers may run the frontend and backend on the host

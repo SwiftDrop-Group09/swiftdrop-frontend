@@ -1,0 +1,67 @@
+.courier {
+  max-width: 1000px;
+  margin: auto;
+}
+.courier nav,
+.courier .filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.courier .parcels {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.courier .parcels li,
+.courier aside,
+.courier fieldset {
+  padding: 1rem;
+  border: 1px solid #a0b9ae;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+.courier .parcels li > strong,
+.courier .parcels li > span {
+  display: block;
+}
+.courier .overdue {
+  color: #8a3400;
+  font-weight: bold;
+}
+.courier label {
+  display: block;
+  margin: 1rem 0;
+}
+.courier label input:not([type='checkbox']),
+.courier textarea,
+.courier select {
+  display: block;
+  width: 100%;
+  max-width: 36rem;
+}
+.courier .parcel-addresses {
+  display: flex;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+.courier button {
+  margin: 0.3rem;
+}
+.courier address {
+  font-style: normal;
+}
+.courier fieldset {
+  min-inline-size: 0;
+}
+.courier fieldset:disabled canvas {
+  pointer-events: none;
+  opacity: 0.6;
+}
+.courier {
+  overflow-wrap: anywhere;
+}
