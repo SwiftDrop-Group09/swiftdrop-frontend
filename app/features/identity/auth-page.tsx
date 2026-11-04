@@ -7,6 +7,9 @@ import { registrationSchema, loginSchema } from './contracts';
 import { FieldError, IdentityShell, safeError } from './components';
 import { GoogleButton } from './google-button';
 import { useIdentity } from './session';
+import { Button } from '~/shared/components/ui/button';
+import { Input } from '~/shared/components/ui/input';
+import { Card } from '~/shared/components/ui/card';
 
 type Values = z.infer<typeof registrationSchema>;
 export function AuthPage({ register = false }: { register?: boolean }) {
@@ -51,7 +54,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
   });
   return (
     <IdentityShell>
-      <section className="card auth-card">
+      <Card className="card auth-card">
         <p className="eyebrow">Your SwiftDrop account</p>
         <h1>{register ? 'Create a Customer account' : 'Welcome back'}</h1>
         {restoring && <p role="status">Checking for an existing session…</p>}
@@ -74,13 +77,13 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           {register && (
             <label>
               Full name
-              <input autoComplete="name" {...form.register('fullName')} />
+              <Input autoComplete="name" {...form.register('fullName')} />
               <FieldError message={form.formState.errors.fullName?.message} />
             </label>
           )}
           <label>
             Email
-            <input
+            <Input
               type="email"
               autoComplete="username"
               {...form.register('email')}
@@ -90,7 +93,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           <label>
             Password
             <div className="password-field">
-              <input
+              <Input
                 type={showPassword ? 'text' : 'password'}
                 autoComplete={register ? 'new-password' : 'current-password'}
                 {...form.register('password')}
@@ -148,7 +151,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
               Customer account.
             </p>
           )}
-          <button disabled={form.formState.isSubmitting || restoring}>
+          <Button disabled={form.formState.isSubmitting || restoring}>
             {form.formState.isSubmitting ? (
               <>
                 <span className="btn-spinner" aria-hidden="true" />
@@ -159,7 +162,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
             ) : (
               'Sign in'
             )}
-          </button>
+          </Button>
         </form>
         <GoogleButton
           key={register ? 'register' : 'login'}
@@ -188,7 +191,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
             </>
           )}
         </p>
-      </section>
+      </Card>
     </IdentityShell>
   );
 }

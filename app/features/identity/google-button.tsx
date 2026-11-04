@@ -16,7 +16,7 @@ type GoogleSdk = {
       type: 'standard';
       theme: 'outline';
       size: 'large';
-      text: 'signin_with';
+      text: 'signin_with' | 'signup_with';
     },
   ): void;
   cancel(): void;

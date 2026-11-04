@@ -7,6 +7,17 @@ import { adminInputSchema, roles } from './contracts';
 import type { AdminInput, Profile } from './contracts';
 import { FieldError, IdentityShell, Protected, safeError } from './components';
 import { useIdentity } from './session';
+import { Button } from '~/shared/components/ui/button';
+import { Input } from '~/shared/components/ui/input';
+import { Card } from '~/shared/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/shared/components/ui/table';
 
 export function Pagination({
   page,
@@ -21,18 +32,18 @@ export function Pagination({
 }) {
   return (
     <nav className="pagination" aria-label="Pagination">
-      <button disabled={page === 1 || pending} onClick={() => change(page - 1)}>
+      <Button disabled={page === 1 || pending} onClick={() => change(page - 1)}>
         Previous
-      </button>
+      </Button>
       <span>
         Page {page} · {total} records
       </span>
-      <button
+      <Button
         disabled={page * 20 >= total || pending}
         onClick={() => change(page + 1)}
       >
         Next
-      </button>
+      </Button>
     </nav>
   );
 }
@@ -81,7 +92,7 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
     }
   });
   return (
-    <section className="card">
+    <Card className="card">
       <h2>Create user account</h2>
       <p>
         Generate a unique password and share it privately. The password is
@@ -96,12 +107,12 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
       >
         <label>
           Email
-          <input type="email" autoComplete="off" {...form.register('email')} />
+          <Input type="email" autoComplete="off" {...form.register('email')} />
           <FieldError message={form.formState.errors.email?.message} />
         </label>
         <label>
           Full name
-          <input autoComplete="off" {...form.register('fullName')} />
+          <Input autoComplete="off" {...form.register('fullName')} />
           <FieldError message={form.formState.errors.fullName?.message} />
         </label>
         <label className="checkbox">
@@ -110,7 +121,7 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
         </label>
         <label>
           Initial password
-          <input
+          <Input
             type={reveal ? 'text' : 'password'}
             autoComplete="new-password"
             {...form.register('password')}
@@ -118,7 +129,7 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
           <FieldError message={form.formState.errors.password?.message} />
         </label>
         <div>
-          <button
+          <Button
             type="button"
             disabled={mutation.isPending}
             onClick={() => {
@@ -134,10 +145,10 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
             }}
           >
             Generate password
-          </button>
-          <button type="button" onClick={() => setReveal((value) => !value)}>
+          </Button>
+          <Button type="button" onClick={() => setReveal((value) => !value)}>
             {reveal ? 'Hide password' : 'Show password'}
-          </button>
+          </Button>
         </div>
         {confirm && (
           <p role="status">
@@ -145,13 +156,13 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
             been shared privately.
           </p>
         )}
-        <button disabled={mutation.isPending}>
+        <Button disabled={mutation.isPending}>
           {mutation.isPending
             ? 'Creating…'
             : confirm
               ? 'Confirm create account'
               : 'Review new account'}
-        </button>
+        </Button>
       </form>
       {mutation.error && (
         <>
@@ -163,7 +174,7 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
         </>
       )}
       {notice && <p role="status">{notice}</p>}
-    </section>
+    </Card>
   );
 }
 function UserEditor({
@@ -228,7 +239,7 @@ function UserEditor({
     });
   });
   return (
-    <section className="card">
+    <Card className="card">
       <h2>Edit {profile.fullName}</h2>
       <p className="identifier">Account ID: {profile.id}</p>
       <form
@@ -240,19 +251,19 @@ function UserEditor({
       >
         <label>
           Email
-          <input type="email" {...form.register('email')} />
+          <Input type="email" {...form.register('email')} />
           <FieldError message={form.formState.errors.email?.message} />
         </label>
         <label>
           Full name
-          <input {...form.register('fullName')} />
+          <Input {...form.register('fullName')} />
           <FieldError message={form.formState.errors.fullName?.message} />
         </label>
         <label className="checkbox">
           <input type="checkbox" {...form.register('isActive')} />
           Account active
         </label>
-        <button disabled={mutation.isPending}>Review account change</button>
+        <Button disabled={mutation.isPending}>Review account change</Button>
       </form>
       <fieldset disabled={mutation.isPending}>
         <legend>Assigned roles</legend>
@@ -274,7 +285,7 @@ function UserEditor({
           </label>
         ))}
       </fieldset>
-      <button
+      <Button
         disabled={mutation.isPending}
         onClick={() => {
           setNotice(null);
@@ -291,8 +302,8 @@ function UserEditor({
         }}
       >
         Review role changes
-      </button>
-      <button
+      </Button>
+      <Button
         className="danger"
         disabled={mutation.isPending || !profile.isActive}
         onClick={() => {
@@ -309,7 +320,7 @@ function UserEditor({
         }}
       >
         Deactivate account
-      </button>
+      </Button>
       {confirmation && (
         <div
           role="group"
@@ -317,25 +328,25 @@ function UserEditor({
           className="confirmation"
         >
           <h3 id="confirm-title">{confirmation.title}</h3>
-          <button
+          <Button
             disabled={mutation.isPending}
             onClick={() => {
               void mutation.mutateAsync(confirmation.execute).catch(() => {});
             }}
           >
             {mutation.isPending ? 'Saving…' : 'Confirm change'}
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={mutation.isPending}
             onClick={() => setConfirmation(null)}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
       {mutation.error && <p role="alert">{safeError(mutation.error)}</p>}
       {notice && <p role="status">{notice}</p>}
-    </section>
+    </Card>
   );
 }
 function AdminContent() {
@@ -358,7 +369,7 @@ function AdminContent() {
   });
   return (
     <>
-      <section className="card wide">
+      <Card className="card wide">
         <h1>User administration</h1>
         <p>
           Manage account status and roles. Every change is checked and audited
@@ -371,33 +382,37 @@ function AdminContent() {
         ) : (
           <>
             <div className="table-scroll">
-              <table>
+              <Table>
                 <caption>User accounts</caption>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Roles</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Roles</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {users.data.items.map((profile) => (
-                    <tr key={profile.id}>
-                      <td>{profile.fullName}</td>
-                      <td>{profile.email}</td>
-                      <td>{profile.roles.join(', ') || 'None'}</td>
-                      <td>{profile.isActive ? 'Active' : 'Inactive'}</td>
-                      <td>
-                        <button onClick={() => setSelected(profile)}>
+                    <TableRow key={profile.id}>
+                      <TableCell>{profile.fullName}</TableCell>
+                      <TableCell>{profile.email}</TableCell>
+                      <TableCell>
+                        {profile.roles.join(', ') || 'None'}
+                      </TableCell>
+                      <TableCell>
+                        {profile.isActive ? 'Active' : 'Inactive'}
+                      </TableCell>
+                      <TableCell>
+                        <Button onClick={() => setSelected(profile)}>
                           Edit {profile.email}
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             {users.data.items.length === 0 && (
               <p>No user accounts on this page.</p>
@@ -410,7 +425,7 @@ function AdminContent() {
             />
           </>
         )}
-      </section>
+      </Card>
       <CreateUser
         created={(profile) => {
           setSelected(profile);
@@ -429,11 +444,11 @@ function AdminContent() {
           }}
         />
       )}
-      <section className="card wide">
+      <Card className="card wide">
         <h2>Identity audit log</h2>
-        <button onClick={() => setShowAudit((value) => !value)}>
+        <Button onClick={() => setShowAudit((value) => !value)}>
           {showAudit ? 'Hide audit log' : 'View audit log'}
-        </button>
+        </Button>
         {showAudit &&
           (audit.isPending ? (
             <p role="status">Loading audit log…</p>
@@ -442,33 +457,33 @@ function AdminContent() {
           ) : (
             <>
               <div className="table-scroll">
-                <table>
+                <Table>
                   <caption>Identity audit records · UTC timestamps</caption>
-                  <thead>
-                    <tr>
-                      <th>Time</th>
-                      <th>Action</th>
-                      <th>Actor</th>
-                      <th>Resource</th>
-                      <th>Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Actor</TableHead>
+                      <TableHead>Resource</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {audit.data.items.map((record) => (
-                      <tr key={record.id}>
-                        <td>{record.timestamp}</td>
-                        <td>{record.action}</td>
-                        <td className="identifier">
+                      <TableRow key={record.id}>
+                        <TableCell>{record.timestamp}</TableCell>
+                        <TableCell>{record.action}</TableCell>
+                        <TableCell className="identifier">
                           {record.actorId ?? 'Anonymous'}
-                        </td>
-                        <td className="identifier">
+                        </TableCell>
+                        <TableCell className="identifier">
                           {record.resourceId ?? '—'}
-                        </td>
-                        <td>{record.resultCode}</td>
-                      </tr>
+                        </TableCell>
+                        <TableCell>{record.resultCode}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
               {audit.data.items.length === 0 && (
                 <p>No audit records on this page.</p>
@@ -481,7 +496,7 @@ function AdminContent() {
               />
             </>
           ))}
-      </section>
+      </Card>
     </>
   );
 }
