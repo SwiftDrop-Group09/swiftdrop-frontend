@@ -1,12 +1,13 @@
 # Courier clients — Phase 7
 
-The user-selected base is Identity `e3c75a7`, on
-`feat/courier-workflow-clients`. `/courier`, `/courier/parcels/:id` and
-`/courier/history` reuse the root IdentityProvider, IdentityShell, QueryClient
-and IdentitySession.authenticatedRequest. There is no additional login, token
-store or Courier ID input. The divergent Customer Booking branch `7926824`
-is preserved without a merge. Its exact JSON utility is reused at
-`app/shared/exact-json.ts`; reconciling that branch's portal remains separate.
+The Courier workflow, Customer booking and shared shadcn/Identity workspace are
+merged into default branch `dev`. `/courier`, `/courier/parcels/:id` and
+`/courier/history` reuse IdentityProvider, IdentityShell, QueryClient and
+IdentitySession.authenticatedRequest. There is no additional login, token store
+or Courier ID input. The booking route is `/customer/book`; both features retain
+exact numeric parsing. Their controls use shared shadcn components, with no
+Courier stylesheet or duplicate sidebar. The signature canvas remains a domain
+input surface. See [combined PR review](pr-integration-review.md) for validation.
 
 ## Verified contracts
 
@@ -90,4 +91,5 @@ data in the backend's ignored `artifacts/courier-phase7-browser` directory.
 Production Delivery still fails closed pending real issuer/JWKS integration.
 Live Courier provisioning, encrypted proof storage acceptance, gateway routing,
 outbox relay/consumers and native-device validation remain integration work.
-Phase 8 is the next recommended phase; it is not implemented by this change.
+The original Phase 7 handoff predates the backend Phase 8 verification harness;
+the combined browser/HTTP checks are now recorded in the PR review.

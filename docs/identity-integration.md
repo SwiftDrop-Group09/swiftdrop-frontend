@@ -1,9 +1,9 @@
 # Identity client integration
 
-This feature implements Part A Phase 8 against the Identity backend on
-`feat/identity-sessions-google`. It extends the clean frontend baseline
-`c062b11` on `feat/identity-clients`; it does not merge the independent
-`origin/feat/customer-quote-booking` branch.
+Identity, Customer booking and Courier workflows are merged into the default
+`dev` branch. The original Identity feature started at `c062b11` on
+`feat/identity-clients`; these are historical checkpoints, not current branch
+boundaries. The booking production adapter now consumes the shared session.
 
 ## Implemented
 
@@ -158,11 +158,12 @@ and a deployed browser token exchange remain separate integration checks.
 `AuthenticatedRequest = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>`
 shape. It accepts same-origin paths under the configured API base, adds the
 current bearer token, retains original Request headers plus explicit overrides,
-and does not retry booking mutations. Supply it to `CustomerBookingApi` when
-the independently owned booking branch is integrated. The `user.id` and
-server-returned `user.roles` provide the current principal for its attempt store.
-Private cache/attempt state must clear when the principal changes or logs out.
-No booking source, Delivery implementation, or Gateway route was changed.
+and does not retry booking mutations. The `/customer/book` workspace supplies
+this transport to `CustomerBookingApi`, along with server-returned `user.id` and
+`user.roles`. Its Customer-only area adapter uses `/api/v1/quotes/zones`.
+Uncertain confirmations survive route navigation and clear on logout, account or
+role changes. Courier clients use the same session/request seam. See the
+combined PR review for current validation and the backend's separate IAM gate.
 
 Courier and Customer use the same server Identity contract. An authenticated
 Courier requires a real server-assigned `Courier` role; there is no privileged
