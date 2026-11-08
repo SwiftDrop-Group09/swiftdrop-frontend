@@ -1,14 +1,11 @@
 # SwiftDrop frontend setup
 
-SwiftDrop's shared React application includes the Customer account and Admin
-Identity screens. See [Identity integration](docs/identity-integration.md) for
-implemented routes, browser security, client contracts, verification limits, and
-the independent booking/mobile handoff. Other product features remain owned by
-their feature branches.
-
-Courier manifest, details, delivery actions, proof and history are available on
-the user-selected Identity base. See [Courier integration](docs/courier-integration.md)
-for contracts, recovery behavior, branch boundaries and verification.
+SwiftDrop's shared React application on `dev` includes Customer/Admin Identity
+screens, Customer booking and the Courier manifest, details, delivery actions,
+proof and history. See [Identity integration](docs/identity-integration.md) and
+[Courier integration](docs/courier-integration.md) for contracts, recovery behavior
+and external verification limits. [PR review](docs/pr-integration-review.md)
+records the combined integration checks.
 
 ## Start in the shared development environment
 
@@ -71,7 +68,7 @@ Admin pages share that shell; demonstration charts and data are omitted.
 Role menus follow the SRS and authorization rules for Customer, Courier, Merchant,
 Dispatcher and Admin. See [workspace navigation](docs/workspace-navigation.md)
 for the requirement mapping and current destinations. Screens not yet implemented
-in this branch appear as disabled items marked Soon.
+appear as disabled items marked Soon.
 
 Opening `/` waits for session restoration, then redirects to `/dashboard` for an
 authenticated session or `/login` for a signed-out visitor. Create account opens
