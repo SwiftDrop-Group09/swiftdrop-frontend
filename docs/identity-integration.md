@@ -7,14 +7,14 @@ This feature implements Part A Phase 8 against the Identity backend on
 
 ## Implemented
 
-The Router routes `/register`, `/login`, `/profile`, and `/admin/users` compose
+The Router routes `/register`, `/login`, `/dashboard`, `/profile`, and `/admin/users` compose
 one shared Identity feature. Registration, local login, Google SDK sign-in,
 explicit password-confirmed Google linking, profile editing, restoration,
 refresh, logout, paged user/audit views, user creation/update, role replacement,
 and deactivation have loading, validation, and safe error states.
 
 The existing Query provider, React Hook Form, Zod, Router, and test tools are
-reused. No runtime packages are added. Server-side authorization remains
+reused. The current UI also uses shared shadcn/Radix primitives. Server-side authorization remains
 authoritative; hiding Admin navigation is only a user interface affordance.
 Profile changes never submit account IDs, email, roles, or activation flags.
 Profile updates include required `fullName` and `phoneNumber` fields; phone may be
@@ -68,7 +68,11 @@ Set public `VITE_GOOGLE_WEB_CLIENT_ID` to the Google Web OAuth client ID and
 configure its exact authorized JavaScript origin. Match that audience in
 Identity's allowlist. No Google client secret belongs in a Vite variable.
 
-The official Google Identity Services script renders a popup sign-in button.
+The official Google Identity Services script renders the provider sign-in
+control directly in the form, without an application dialog. Its supported
+outline/rectangular options and responsive width match the surrounding controls.
+A scoped CSS exception styles only the host layout and keyboard focus; it does
+not attempt to modify Google's iframe contents.
 Its callback credential is exchanged as `{idToken}`. Initialization includes the
 server-issued `googleNonce`. One button is mounted per route; cleanup cancels the
 SDK interaction and ignores late callbacks. A completed attempt renews bootstrap
@@ -76,6 +80,17 @@ nonce before another attempt, including after the server's ten-minute nonce
 expires. Cancellation produces no Identity login request. A local account
 collision displays instructions to sign in locally and link from the profile.
 Logout calls `disableAutoSelect` when the SDK is available.
+
+Local and Google sign-in navigate to `/dashboard`. Customer registration validates
+confirmation locally, submits only the existing registration fields, then performs
+a separate login to establish a session. A confirmed registration followed by a
+failed login offers a sign-in link without resubmitting account creation. The
+responsive dashboard shell contains existing profile and role-aware Admin links,
+sign-out, and an empty workspace. It introduces no booking workflows or demo data.
+
+The auth layouts adapt shadcn's `login-02` and `signup-02`; the dashboard shell
+adapts `dashboard-01`. Pexels stock photos are stored locally with
+[source and license credits](../public/images/auth/CREDITS.md).
 
 Implementation references: [Google JavaScript API](https://developers.google.com/identity/gsi/web/reference/js-reference)
 and [displaying the sign-in button](https://developers.google.com/identity/gsi/web/guides/display-button).

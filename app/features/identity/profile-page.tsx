@@ -1,8 +1,10 @@
+import { Textarea } from '~/shared/components/ui/textarea';
+import { Label } from '~/shared/components/ui/label';
+import { Alert } from '~/shared/components/ui/alert';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
 import { FieldError, IdentityShell, Protected, safeError } from './components';
 import { profileInputSchema } from './contracts';
 import type { Profile, ProfileInput } from './contracts';
@@ -41,6 +43,7 @@ function ProfileForm({ user }: { user: Profile }) {
   });
   return (
     <form
+      className="grid gap-5"
       onSubmit={(event) => {
         void submit(event);
       }}
@@ -52,116 +55,98 @@ function ProfileForm({ user }: { user: Profile }) {
       <p>
         <strong>Roles:</strong> {user.roles.join(', ')}
       </p>
-      <label>
+      <Label className="grid gap-2">
         Full name
         <Input autoComplete="name" {...form.register('fullName')} />
         <FieldError message={form.formState.errors.fullName?.message} />
-      </label>
-      <label>
+      </Label>
+      <Label className="grid gap-2">
         Phone number
         <Input autoComplete="tel" {...form.register('phoneNumber')} />
         <FieldError message={form.formState.errors.phoneNumber?.message} />
-      </label>
-      <label>
+      </Label>
+      <Label className="grid gap-2">
         Address
-        <textarea autoComplete="street-address" {...form.register('address')} />
+        <Textarea autoComplete="street-address" {...form.register('address')} />
         <FieldError message={form.formState.errors.address?.message} />
-      </label>
+      </Label>
       <Button disabled={mutation.isPending}>
         {mutation.isPending ? 'Saving…' : 'Save profile'}
       </Button>
-      {mutation.error && <p role="alert">{safeError(mutation.error)}</p>}
-      {notice && <p role="status">{notice}</p>}
+      {mutation.error && (
+        <Alert variant="destructive">{safeError(mutation.error)}</Alert>
+      )}
+      {notice && <Alert role="status">{notice}</Alert>}
     </form>
   );
 }
 function ProfileContent() {
   const { session, user } = useIdentity();
-  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const profile = useQuery({
     queryKey: ['identity', 'profile', user!.id],
     queryFn: () => session.authorized((token) => session.api.profile(token)),
   });
   return (
     <>
-      <Card className="card">
-        <h1>My profile</h1>
-        {profile.isPending ? (
-          <p role="status">Loading profile…</p>
-        ) : profile.error ? (
-          <p role="alert">{safeError(profile.error)}</p>
-        ) : (
-          <ProfileForm key={profile.data.id} user={profile.data} />
-        )}
-      </Card>
-      <Card className="card">
-        <h2>Link Google</h2>
-        <p>
-          Link a Google account with the same verified email. Confirm your
-          current local password first.
-        </p>
-        <label>
-          Current password
-          <Input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            maxLength={128}
-          />
-        </label>
-        <GoogleButton
-          disabled={!password || linking}
-          onToken={async (token) => {
-            setLinking(true);
-            setMessage(null);
-            const suppliedPassword = password;
-            setPassword('');
-            try {
-              const result = await session.authorized(
-                (access) => session.api.link(access, token, suppliedPassword),
-                true,
-              );
-              session.updateUser(result);
-              setMessage('Google was linked to your account.');
-            } catch (cause) {
-              setMessage(safeError(cause));
-              throw cause;
-            } finally {
-              setLinking(false);
-            }
-          }}
-        />
-        {message && <p role="status">{message}</p>}
-      </Card>
-      <Card className="card">
-        <h2>Session</h2>
-        <Button
-          disabled={loggingOut}
-          onClick={() => {
-            setLoggingOut(true);
-            void session
-              .logout()
-              .then(() => {
-                window.google?.accounts.id.disableAutoSelect();
-                return navigate('/login', { replace: true });
-              })
-              .catch((cause) => {
+      <section>
+        <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            My profile
+          </h1>
+          {profile.isPending ? (
+            <Alert role="status">Loading profile…</Alert>
+          ) : profile.error ? (
+            <Alert variant="destructive">{safeError(profile.error)}</Alert>
+          ) : (
+            <ProfileForm key={profile.data.id} user={profile.data} />
+          )}
+        </Card>
+      </section>
+      <section>
+        <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
+          <h2 className="text-xl font-semibold tracking-tight">Link Google</h2>
+          <p>
+            Link a Google account with the same verified email. Confirm your
+            current local password first.
+          </p>
+          <Label className="grid gap-2">
+            Current password
+            <Input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              maxLength={128}
+            />
+          </Label>
+          <GoogleButton
+            disabled={!password || linking}
+            onToken={async (token) => {
+              setLinking(true);
+              setMessage(null);
+              const suppliedPassword = password;
+              setPassword('');
+              try {
+                const result = await session.authorized(
+                  (access) => session.api.link(access, token, suppliedPassword),
+                  true,
+                );
+                session.updateUser(result);
+                setMessage('Google was linked to your account.');
+              } catch (cause) {
                 setMessage(safeError(cause));
-                return navigate('/login', {
-                  replace: true,
-                  state: { logoutError: safeError(cause) },
-                });
-              });
-          }}
-        >
-          Sign out
-        </Button>
-      </Card>
+                throw cause;
+              } finally {
+                setLinking(false);
+              }
+            }}
+          />
+          {message && <Alert role="status">{message}</Alert>}
+        </Card>
+      </section>
     </>
   );
 }

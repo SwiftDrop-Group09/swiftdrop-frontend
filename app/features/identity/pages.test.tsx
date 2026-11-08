@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { IdentityApi } from './api';
 import { AuthPage } from './auth-page';
 import { ProfilePage } from './profile-page';
+import { DashboardPage } from './dashboard-page';
 import { AdminPage } from './admin-page';
 import { IdentityProvider, IdentitySession } from './session';
 import type { Profile } from './contracts';
@@ -62,6 +63,7 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
       { path: '/login', element: <AuthPage /> },
       { path: '/register', element: <AuthPage register /> },
       { path: '/profile', element: <ProfilePage /> },
+      { path: '/dashboard', element: <DashboardPage /> },
       { path: '/admin/users', element: <AdminPage /> },
     ],
     { initialEntries: [path] },
@@ -85,6 +87,97 @@ afterEach(() => {
 });
 
 describe('Customer account screens', () => {
+  it('rejects mismatching confirmation before any registration request', async () => {
+    const { user, fetcher } = mount('/register');
+    const submit = screen.getByRole('button', {
+      name: 'Create account',
+    });
+    await waitFor(() => expect(submit).toBeEnabled());
+    await user.type(screen.getByLabelText('Full name'), 'New Customer');
+    await user.type(screen.getByLabelText('Email'), customer.email);
+    await user.type(
+      screen.getByLabelText('Password', { exact: true }),
+      'long-private-password',
+    );
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'different-password',
+    );
+    await user.click(submit);
+    expect(
+      await screen.findByText('Passwords do not match.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Confirm password')).toHaveFocus();
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/register'),
+      ),
+    ).toBe(false);
+  });
+  it('creates an account, signs in once, and lands on the empty dashboard shell', async () => {
+    const { user, fetcher, router } = mount('/register', undefined, (path) =>
+      path.endsWith('/auth/register')
+        ? json(customer, 201)
+        : path.endsWith('/auth/login')
+          ? json(pair())
+          : undefined,
+    );
+    const submit = screen.getByRole('button', {
+      name: 'Create account',
+    });
+    await waitFor(() => expect(submit).toBeEnabled());
+    await user.type(screen.getByLabelText('Full name'), 'New Customer');
+    await user.type(screen.getByLabelText('Email'), customer.email);
+    await user.type(
+      screen.getByLabelText('Password', { exact: true }),
+      'long-private-password',
+    );
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'long-private-password',
+    );
+    await user.click(submit);
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(router.state.location.pathname).toBe('/dashboard');
+    expect(screen.getByLabelText('Dashboard workspace')).toBeEmptyDOMElement();
+    const registration = fetcher.mock.calls.find((call) =>
+      pathOf(call[0]).endsWith('/auth/register'),
+    )!;
+    expect(payload(registration[1])).toEqual({
+      email: customer.email,
+      fullName: 'New Customer',
+      password: 'long-private-password',
+    });
+    expect(
+      fetcher.mock.calls.filter((call) =>
+        pathOf(call[0]).endsWith('/auth/login'),
+      ),
+    ).toHaveLength(1);
+  });
+  it('protects the dashboard and redirects a signed-out user to login', async () => {
+    const { router } = mount('/dashboard');
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    expect(router.state.location.pathname).toBe('/login');
+    expect(
+      screen.queryByLabelText('Dashboard workspace'),
+    ).not.toBeInTheDocument();
+  });
+  it('shows real workspace links and supports keyboard sidebar toggling', async () => {
+    const { user, router } = mount('/dashboard', admin);
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    const sidebar = document.querySelector(
+      '[data-slot="sidebar"][data-state]',
+    )!;
+    expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await user.click(screen.getByRole('button', { name: 'Toggle Sidebar' }));
+    expect(sidebar).toHaveAttribute('data-state', 'collapsed');
+    await user.keyboard('{Control>}b{/Control}');
+    expect(sidebar).toHaveAttribute('data-state', 'expanded');
+    await user.click(screen.getByRole('link', { name: 'My profile' }));
+    await screen.findByRole('heading', { name: 'My profile' });
+    expect(router.state.location.pathname).toBe('/profile');
+  });
+
   it('validates registration before submission and sends only Customer registration fields', async () => {
     const { user, fetcher } = mount('/register', undefined, (path) =>
       path.endsWith('/auth/register') ? json(customer, 201) : undefined,
@@ -106,6 +199,10 @@ describe('Customer account screens', () => {
       screen.getByLabelText(/^Password/),
       'long-private-password',
     );
+    await user.type(
+      screen.getByLabelText('Confirm password'),
+      'long-private-password',
+    );
     await user.click(submit);
     expect(
       await screen.findByText('Your account was created.', { exact: false }),
@@ -118,7 +215,7 @@ describe('Customer account screens', () => {
       password: 'long-private-password',
       fullName: 'New Customer',
     });
-    expect(screen.getByLabelText('Password')).toHaveValue('');
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
   it('toggles password visibility between password and plain text', async () => {
     const { user } = mount('/login');
@@ -132,6 +229,20 @@ describe('Customer account screens', () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Hide password' }));
     expect(input).toHaveAttribute('type', 'password');
+  });
+  it('lets keyboard users reveal a password without submitting the form', async () => {
+    const { user, fetcher } = mount('/login');
+    const password = screen.getByLabelText('Password');
+    await user.click(password);
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Show password' })).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(password).toHaveAttribute('type', 'text');
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/login'),
+      ),
+    ).toBe(false);
   });
   it('presents generic login errors and clears the password', async () => {
     const { user } = mount('/login', undefined, (path) =>
@@ -168,11 +279,10 @@ describe('Customer account screens', () => {
     await user.type(screen.getByLabelText('Password'), 'private-password');
     await user.click(submit);
     expect(
-      await screen.findByRole('heading', { name: 'My profile' }),
+      await screen.findByRole('heading', { name: 'Dashboard' }),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByDisplayValue(customer.fullName),
-    ).toBeInTheDocument();
+    expect(screen.getByText(customer.fullName)).toBeInTheDocument();
+    expect(screen.getByLabelText('Dashboard workspace')).toBeEmptyDOMElement();
     expect(
       screen.queryByRole('link', { name: 'User administration' }),
     ).not.toBeInTheDocument();
@@ -272,6 +382,19 @@ describe('Google SDK and explicit linking', () => {
     };
     return initialize;
   }
+
+  it('renders the provider inline without an application dialog or token exchange', async () => {
+    const initialize = google();
+    const { fetcher } = mount('/login');
+    await screen.findByRole('button', { name: 'Google provider sign in' });
+    expect(initialize).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/google'),
+      ),
+    ).toBe(false);
+  });
   it('renews a rejected or expired nonce before retrying SDK sign-in', async () => {
     const initialize = google();
     let bootstraps = 0;
@@ -299,7 +422,7 @@ describe('Google SDK and explicit linking', () => {
       screen.getByRole('button', { name: 'Google provider sign in' }),
     );
     expect(
-      await screen.findByRole('heading', { name: 'My profile' }),
+      await screen.findByRole('heading', { name: 'Dashboard' }),
     ).toBeInTheDocument();
   });
   it('uses sign-up text on registration and sign-in text on login', async () => {
@@ -323,13 +446,13 @@ describe('Google SDK and explicit linking', () => {
       },
     };
 
-    mount('/register');
+    const { router } = mount('/register');
     await screen.findByRole('button', { name: 'Google provider sign in' });
     expect(renderButton).toHaveBeenLastCalledWith(
       expect.any(HTMLElement),
       expect.objectContaining({ text: 'signup_with' }),
     );
-    mount('/login');
+    await act(() => router.navigate('/login'));
     await screen.findAllByRole('button', { name: 'Google provider sign in' });
     expect(renderButton).toHaveBeenLastCalledWith(
       expect.any(HTMLElement),
@@ -342,7 +465,7 @@ describe('Google SDK and explicit linking', () => {
     await screen.findByRole('button', { name: 'Google provider sign in' });
     const callback = initialize.mock.calls[0]![0].callback;
     await act(() => router.navigate('/register'));
-    await screen.findByRole('heading', { name: 'Create a Customer account' });
+    await screen.findByRole('heading', { name: 'Create your account' });
     callback({ credential: 'late-google-token' });
     expect(
       fetcher.mock.calls.some((call) =>
@@ -370,6 +493,11 @@ describe('Google SDK and explicit linking', () => {
     ).toBeInTheDocument();
     expect(session.getSnapshot().user).toEqual(customer);
     expect(screen.getByLabelText('Current password')).toHaveValue('');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Google provider sign in' }),
+      ).not.toBeInTheDocument(),
+    );
   });
   it('uses configured SDK client and server nonce, handles account-link-required without a session', async () => {
     const initialize = google();
@@ -486,6 +614,28 @@ describe('Admin controls', () => {
       pathOf(value[0]).endsWith('/roles'),
     )!;
     expect(payload(call[1])).toEqual({ roles: [] });
+  });
+  it('invalidates reviewed account details when the shadcn active checkbox changes', async () => {
+    const { user, fetcher } = mount('/admin/users', admin);
+    await user.click(
+      await screen.findByRole('button', { name: `Edit ${customer.email}` }),
+    );
+    const editor = within(section(`Edit ${customer.fullName}`));
+    await user.click(
+      editor.getByRole('button', { name: 'Review account change' }),
+    );
+    expect(
+      editor.getByRole('button', { name: 'Confirm change' }),
+    ).toBeInTheDocument();
+    const active = editor.getByRole('checkbox', { name: 'Account active' });
+    await user.click(active);
+    expect(active).not.toBeChecked();
+    expect(
+      editor.queryByRole('button', { name: 'Confirm change' }),
+    ).not.toBeInTheDocument();
+    expect(fetcher.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(
+      false,
+    );
   });
   it('cancels deactivation without a mutation', async () => {
     const { user, fetcher } = mount('/admin/users', admin);
