@@ -7,14 +7,14 @@ This feature implements Part A Phase 8 against the Identity backend on
 
 ## Implemented
 
-The Router routes `/register`, `/login`, `/profile`, and `/admin/users` compose
+The Router routes `/register`, `/login`, `/dashboard`, `/profile`, and `/admin/users` compose
 one shared Identity feature. Registration, local login, Google SDK sign-in,
 explicit password-confirmed Google linking, profile editing, restoration,
 refresh, logout, paged user/audit views, user creation/update, role replacement,
 and deactivation have loading, validation, and safe error states.
 
 The existing Query provider, React Hook Form, Zod, Router, and test tools are
-reused. No runtime packages are added. Server-side authorization remains
+reused. The current UI also uses shared shadcn/Radix primitives. Server-side authorization remains
 authoritative; hiding Admin navigation is only a user interface affordance.
 Profile changes never submit account IDs, email, roles, or activation flags.
 Profile updates include required `fullName` and `phoneNumber` fields; phone may be
@@ -68,7 +68,11 @@ Set public `VITE_GOOGLE_WEB_CLIENT_ID` to the Google Web OAuth client ID and
 configure its exact authorized JavaScript origin. Match that audience in
 Identity's allowlist. No Google client secret belongs in a Vite variable.
 
-The official Google Identity Services script renders a popup sign-in button.
+The official Google Identity Services script renders the provider sign-in
+control directly in the form, without an application dialog. Its supported
+outline/rectangular options and responsive width match the surrounding controls.
+A scoped CSS exception styles only the host layout and keyboard focus; it does
+not attempt to modify Google's iframe contents.
 Its callback credential is exchanged as `{idToken}`. Initialization includes the
 server-issued `googleNonce`. One button is mounted per route; cleanup cancels the
 SDK interaction and ignores late callbacks. A completed attempt renews bootstrap
@@ -77,11 +81,76 @@ expires. Cancellation produces no Identity login request. A local account
 collision displays instructions to sign in locally and link from the profile.
 Logout calls `disableAutoSelect` when the SDK is available.
 
+Local and Google sign-in navigate to `/dashboard`. Customer registration validates
+confirmation locally, submits only the existing registration fields, then performs
+a separate login to establish a session. A confirmed registration followed by a
+failed login offers a sign-in link without resubmitting account creation. The
+responsive dashboard shell contains sign-out, an empty workspace, and
+[documented menus for all five roles](workspace-navigation.md). Only implemented
+screens have links; other menu items are disabled and marked Soon. It introduces
+no booking workflows or demo data. The registration page does not show internal
+role assignment instructions; the server still assigns Customer on signup.
+
+The root `/` waits for session restoration before replacing the URL with
+`/dashboard` or `/login`. `/signup` resolves to `/register` for signed-out visitors;
+authenticated visitors to any auth entry go to the dashboard. There is no
+intermediate landing card or application dialog.
+
+The auth layouts adapt shadcn's `login-02` and `signup-02`; the dashboard shell
+adapts `dashboard-01`. Pexels stock photos are stored locally with
+[source and license credits](../public/images/auth/CREDITS.md).
+
 Implementation references: [Google JavaScript API](https://developers.google.com/identity/gsi/web/reference/js-reference)
 and [displaying the sign-in button](https://developers.google.com/identity/gsi/web/guides/display-button).
 SDK configuration/callback behavior is tested with a stub; real provider consent,
 configured audiences/origins, and deployed browser TLS are still integration
 dependencies.
+
+## Profile settings and connected sign-in methods
+
+The 9 November 2026 profile update adds a responsive personal-details editor,
+server-assigned role badges and role descriptions, contact-address guidance, and
+Admin access to the existing user administration screen. Email and roles are
+read-only. Save is enabled for changed fields; reset restores the latest saved
+values, and successful saves update the form, profile cache and sidebar name.
+
+The sign-in card reads `GET /api/v1/auth/methods` using the current bearer token.
+Its `{hasPassword, googleLinked}` response describes connected account methods;
+it does not infer how this particular session was opened. Missing or unavailable
+metadata shows a retry state and no connection action.
+
+- Password only: Connect Google asks for the current password and uses the
+  inline Google SDK control with a fresh nonce. The existing link endpoint checks
+  the same verified email and provider ownership. Successful linking refetches
+  the confirmed method state. A wrong password or rejected email leaves the
+  existing local session usable; an actual authorization rejection still fails
+  closed.
+- Google only: Add password validates a 12-128 character password and confirmation
+  locally, then requires the inline Google control to confirm the linked identity.
+  `POST /api/v1/auth/password` submits only `{idToken, password}`; the backend
+  validates the nonce and exact existing Google subject, hashes the password and
+  commits its audit atomically. It cannot overwrite an existing password or merge
+  accounts. Google remains connected.
+- Both: the card shows both methods enabled without redundant connection forms.
+
+Credential actions use no Query mutation variables or persistent browser storage.
+Passwords are cleared after attempts and on cancelling/unmounting the editor.
+Cancellation is disabled while an exchange is in progress. There is no automatic
+credential mutation replay, password reset, email change or provider removal.
+
+Deploy/rebuild the Identity changes alongside this frontend. See the backend's
+[account-connections contract](../../swiftdrop-backend/docs/account-connections.md).
+The existing schema and secrets suffice; no migration is required. The owning
+service and Gateway boundaries are unchanged.
+
+Checks on 9 November 2026: 84 frontend tests, formatting, lint, types and production
+build passed; Chromium exercised all five role profiles, save/reset, both
+connection directions, both-connected state, cancellation, payload allowlists
+and 320px layouts using isolated API/provider fixtures. Backend tests exercise
+the real PostgreSQL transactions and rejection paths. Google's live SDK control
+also rendered inside the profile confirmation step at 320px, 375px and desktop
+without overflow. Real Google account consent
+and a deployed browser token exchange remain separate integration checks.
 
 ## Booking and other client handoff
 

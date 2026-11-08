@@ -1,5 +1,9 @@
+import { Checkbox } from '~/shared/components/ui/checkbox';
+import { Badge } from '~/shared/components/ui/badge';
+import { Label } from '~/shared/components/ui/label';
+import { Alert } from '~/shared/components/ui/alert';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -31,7 +35,10 @@ export function Pagination({
   change: (page: number) => void;
 }) {
   return (
-    <nav className="pagination" aria-label="Pagination">
+    <nav
+      className="flex flex-wrap items-center justify-between gap-3"
+      aria-label="Pagination"
+    >
       <Button disabled={page === 1 || pending} onClick={() => change(page - 1)}>
         Previous
       </Button>
@@ -92,89 +99,113 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
     }
   });
   return (
-    <Card className="card">
-      <h2>Create user account</h2>
-      <p>
-        Generate a unique password and share it privately. The password is
-        cleared after submission and cannot be retrieved later.
-      </p>
-      <form
-        onSubmit={(event) => {
-          void submit(event);
-        }}
-        onChange={() => setConfirm(false)}
-        noValidate
-      >
-        <label>
-          Email
-          <Input type="email" autoComplete="off" {...form.register('email')} />
-          <FieldError message={form.formState.errors.email?.message} />
-        </label>
-        <label>
-          Full name
-          <Input autoComplete="off" {...form.register('fullName')} />
-          <FieldError message={form.formState.errors.fullName?.message} />
-        </label>
-        <label className="checkbox">
-          <input type="checkbox" {...form.register('isActive')} />
-          Account active
-        </label>
-        <label>
-          Initial password
-          <Input
-            type={reveal ? 'text' : 'password'}
-            autoComplete="new-password"
-            {...form.register('password')}
-          />
-          <FieldError message={form.formState.errors.password?.message} />
-        </label>
-        <div>
-          <Button
-            type="button"
-            disabled={mutation.isPending}
-            onClick={() => {
-              const bytes = crypto.getRandomValues(new Uint8Array(24));
-              form.setValue(
-                'password',
-                btoa(String.fromCharCode(...bytes))
-                  .replaceAll('+', '-')
-                  .replaceAll('/', '_'),
-                { shouldValidate: true },
-              );
-              setConfirm(false);
-            }}
-          >
-            Generate password
+    <section>
+      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Create user account
+        </h2>
+        <p>
+          Generate a unique password and share it privately. The password is
+          cleared after submission and cannot be retrieved later.
+        </p>
+        <form
+          className="grid gap-5"
+          onSubmit={(event) => {
+            void submit(event);
+          }}
+          onChange={() => setConfirm(false)}
+          noValidate
+        >
+          <Label className="grid gap-2">
+            Email
+            <Input
+              type="email"
+              autoComplete="off"
+              {...form.register('email')}
+            />
+            <FieldError message={form.formState.errors.email?.message} />
+          </Label>
+          <Label className="grid gap-2">
+            Full name
+            <Input autoComplete="off" {...form.register('fullName')} />
+            <FieldError message={form.formState.errors.fullName?.message} />
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Controller
+              name="isActive"
+              control={form.control}
+              render={({ field }) => (
+                <Checkbox
+                  ref={field.ref}
+                  name={field.name}
+                  checked={field.value}
+                  onBlur={field.onBlur}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked === true);
+                    setConfirm(false);
+                  }}
+                />
+              )}
+            />
+            Account active
+          </Label>
+          <Label className="grid gap-2">
+            Initial password
+            <Input
+              type={reveal ? 'text' : 'password'}
+              autoComplete="new-password"
+              {...form.register('password')}
+            />
+            <FieldError message={form.formState.errors.password?.message} />
+          </Label>
+          <div>
+            <Button
+              type="button"
+              disabled={mutation.isPending}
+              onClick={() => {
+                const bytes = crypto.getRandomValues(new Uint8Array(24));
+                form.setValue(
+                  'password',
+                  btoa(String.fromCharCode(...bytes))
+                    .replaceAll('+', '-')
+                    .replaceAll('/', '_'),
+                  { shouldValidate: true },
+                );
+                setConfirm(false);
+              }}
+            >
+              Generate password
+            </Button>
+            <Button type="button" onClick={() => setReveal((value) => !value)}>
+              {reveal ? 'Hide password' : 'Show password'}
+            </Button>
+          </div>
+          {confirm && (
+            <Alert role="status">
+              Confirm creating this account. Make sure its initial password has
+              been shared privately.
+            </Alert>
+          )}
+          <Button disabled={mutation.isPending}>
+            {mutation.isPending
+              ? 'Creating…'
+              : confirm
+                ? 'Confirm create account'
+                : 'Review new account'}
           </Button>
-          <Button type="button" onClick={() => setReveal((value) => !value)}>
-            {reveal ? 'Hide password' : 'Show password'}
-          </Button>
-        </div>
-        {confirm && (
-          <p role="status">
-            Confirm creating this account. Make sure its initial password has
-            been shared privately.
-          </p>
+        </form>
+        {mutation.error && (
+          <>
+            <Alert variant="destructive">{safeError(mutation.error)}</Alert>
+            <p>
+              Reload the user list before repeating a request whose outcome is
+              uncertain.
+            </p>
+          </>
         )}
-        <Button disabled={mutation.isPending}>
-          {mutation.isPending
-            ? 'Creating…'
-            : confirm
-              ? 'Confirm create account'
-              : 'Review new account'}
-        </Button>
-      </form>
-      {mutation.error && (
-        <>
-          <p role="alert">{safeError(mutation.error)}</p>
-          <p>
-            Reload the user list before repeating a request whose outcome is
-            uncertain.
-          </p>
-        </>
-      )}
-      {notice && <p role="status">{notice}</p>}
-    </Card>
+        {notice && <Alert role="status">{notice}</Alert>}
+      </Card>
+    </section>
   );
 }
 function UserEditor({
@@ -239,114 +270,142 @@ function UserEditor({
     });
   });
   return (
-    <Card className="card">
-      <h2>Edit {profile.fullName}</h2>
-      <p className="identifier">Account ID: {profile.id}</p>
-      <form
-        onSubmit={(event) => {
-          void submit(event);
-        }}
-        onChange={() => setConfirmation(null)}
-        noValidate
-      >
-        <label>
-          Email
-          <Input type="email" {...form.register('email')} />
-          <FieldError message={form.formState.errors.email?.message} />
-        </label>
-        <label>
-          Full name
-          <Input {...form.register('fullName')} />
-          <FieldError message={form.formState.errors.fullName?.message} />
-        </label>
-        <label className="checkbox">
-          <input type="checkbox" {...form.register('isActive')} />
-          Account active
-        </label>
-        <Button disabled={mutation.isPending}>Review account change</Button>
-      </form>
-      <fieldset disabled={mutation.isPending}>
-        <legend>Assigned roles</legend>
-        {roles.map((role) => (
-          <label key={role} className="checkbox">
-            <input
-              type="checkbox"
-              checked={selectedRoles.includes(role)}
-              onChange={(event) => {
-                setConfirmation(null);
-                setSelectedRoles((current) =>
-                  event.target.checked
-                    ? [...current, role]
-                    : current.filter((value) => value !== role),
-                );
-              }}
-            />
-            {role}
-          </label>
-        ))}
-      </fieldset>
-      <Button
-        disabled={mutation.isPending}
-        onClick={() => {
-          setNotice(null);
-          setConfirmation({
-            title: `Replace roles for ${profile.email} with ${selectedRoles.join(', ') || 'no roles'}?`,
-            execute: async () =>
-              receive(
-                await session.authorized((token) =>
-                  session.api.setRoles(token, profile.id, selectedRoles),
-                ),
-                true,
-              ),
-          });
-        }}
-      >
-        Review role changes
-      </Button>
-      <Button
-        className="danger"
-        disabled={mutation.isPending || !profile.isActive}
-        onClick={() => {
-          setNotice(null);
-          setConfirmation({
-            title: `Deactivate ${profile.email}? New sign-ins and refreshes will be denied. Existing access tokens may remain valid for 900 seconds plus 30 seconds of clock skew.`,
-            execute: async () => {
-              await session.authorized((token) =>
-                session.api.deactivate(token, profile.id),
-              );
-              await receive({ ...profile, isActive: false }, true);
-            },
-          });
-        }}
-      >
-        Deactivate account
-      </Button>
-      {confirmation && (
-        <div
-          role="group"
-          aria-labelledby="confirm-title"
-          className="confirmation"
+    <section>
+      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Edit {profile.fullName}
+        </h2>
+        <p className="break-all text-xs text-muted-foreground">
+          Account ID: {profile.id}
+        </p>
+        <form
+          className="grid gap-5"
+          onSubmit={(event) => {
+            void submit(event);
+          }}
+          onChange={() => setConfirmation(null)}
+          noValidate
         >
-          <h3 id="confirm-title">{confirmation.title}</h3>
-          <Button
-            disabled={mutation.isPending}
-            onClick={() => {
-              void mutation.mutateAsync(confirmation.execute).catch(() => {});
-            }}
+          <Label className="grid gap-2">
+            Email
+            <Input type="email" {...form.register('email')} />
+            <FieldError message={form.formState.errors.email?.message} />
+          </Label>
+          <Label className="grid gap-2">
+            Full name
+            <Input {...form.register('fullName')} />
+            <FieldError message={form.formState.errors.fullName?.message} />
+          </Label>
+          <Label className="flex items-center gap-2">
+            <Controller
+              name="isActive"
+              control={form.control}
+              render={({ field }) => (
+                <Checkbox
+                  ref={field.ref}
+                  name={field.name}
+                  checked={field.value}
+                  onBlur={field.onBlur}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked === true);
+                    setConfirmation(null);
+                  }}
+                />
+              )}
+            />
+            Account active
+          </Label>
+          <Button disabled={mutation.isPending}>Review account change</Button>
+        </form>
+        <fieldset
+          className="grid gap-3 rounded-lg border p-4"
+          disabled={mutation.isPending}
+        >
+          <legend className="px-1 text-sm font-medium">Assigned roles</legend>
+          {roles.map((role) => (
+            <Label key={role} className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedRoles.includes(role)}
+                onCheckedChange={(checked) => {
+                  setConfirmation(null);
+                  setSelectedRoles((current) =>
+                    checked === true
+                      ? [...current, role]
+                      : current.filter((value) => value !== role),
+                  );
+                }}
+              />
+              {role}
+            </Label>
+          ))}
+        </fieldset>
+        <Button
+          disabled={mutation.isPending}
+          onClick={() => {
+            setNotice(null);
+            setConfirmation({
+              title: `Replace roles for ${profile.email} with ${selectedRoles.join(', ') || 'no roles'}?`,
+              execute: async () =>
+                receive(
+                  await session.authorized((token) =>
+                    session.api.setRoles(token, profile.id, selectedRoles),
+                  ),
+                  true,
+                ),
+            });
+          }}
+        >
+          Review role changes
+        </Button>
+        <Button
+          variant="destructive"
+          disabled={mutation.isPending || !profile.isActive}
+          onClick={() => {
+            setNotice(null);
+            setConfirmation({
+              title: `Deactivate ${profile.email}? New sign-ins and refreshes will be denied. Existing access tokens may remain valid for 900 seconds plus 30 seconds of clock skew.`,
+              execute: async () => {
+                await session.authorized((token) =>
+                  session.api.deactivate(token, profile.id),
+                );
+                await receive({ ...profile, isActive: false }, true);
+              },
+            });
+          }}
+        >
+          Deactivate account
+        </Button>
+        {confirmation && (
+          <div
+            role="group"
+            aria-labelledby="confirm-title"
+            className="space-y-4 rounded-lg border bg-muted/50 p-4"
           >
-            {mutation.isPending ? 'Saving…' : 'Confirm change'}
-          </Button>
-          <Button
-            disabled={mutation.isPending}
-            onClick={() => setConfirmation(null)}
-          >
-            Cancel
-          </Button>
-        </div>
-      )}
-      {mutation.error && <p role="alert">{safeError(mutation.error)}</p>}
-      {notice && <p role="status">{notice}</p>}
-    </Card>
+            <h3 className="font-semibold" id="confirm-title">
+              {confirmation.title}
+            </h3>
+            <Button
+              disabled={mutation.isPending}
+              onClick={() => {
+                void mutation.mutateAsync(confirmation.execute).catch(() => {});
+              }}
+            >
+              {mutation.isPending ? 'Saving…' : 'Confirm change'}
+            </Button>
+            <Button
+              disabled={mutation.isPending}
+              onClick={() => setConfirmation(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+        {mutation.error && (
+          <Alert variant="destructive">{safeError(mutation.error)}</Alert>
+        )}
+        {notice && <Alert role="status">{notice}</Alert>}
+      </Card>
+    </section>
   );
 }
 function AdminContent() {
@@ -369,63 +428,73 @@ function AdminContent() {
   });
   return (
     <>
-      <Card className="card wide">
-        <h1>User administration</h1>
-        <p>
-          Manage account status and roles. Every change is checked and audited
-          by the server.
-        </p>
-        {users.isPending ? (
-          <p role="status">Loading users…</p>
-        ) : users.error ? (
-          <p role="alert">{safeError(users.error)}</p>
-        ) : (
-          <>
-            <div className="table-scroll">
-              <Table>
-                <caption>User accounts</caption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.data.items.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell>{profile.fullName}</TableCell>
-                      <TableCell>{profile.email}</TableCell>
-                      <TableCell>
-                        {profile.roles.join(', ') || 'None'}
-                      </TableCell>
-                      <TableCell>
-                        {profile.isActive ? 'Active' : 'Inactive'}
-                      </TableCell>
-                      <TableCell>
-                        <Button onClick={() => setSelected(profile)}>
-                          Edit {profile.email}
-                        </Button>
-                      </TableCell>
+      <section>
+        <Card className="min-w-0 space-y-5 p-6">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            User administration
+          </h1>
+          <p>
+            Manage account status and roles. Every change is checked and audited
+            by the server.
+          </p>
+          {users.isPending ? (
+            <Alert role="status">Loading users…</Alert>
+          ) : users.error ? (
+            <Alert variant="destructive">{safeError(users.error)}</Alert>
+          ) : (
+            <>
+              <div className="min-w-0">
+                <Table>
+                  <caption className="mb-3 text-left text-sm text-muted-foreground">
+                    User accounts
+                  </caption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Roles</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            {users.data.items.length === 0 && (
-              <p>No user accounts on this page.</p>
-            )}
-            <Pagination
-              page={page}
-              total={users.data.totalCount}
-              pending={users.isFetching}
-              change={setPage}
-            />
-          </>
-        )}
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {users.data.items.map((profile) => (
+                      <TableRow key={profile.id}>
+                        <TableCell>{profile.fullName}</TableCell>
+                        <TableCell>{profile.email}</TableCell>
+                        <TableCell>
+                          {profile.roles.join(', ') || 'None'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={profile.isActive ? 'default' : 'secondary'}
+                          >
+                            {profile.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button onClick={() => setSelected(profile)}>
+                            Edit {profile.email}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {users.data.items.length === 0 && (
+                <p>No user accounts on this page.</p>
+              )}
+              <Pagination
+                page={page}
+                total={users.data.totalCount}
+                pending={users.isFetching}
+                change={setPage}
+              />
+            </>
+          )}
+        </Card>
+      </section>
       <CreateUser
         created={(profile) => {
           setSelected(profile);
@@ -444,59 +513,65 @@ function AdminContent() {
           }}
         />
       )}
-      <Card className="card wide">
-        <h2>Identity audit log</h2>
-        <Button onClick={() => setShowAudit((value) => !value)}>
-          {showAudit ? 'Hide audit log' : 'View audit log'}
-        </Button>
-        {showAudit &&
-          (audit.isPending ? (
-            <p role="status">Loading audit log…</p>
-          ) : audit.error ? (
-            <p role="alert">{safeError(audit.error)}</p>
-          ) : (
-            <>
-              <div className="table-scroll">
-                <Table>
-                  <caption>Identity audit records · UTC timestamps</caption>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Actor</TableHead>
-                      <TableHead>Resource</TableHead>
-                      <TableHead>Result</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {audit.data.items.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>{record.timestamp}</TableCell>
-                        <TableCell>{record.action}</TableCell>
-                        <TableCell className="identifier">
-                          {record.actorId ?? 'Anonymous'}
-                        </TableCell>
-                        <TableCell className="identifier">
-                          {record.resourceId ?? '—'}
-                        </TableCell>
-                        <TableCell>{record.resultCode}</TableCell>
+      <section id="identity-audit" tabIndex={-1}>
+        <Card className="min-w-0 space-y-5 p-6">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Identity audit log
+          </h2>
+          <Button onClick={() => setShowAudit((value) => !value)}>
+            {showAudit ? 'Hide audit log' : 'View audit log'}
+          </Button>
+          {showAudit &&
+            (audit.isPending ? (
+              <Alert role="status">Loading audit log…</Alert>
+            ) : audit.error ? (
+              <Alert variant="destructive">{safeError(audit.error)}</Alert>
+            ) : (
+              <>
+                <div className="min-w-0">
+                  <Table>
+                    <caption className="mb-3 text-left text-sm text-muted-foreground">
+                      Identity audit records · UTC timestamps
+                    </caption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Actor</TableHead>
+                        <TableHead>Resource</TableHead>
+                        <TableHead>Result</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {audit.data.items.length === 0 && (
-                <p>No audit records on this page.</p>
-              )}
-              <Pagination
-                page={auditPage}
-                total={audit.data.totalCount}
-                pending={audit.isFetching}
-                change={setAuditPage}
-              />
-            </>
-          ))}
-      </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {audit.data.items.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>{record.timestamp}</TableCell>
+                          <TableCell>{record.action}</TableCell>
+                          <TableCell className="break-all text-xs text-muted-foreground">
+                            {record.actorId ?? 'Anonymous'}
+                          </TableCell>
+                          <TableCell className="break-all text-xs text-muted-foreground">
+                            {record.resourceId ?? '—'}
+                          </TableCell>
+                          <TableCell>{record.resultCode}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {audit.data.items.length === 0 && (
+                  <p>No audit records on this page.</p>
+                )}
+                <Pagination
+                  page={auditPage}
+                  total={audit.data.totalCount}
+                  pending={audit.isFetching}
+                  change={setAuditPage}
+                />
+              </>
+            ))}
+        </Card>
+      </section>
     </>
   );
 }

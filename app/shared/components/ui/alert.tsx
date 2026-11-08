@@ -1,17 +1,16 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+
 import { cn } from '~/shared/lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded-[8px] p-4 text-base leading-relaxed',
+  'relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7',
   {
     variants: {
       variant: {
-        default: 'bg-white text-[#182a30] border border-[#dce6e1]',
-        destructive: 'text-[#9e3035] font-normal p-0',
-        success: 'text-[#225f50] font-normal p-0',
-        warning:
-          'bg-[#fff8e8] border-2 border-[#c58b19] rounded-[8px] p-4 text-[#182a30]',
+        default: 'bg-background text-foreground',
+        destructive:
+          'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
       },
     },
     defaultVariants: {
@@ -23,23 +22,14 @@ const alertVariants = cva(
 const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, role, ...props }, ref) => {
-  const resolvedRole =
-    role ??
-    (variant === 'destructive'
-      ? 'alert'
-      : variant === 'success'
-        ? 'status'
-        : 'region');
-  return (
-    <div
-      ref={ref}
-      role={resolvedRole}
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    />
-  );
-});
+>(({ className, variant, ...props }, ref) => (
+  <div
+    ref={ref}
+    role="alert"
+    className={cn(alertVariants({ variant }), className)}
+    {...props}
+  />
+));
 Alert.displayName = 'Alert';
 
 const AlertTitle = React.forwardRef<
@@ -48,7 +38,7 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
-    className={cn('mb-1 font-bold leading-none tracking-tight', className)}
+    className={cn('mb-1 font-medium leading-none tracking-tight', className)}
     {...props}
   />
 ));
