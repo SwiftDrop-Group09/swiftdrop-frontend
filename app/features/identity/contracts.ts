@@ -17,6 +17,11 @@ export const profileSchema = z.object({
   isActive: z.boolean(),
 });
 export type Profile = z.infer<typeof profileSchema>;
+export const signInMethodsSchema = z.object({
+  hasPassword: z.boolean(),
+  googleLinked: z.boolean(),
+});
+export type SignInMethods = z.infer<typeof signInMethodsSchema>;
 export const tokenSchema = z
   .object({
     accessToken: z.string().min(1),

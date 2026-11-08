@@ -146,7 +146,11 @@ export class IdentitySession {
         generation === this.generation &&
         error instanceof IdentityError &&
         ((error.status === 401 && !preserveCredentialFailure) ||
-          error.status === 403)
+          (error.status === 403 &&
+            !(
+              preserveCredentialFailure &&
+              error.code === 'account_link_rejected'
+            )))
       )
         this.clear(error.message);
       throw error;

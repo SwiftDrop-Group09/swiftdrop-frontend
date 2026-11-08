@@ -106,6 +106,52 @@ SDK configuration/callback behavior is tested with a stub; real provider consent
 configured audiences/origins, and deployed browser TLS are still integration
 dependencies.
 
+## Profile settings and connected sign-in methods
+
+The 9 November 2026 profile update adds a responsive personal-details editor,
+server-assigned role badges and role descriptions, contact-address guidance, and
+Admin access to the existing user administration screen. Email and roles are
+read-only. Save is enabled for changed fields; reset restores the latest saved
+values, and successful saves update the form, profile cache and sidebar name.
+
+The sign-in card reads `GET /api/v1/auth/methods` using the current bearer token.
+Its `{hasPassword, googleLinked}` response describes connected account methods;
+it does not infer how this particular session was opened. Missing or unavailable
+metadata shows a retry state and no connection action.
+
+- Password only: Connect Google asks for the current password and uses the
+  inline Google SDK control with a fresh nonce. The existing link endpoint checks
+  the same verified email and provider ownership. Successful linking refetches
+  the confirmed method state. A wrong password or rejected email leaves the
+  existing local session usable; an actual authorization rejection still fails
+  closed.
+- Google only: Add password validates a 12-128 character password and confirmation
+  locally, then requires the inline Google control to confirm the linked identity.
+  `POST /api/v1/auth/password` submits only `{idToken, password}`; the backend
+  validates the nonce and exact existing Google subject, hashes the password and
+  commits its audit atomically. It cannot overwrite an existing password or merge
+  accounts. Google remains connected.
+- Both: the card shows both methods enabled without redundant connection forms.
+
+Credential actions use no Query mutation variables or persistent browser storage.
+Passwords are cleared after attempts and on cancelling/unmounting the editor.
+Cancellation is disabled while an exchange is in progress. There is no automatic
+credential mutation replay, password reset, email change or provider removal.
+
+Deploy/rebuild the Identity changes alongside this frontend. See the backend's
+[account-connections contract](../../swiftdrop-backend/docs/account-connections.md).
+The existing schema and secrets suffice; no migration is required. The owning
+service and Gateway boundaries are unchanged.
+
+Checks on 9 November 2026: 84 frontend tests, formatting, lint, types and production
+build passed; Chromium exercised all five role profiles, save/reset, both
+connection directions, both-connected state, cancellation, payload allowlists
+and 320px layouts using isolated API/provider fixtures. Backend tests exercise
+the real PostgreSQL transactions and rejection paths. Google's live SDK control
+also rendered inside the profile confirmation step at 320px, 375px and desktop
+without overflow. Real Google account consent
+and a deployed browser token exchange remain separate integration checks.
+
 ## Booking and other client handoff
 
 `useIdentity().session.authenticatedRequest` has the teammate's
