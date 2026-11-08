@@ -8,6 +8,9 @@ import { profileInputSchema } from './contracts';
 import type { Profile, ProfileInput } from './contracts';
 import { GoogleButton } from './google-button';
 import { useIdentity } from './session';
+import { Button } from '~/shared/components/ui/button';
+import { Input } from '~/shared/components/ui/input';
+import { Card } from '~/shared/components/ui/card';
 
 function ProfileForm({ user }: { user: Profile }) {
   const { session } = useIdentity();
@@ -51,12 +54,12 @@ function ProfileForm({ user }: { user: Profile }) {
       </p>
       <label>
         Full name
-        <input autoComplete="name" {...form.register('fullName')} />
+        <Input autoComplete="name" {...form.register('fullName')} />
         <FieldError message={form.formState.errors.fullName?.message} />
       </label>
       <label>
         Phone number
-        <input autoComplete="tel" {...form.register('phoneNumber')} />
+        <Input autoComplete="tel" {...form.register('phoneNumber')} />
         <FieldError message={form.formState.errors.phoneNumber?.message} />
       </label>
       <label>
@@ -64,9 +67,9 @@ function ProfileForm({ user }: { user: Profile }) {
         <textarea autoComplete="street-address" {...form.register('address')} />
         <FieldError message={form.formState.errors.address?.message} />
       </label>
-      <button disabled={mutation.isPending}>
+      <Button disabled={mutation.isPending}>
         {mutation.isPending ? 'Saving…' : 'Save profile'}
-      </button>
+      </Button>
       {mutation.error && <p role="alert">{safeError(mutation.error)}</p>}
       {notice && <p role="status">{notice}</p>}
     </form>
@@ -85,7 +88,7 @@ function ProfileContent() {
   });
   return (
     <>
-      <section className="card">
+      <Card className="card">
         <h1>My profile</h1>
         {profile.isPending ? (
           <p role="status">Loading profile…</p>
@@ -94,8 +97,8 @@ function ProfileContent() {
         ) : (
           <ProfileForm key={profile.data.id} user={profile.data} />
         )}
-      </section>
-      <section className="card">
+      </Card>
+      <Card className="card">
         <h2>Link Google</h2>
         <p>
           Link a Google account with the same verified email. Confirm your
@@ -103,7 +106,7 @@ function ProfileContent() {
         </p>
         <label>
           Current password
-          <input
+          <Input
             type="password"
             autoComplete="current-password"
             value={password}
@@ -134,10 +137,10 @@ function ProfileContent() {
           }}
         />
         {message && <p role="status">{message}</p>}
-      </section>
-      <section className="card">
+      </Card>
+      <Card className="card">
         <h2>Session</h2>
-        <button
+        <Button
           disabled={loggingOut}
           onClick={() => {
             setLoggingOut(true);
@@ -157,8 +160,8 @@ function ProfileContent() {
           }}
         >
           Sign out
-        </button>
-      </section>
+        </Button>
+      </Card>
     </>
   );
 }

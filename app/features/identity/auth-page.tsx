@@ -7,6 +7,9 @@ import { registrationSchema, loginSchema } from './contracts';
 import { FieldError, IdentityShell, safeError } from './components';
 import { GoogleButton } from './google-button';
 import { useIdentity } from './session';
+import { Button } from '~/shared/components/ui/button';
+import { Input } from '~/shared/components/ui/input';
+import { Card } from '~/shared/components/ui/card';
 
 type Values = z.infer<typeof registrationSchema>;
 export function AuthPage({ register = false }: { register?: boolean }) {
@@ -18,6 +21,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
     .safeParse(location.state);
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const form = useForm<Values>({
     resolver: zodResolver(
       register
@@ -50,7 +54,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
   });
   return (
     <IdentityShell>
-      <section className="card auth-card">
+      <Card className="card auth-card">
         <p className="eyebrow">Your SwiftDrop account</p>
         <h1>{register ? 'Create a Customer account' : 'Welcome back'}</h1>
         {restoring && <p role="status">Checking for an existing session…</p>}
@@ -73,13 +77,13 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           {register && (
             <label>
               Full name
-              <input autoComplete="name" {...form.register('fullName')} />
+              <Input autoComplete="name" {...form.register('fullName')} />
               <FieldError message={form.formState.errors.fullName?.message} />
             </label>
           )}
           <label>
             Email
-            <input
+            <Input
               type="email"
               autoComplete="username"
               {...form.register('email')}
@@ -88,11 +92,57 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           </label>
           <label>
             Password
-            <input
-              type="password"
-              autoComplete={register ? 'new-password' : 'current-password'}
-              {...form.register('password')}
-            />
+            <div className="password-field">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={register ? 'new-password' : 'current-password'}
+                {...form.register('password')}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                    <line x1="2" y1="2" x2="22" y2="22" />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
             <FieldError message={form.formState.errors.password?.message} />
           </label>
           {register && (
@@ -101,29 +151,34 @@ export function AuthPage({ register = false }: { register?: boolean }) {
               Customer account.
             </p>
           )}
-          <button disabled={form.formState.isSubmitting || restoring}>
-            {form.formState.isSubmitting
-              ? 'Please wait…'
-              : register
-                ? 'Create account'
-                : 'Sign in'}
-          </button>
+          <Button disabled={form.formState.isSubmitting || restoring}>
+            {form.formState.isSubmitting ? (
+              <>
+                <span className="btn-spinner" aria-hidden="true" />
+                <span>{register ? 'Creating account…' : 'Signing in…'}</span>
+              </>
+            ) : register ? (
+              'Create account'
+            ) : (
+              'Sign in'
+            )}
+          </Button>
         </form>
-        {!register && (
-          <GoogleButton
-            disabled={restoring || form.formState.isSubmitting}
-            onToken={async (token) => {
-              setError(null);
-              try {
-                await session.google(token);
-                await navigate('/profile', { replace: true });
-              } catch (cause) {
-                setError(safeError(cause));
-                throw cause;
-              }
-            }}
-          />
-        )}
+        <GoogleButton
+          key={register ? 'register' : 'login'}
+          text={register ? 'signup_with' : 'signin_with'}
+          disabled={restoring || form.formState.isSubmitting}
+          onToken={async (token) => {
+            setError(null);
+            try {
+              await session.google(token);
+              await navigate('/profile', { replace: true });
+            } catch (cause) {
+              setError(safeError(cause));
+              throw cause;
+            }
+          }}
+        />
         <p>
           {register ? (
             <>
@@ -136,7 +191,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
             </>
           )}
         </p>
-      </section>
+      </Card>
     </IdentityShell>
   );
 }

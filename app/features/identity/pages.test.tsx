@@ -120,6 +120,19 @@ describe('Customer account screens', () => {
     });
     expect(screen.getByLabelText('Password')).toHaveValue('');
   });
+  it('toggles password visibility between password and plain text', async () => {
+    const { user } = mount('/login');
+    const input = screen.getByLabelText('Password');
+    expect(input).toHaveAttribute('type', 'password');
+    const toggle = screen.getByRole('button', { name: 'Show password' });
+    await user.click(toggle);
+    expect(input).toHaveAttribute('type', 'text');
+    expect(
+      screen.getByRole('button', { name: 'Hide password' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(input).toHaveAttribute('type', 'password');
+  });
   it('presents generic login errors and clears the password', async () => {
     const { user } = mount('/login', undefined, (path) =>
       path.endsWith('/auth/login')
@@ -288,6 +301,40 @@ describe('Google SDK and explicit linking', () => {
     expect(
       await screen.findByRole('heading', { name: 'My profile' }),
     ).toBeInTheDocument();
+  });
+  it('uses sign-up text on registration and sign-in text on login', async () => {
+    const renderButton = vi.fn((element: HTMLElement) => {
+      const button = document.createElement('button');
+      button.textContent = 'Google provider sign in';
+      element.replaceChildren(button);
+    });
+    vi.stubEnv(
+      'VITE_GOOGLE_WEB_CLIENT_ID',
+      'public-client.apps.googleusercontent.com',
+    );
+    window.google = {
+      accounts: {
+        id: {
+          initialize: vi.fn(),
+          renderButton,
+          cancel: vi.fn(),
+          disableAutoSelect: vi.fn(),
+        },
+      },
+    };
+
+    mount('/register');
+    await screen.findByRole('button', { name: 'Google provider sign in' });
+    expect(renderButton).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ text: 'signup_with' }),
+    );
+    mount('/login');
+    await screen.findAllByRole('button', { name: 'Google provider sign in' });
+    expect(renderButton).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ text: 'signin_with' }),
+    );
   });
   it('ignores a late Google callback after leaving the sign-in route', async () => {
     const initialize = google();

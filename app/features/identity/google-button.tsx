@@ -16,7 +16,7 @@ type GoogleSdk = {
       type: 'standard';
       theme: 'outline';
       size: 'large';
-      text: 'signin_with';
+      text: 'signin_with' | 'signup_with';
     },
   ): void;
   cancel(): void;
@@ -62,9 +62,11 @@ export function loadGoogleSdk(): Promise<GoogleSdk> {
 export function GoogleButton({
   onToken,
   disabled = false,
+  text = 'signin_with',
 }: {
   onToken: (token: string) => Promise<void>;
   disabled?: boolean;
+  text?: 'signin_with' | 'signup_with';
 }) {
   const { session } = useIdentity();
   const container = useRef<HTMLDivElement>(null);
@@ -110,7 +112,7 @@ export function GoogleButton({
           type: 'standard',
           theme: 'outline',
           size: 'large',
-          text: 'signin_with',
+          text,
         });
       })
       .catch(() => {
@@ -125,7 +127,7 @@ export function GoogleButton({
       sdk?.cancel();
       element?.replaceChildren();
     };
-  }, [session, attempt, disabled]);
+  }, [session, attempt, disabled, text]);
   if (!import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID)
     return <p>Google sign-in is not configured for this deployment.</p>;
   return (
