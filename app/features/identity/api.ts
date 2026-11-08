@@ -3,6 +3,7 @@ import {
   auditSchema,
   pageSchema,
   profileSchema,
+  signInMethodsSchema,
   tokenSchema,
 } from './contracts';
 import type { AdminInput, ProfileInput } from './contracts';
@@ -21,6 +22,12 @@ export function messageFor(code: string) {
       return 'Sign-in failed or your session expired. Check your credentials and try again.';
     case 'account_link_required':
       return 'Sign in with your local password, then link Google from your profile.';
+    case 'password_already_set':
+      return 'Password sign-in is already enabled. Refresh your sign-in methods.';
+    case 'google_identity_conflict':
+      return 'This Google account is connected to another SwiftDrop account.';
+    case 'account_link_rejected':
+      return 'Choose the Google account with the same verified email as your SwiftDrop account.';
     case 'registration_conflict':
       return 'Registration could not be completed. Try signing in to your existing account.';
     case 'last_active_admin':
@@ -39,7 +46,7 @@ export function messageFor(code: string) {
     case 'validation':
       return 'Check the supplied information and try again.';
     case 'google_unavailable':
-      return 'Google sign-in is unavailable. You can use your local password.';
+      return 'Google sign-in is unavailable. Please try again later.';
     case 'logout_unconfirmed':
       return 'Signed out on this page. Server logout could not be confirmed; close shared browser windows and try again when connected.';
     default:
@@ -174,6 +181,25 @@ export class IdentityApi {
   async profile(token: string) {
     return profileSchema.parse(
       await (await this.send('/v1/users/me', 'GET', undefined, token)).json(),
+    );
+  }
+  async signInMethods(token: string) {
+    return signInMethodsSchema.parse(
+      await (
+        await this.send('/v1/auth/methods', 'GET', undefined, token)
+      ).json(),
+    );
+  }
+  async addPassword(token: string, idToken: string, password: string) {
+    return signInMethodsSchema.parse(
+      await (
+        await this.send(
+          '/v1/auth/password',
+          'POST',
+          { idToken, password },
+          token,
+        )
+      ).json(),
     );
   }
   async updateProfile(

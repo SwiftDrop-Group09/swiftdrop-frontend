@@ -75,6 +75,13 @@ authenticated session or `/login` for a signed-out visitor. Create account opens
 login or signup return to the dashboard. The former account landing card has
 been removed.
 
+The profile page has role-aware account information, editable personal contact
+details with save/reset, and a server-backed sign-in methods card. Password
+accounts can connect Google; Google-only accounts can add a password after Google
+confirmation. Both methods retain the same account and assigned roles. Rebuild
+Identity with the [connection endpoints](../swiftdrop-backend/docs/account-connections.md)
+alongside this frontend; no new secret or database migration is needed.
+
 Google's official sign-in control renders directly in the auth form. Supported
 SDK options set its outline theme, rectangular shape and responsive width; scoped
 CSS in `google-button.css` aligns its host and focus ring with the shared theme.

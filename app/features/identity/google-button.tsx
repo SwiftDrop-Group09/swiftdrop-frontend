@@ -20,7 +20,7 @@ type GoogleSdk = {
       type: 'standard';
       theme: 'outline';
       size: 'large';
-      text: 'signin_with' | 'signup_with';
+      text: 'signin_with' | 'signup_with' | 'continue_with';
       shape: 'rectangular';
       logo_alignment: 'center';
       width: string;
@@ -74,7 +74,7 @@ export function GoogleButton({
 }: {
   onToken: (token: string) => Promise<void>;
   disabled?: boolean;
-  text?: 'signin_with' | 'signup_with';
+  text?: 'signin_with' | 'signup_with' | 'continue_with';
   onBusyChange?: (busy: boolean) => void;
 }) {
   const { session } = useIdentity();
@@ -165,7 +165,7 @@ export function GoogleButton({
       .catch(() => {
         if (mounted)
           setError(
-            'Google sign-in could not load. Use local sign-in or try again.',
+            'Google sign-in could not load. Check your connection and try again.',
           );
       });
     return () => {

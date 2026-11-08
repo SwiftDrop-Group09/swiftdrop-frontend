@@ -41,6 +41,8 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
           ? json(pair(signedIn))
           : json({ code: 'invalid_credentials' }, 401),
       );
+    if (url.endsWith('/auth/methods'))
+      return Promise.resolve(json({ hasPassword: true, googleLinked: false }));
     if (url.endsWith('/users/me'))
       return Promise.resolve(json(signedIn ?? customer));
     if (url.startsWith('/api/v1/users?'))
@@ -476,8 +478,8 @@ describe('Customer account screens', () => {
     const name = await screen.findByDisplayValue(customer.fullName);
     await user.clear(name);
     await user.type(name, 'Changed Customer');
-    await user.type(screen.getByLabelText('Phone number'), '0771234567');
-    await user.type(screen.getByLabelText('Address'), 'Colombo');
+    await user.type(screen.getByLabelText(/^Phone number/), '0771234567');
+    await user.type(screen.getByLabelText(/^Address/), 'Colombo');
     await user.click(screen.getByRole('button', { name: 'Save profile' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Your profile was saved',
@@ -523,41 +525,41 @@ describe('Customer account screens', () => {
   });
 });
 
-describe('Google SDK and explicit linking', () => {
-  function google() {
-    vi.stubEnv(
-      'VITE_GOOGLE_WEB_CLIENT_ID',
-      'public-client.apps.googleusercontent.com',
-    );
-    let callback: (response: { credential?: string }) => void = () => {};
-    const initialize = vi.fn<
-      (
-        options: Parameters<
-          NonNullable<Window['google']>['accounts']['id']['initialize']
-        >[0],
-      ) => void
-    >((options) => {
-      callback = options.callback;
-    });
-    window.google = {
-      accounts: {
-        id: {
-          initialize,
-          renderButton: (element) => {
-            const button = document.createElement('button');
-            button.textContent = 'Google provider sign in';
-            button.onclick = () =>
-              callback({ credential: 'sdk-signed-id-token' });
-            element.replaceChildren(button);
-          },
-          cancel: vi.fn(),
-          disableAutoSelect: vi.fn(),
+function google() {
+  vi.stubEnv(
+    'VITE_GOOGLE_WEB_CLIENT_ID',
+    'public-client.apps.googleusercontent.com',
+  );
+  let callback: (response: { credential?: string }) => void = () => {};
+  const initialize = vi.fn<
+    (
+      options: Parameters<
+        NonNullable<Window['google']>['accounts']['id']['initialize']
+      >[0],
+    ) => void
+  >((options) => {
+    callback = options.callback;
+  });
+  window.google = {
+    accounts: {
+      id: {
+        initialize,
+        renderButton: (element) => {
+          const button = document.createElement('button');
+          button.textContent = 'Google provider sign in';
+          button.onclick = () =>
+            callback({ credential: 'sdk-signed-id-token' });
+          element.replaceChildren(button);
         },
+        cancel: vi.fn(),
+        disableAutoSelect: vi.fn(),
       },
-    };
-    return initialize;
-  }
+    },
+  };
+  return initialize;
+}
 
+describe('Google SDK and explicit linking', () => {
   it('renders the provider inline without an application dialog or token exchange', async () => {
     const initialize = google();
     const { fetcher } = mount('/login');
@@ -656,6 +658,9 @@ describe('Google SDK and explicit linking', () => {
         : undefined,
     );
     await screen.findByDisplayValue(customer.fullName);
+    await user.click(
+      await screen.findByRole('button', { name: 'Connect Google' }),
+    );
     await user.type(
       screen.getByLabelText('Current password'),
       'wrong-local-password',
@@ -725,6 +730,9 @@ describe('Google SDK and explicit linking', () => {
     expect(
       screen.queryByRole('button', { name: 'Google provider sign in' }),
     ).not.toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('button', { name: 'Connect Google' }),
+    );
     await user.type(
       screen.getByLabelText('Current password'),
       'fresh-local-password',
@@ -735,7 +743,7 @@ describe('Google SDK and explicit linking', () => {
     expect(
       await screen.findByText('Google was linked to your account.'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Current password')).toHaveValue('');
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
     const call = fetcher.mock.calls.find((value) =>
       pathOf(value[0]).endsWith('/auth/google/link'),
     )!;
@@ -743,6 +751,299 @@ describe('Google SDK and explicit linking', () => {
       idToken: 'sdk-signed-id-token',
       currentPassword: 'fresh-local-password',
     });
+  });
+});
+
+describe('Profile settings and sign-in connections', () => {
+  it.each(['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'] as const)(
+    'shows %s access without offering self role changes',
+    async (role) => {
+      const account = { ...customer, roles: [role] };
+      mount('/profile', account);
+      await screen.findByDisplayValue(customer.fullName);
+      expect(
+        within(screen.getByLabelText('Assigned roles')).getByText(role),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Email address')).toHaveAttribute(
+        'readonly',
+      );
+      expect(
+        screen.queryByRole('checkbox', { name: role }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Manage users and roles' }) !== null,
+      ).toBe(role === 'Admin');
+    },
+  );
+
+  it('resets edits and uses normalized saved values as the new clean state', async () => {
+    const { user, session } = mount('/profile', customer, (path, init) =>
+      path.endsWith('/users/me') && init?.method === 'PUT'
+        ? json({ ...customer, fullName: 'Saved Customer' })
+        : undefined,
+    );
+    const name = await screen.findByDisplayValue(customer.fullName);
+    const save = screen.getByRole('button', { name: 'Save profile' });
+    expect(save).toBeDisabled();
+    await user.clear(name);
+    await user.type(name, 'Discard me');
+    await user.click(screen.getByRole('button', { name: 'Reset changes' }));
+    expect(name).toHaveValue(customer.fullName);
+    expect(save).toBeDisabled();
+    await user.clear(name);
+    await user.type(name, 'Saved Customer ');
+    await user.click(save);
+    await screen.findByText('Your profile was saved.');
+    expect(name).toHaveValue('Saved Customer');
+    expect(save).toBeDisabled();
+    expect(session.getSnapshot().user?.fullName).toBe('Saved Customer');
+  });
+
+  it('shows both confirmed sign-in methods without a redundant connection form', async () => {
+    mount('/profile', customer, (path) =>
+      path.endsWith('/auth/methods')
+        ? json({ hasPassword: true, googleLinked: true })
+        : undefined,
+    );
+    await screen.findByText('Your Google account is connected.');
+    expect(
+      screen.getByText('Password sign-in is enabled.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Connect Google' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add password' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('fails closed when method metadata is unavailable and offers a real retry', async () => {
+    let unavailable = true;
+    const { user, fetcher } = mount('/profile', customer, (path) =>
+      path.endsWith('/auth/methods')
+        ? unavailable
+          ? json({ code: 'unavailable' }, 503)
+          : json({ hasPassword: false, googleLinked: true })
+        : undefined,
+    );
+    await screen.findByText(
+      'Sign-in methods could not be loaded. Please try again.',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Connect Google' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add password' }),
+    ).not.toBeInTheDocument();
+    unavailable = false;
+    await user.click(
+      screen.getByRole('button', { name: 'Retry sign-in methods' }),
+    );
+    await screen.findByRole('button', { name: 'Add password' });
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/password'),
+      ),
+    ).toBe(false);
+  });
+
+  it('validates a new password before Google confirmation and sends only the credential contract', async () => {
+    const initialize = google();
+    let methods = { hasPassword: false, googleLinked: true };
+    const { user, fetcher, queries } = mount('/profile', customer, (path) => {
+      if (path.endsWith('/auth/methods')) return json(methods);
+      if (path.endsWith('/auth/password')) {
+        methods = { hasPassword: true, googleLinked: true };
+        return json(methods);
+      }
+      return undefined;
+    });
+    await user.click(
+      await screen.findByRole('button', { name: 'Add password' }),
+    );
+    await user.type(
+      screen.getByLabelText('New password', { exact: true }),
+      'private-new-password',
+    );
+    await user.type(
+      screen.getByLabelText('Confirm new password'),
+      'different-password',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Continue to Google confirmation' }),
+    );
+    await screen.findByText('Passwords do not match.');
+    expect(screen.getByLabelText('Confirm new password')).toHaveFocus();
+    expect(initialize).not.toHaveBeenCalled();
+    await user.clear(screen.getByLabelText('Confirm new password'));
+    await user.type(
+      screen.getByLabelText('Confirm new password'),
+      'private-new-password',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Continue to Google confirmation' }),
+    );
+    const provider = await screen.findByRole('button', {
+      name: 'Google provider sign in',
+    });
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/password'),
+      ),
+    ).toBe(false);
+    await user.click(provider);
+    await screen.findByText(
+      'Password sign-in is now enabled. You can use either method.',
+    );
+    expect(
+      screen.getByText('Password sign-in is enabled.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('New password')).not.toBeInTheDocument();
+    const writes = fetcher.mock.calls.filter((call) =>
+      pathOf(call[0]).endsWith('/auth/password'),
+    );
+    expect(writes).toHaveLength(1);
+    expect(payload(writes[0]![1])).toEqual({
+      idToken: 'sdk-signed-id-token',
+      password: 'private-new-password',
+    });
+    const cached = JSON.stringify(
+      queries
+        .getQueryCache()
+        .getAll()
+        .map((query) => query.state.data),
+    );
+    expect(cached).not.toContain('private-new-password');
+    expect(cached).not.toContain('sdk-signed-id-token');
+    expect(queries.getMutationCache().getAll()).toHaveLength(0);
+  });
+
+  it('cancels adding a password without writing and clears private form values', async () => {
+    google();
+    const { user, fetcher } = mount('/profile', customer, (path) =>
+      path.endsWith('/auth/methods')
+        ? json({ hasPassword: false, googleLinked: true })
+        : undefined,
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Add password' }),
+    );
+    await user.type(
+      screen.getByLabelText('New password', { exact: true }),
+      'private-new-password',
+    );
+    await user.type(
+      screen.getByLabelText('Confirm new password'),
+      'private-new-password',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Continue to Google confirmation' }),
+    );
+    await screen.findByRole('button', { name: 'Google provider sign in' });
+    await user.click(screen.getByRole('button', { name: 'Cancel connecting' }));
+    await user.click(screen.getByRole('button', { name: 'Add password' }));
+    expect(screen.getByLabelText('New password', { exact: true })).toHaveValue(
+      '',
+    );
+    expect(screen.getByLabelText('Confirm new password')).toHaveValue('');
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).endsWith('/auth/password'),
+      ),
+    ).toBe(false);
+  });
+
+  it('preserves the signed-in session and clears new passwords after rejected Google confirmation', async () => {
+    google();
+    const { user, session, fetcher } = mount('/profile', customer, (path) =>
+      path.endsWith('/auth/methods')
+        ? json({ hasPassword: false, googleLinked: true })
+        : path.endsWith('/auth/password')
+          ? json({ code: 'invalid_credentials' }, 401)
+          : undefined,
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Add password' }),
+    );
+    await user.type(
+      screen.getByLabelText('New password', { exact: true }),
+      'private-new-password',
+    );
+    await user.type(
+      screen.getByLabelText('Confirm new password'),
+      'private-new-password',
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Continue to Google confirmation' }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Google provider sign in' }),
+    );
+    await screen.findByText(/Sign-in failed or your session expired/);
+    expect(session.getSnapshot().user).toEqual(customer);
+    expect(screen.getByLabelText('New password', { exact: true })).toHaveValue(
+      '',
+    );
+    expect(screen.getByLabelText('Confirm new password')).toHaveValue('');
+    expect(
+      fetcher.mock.calls.filter((call) =>
+        pathOf(call[0]).endsWith('/auth/password'),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('does not sign the user out when Google linking rejects a different email', async () => {
+    google();
+    const { user, session } = mount('/profile', customer, (path) =>
+      path.endsWith('/auth/google/link')
+        ? json({ code: 'account_link_rejected' }, 403)
+        : undefined,
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Connect Google' }),
+    );
+    await user.type(
+      screen.getByLabelText('Current password'),
+      'private-local-password',
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Google provider sign in' }),
+    );
+    await screen.findByText(
+      'Choose the Google account with the same verified email as your SwiftDrop account.',
+    );
+    expect(session.getSnapshot().user).toEqual(customer);
+    expect(screen.getByLabelText('Current password')).toHaveValue('');
+  });
+
+  it('reads confirmed connected status after linking Google', async () => {
+    google();
+    let linked = false;
+    const { user } = mount('/profile', customer, (path) => {
+      if (path.endsWith('/auth/methods'))
+        return json({ hasPassword: true, googleLinked: linked });
+      if (path.endsWith('/auth/google/link')) {
+        linked = true;
+        return json(customer);
+      }
+      return undefined;
+    });
+    await user.click(
+      await screen.findByRole('button', { name: 'Connect Google' }),
+    );
+    await user.type(
+      screen.getByLabelText('Current password'),
+      'private-local-password',
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Google provider sign in' }),
+    );
+    await screen.findByText('Your Google account is connected.');
+    expect(
+      screen.queryByRole('button', { name: 'Connect Google' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
   });
 });
 
