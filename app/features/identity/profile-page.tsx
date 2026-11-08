@@ -268,7 +268,7 @@ function ProfileContent() {
             {initials}
           </span>
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="break-words text-xl font-semibold tracking-tight">
+            <p className="wrap-break-word text-xl font-semibold tracking-tight">
               {account.fullName}
             </p>
             <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">

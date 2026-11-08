@@ -8,5 +8,6 @@ export default [
   route('dashboard', 'portals/customer/dashboard.tsx'),
   route('profile', 'portals/customer/profile.tsx'),
   route('admin/users', 'portals/admin/users.tsx'),
+  route('customer/book', 'portals/customer/booking.tsx'),
   route('*', 'portals/public/not-found.tsx'),
 ] satisfies RouteConfig;

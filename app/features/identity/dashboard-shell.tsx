@@ -157,7 +157,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       ? 'Account'
       : pathname.startsWith('/admin/')
         ? 'Administration'
-        : 'Dashboard';
+        : pathname === '/customer/book'
+          ? 'Book a delivery'
+          : 'Dashboard';
   return (
     <SidebarProvider
       style={

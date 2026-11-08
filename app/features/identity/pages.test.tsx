@@ -189,12 +189,7 @@ describe('Customer account screens', () => {
     const navigation = within(
       screen.getByRole('navigation', { name: 'Customer navigation' }),
     );
-    for (const label of [
-      'Book a delivery',
-      'Track a parcel',
-      'Delivery history',
-      'Receipts',
-    ]) {
+    for (const label of ['Track a parcel', 'Delivery history', 'Receipts']) {
       const item = navigation.getByRole('button', { name: label });
       expect(item).toBeDisabled();
       expect(item).toHaveAccessibleDescription(
@@ -203,7 +198,9 @@ describe('Customer account screens', () => {
       await user.click(item);
       expect(router.state.location.pathname).toBe('/dashboard');
     }
-    expect(navigation.queryByRole('link')).not.toBeInTheDocument();
+    expect(
+      navigation.getByRole('link', { name: 'Book a delivery' }),
+    ).toHaveAttribute('href', '/customer/book');
     expect(
       screen.getByRole('button', { name: 'Business registration' }),
     ).toBeDisabled();

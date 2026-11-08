@@ -175,7 +175,7 @@ use Query hooks for reads, mutations, and invalidation.
 The infrastructure test verifies Query cache isolation between application
 instances; Identity tests cover API, session and screen behavior. GitHub Actions
 runs `npm ci` and `npm run check` on pull requests and pushes to the repository's
-confirmed default branch, `main`, using `.nvmrc` and read-only permissions.
+default branch, `dev`, using `.nvmrc` and read-only permissions.
 
 ## Environment and backend integration
 
@@ -211,11 +211,9 @@ docker run --rm -p 8080:8080 swiftdrop-frontend
 The frontend-only image serves `build/client` using Nginx on port 8080. Nested
 application routes use the SPA fallback. Missing assets return 404; `/api` returns
 JSON 502 rather than HTML. Production ingress must route `/api` and future SSE
-connections to YARP and other requests to the frontend. No upstream service names
-are assumed. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
+connections to YARP and other requests to the frontend. The container proxies API requests to the Gateway service. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
 
-Docker build/runtime verification requires a running Docker Linux daemon. It was
-unavailable during setup; the container has not been verified locally.
+Docker build and SPA deep-link/missing-asset checks passed against a local Linux daemon during the PR integration review.
 
 ## References
 
@@ -225,3 +223,16 @@ unavailable during setup; the container has not been verified locally.
   and [route type generation](https://reactrouter.com/how-to/route-module-type-safety).
 - [Tailwind Vite integration](https://tailwindcss.com/docs/installation/using-vite).
 - [CONTRIBUTING.md](CONTRIBUTING.md) for frontend development conventions.
+
+## Customer booking
+
+`/customer/book` uses the shared Identity session and dashboard shell. Customers load
+active area IDs and names through `GET /api/v1/quotes/zones`, then request a quote
+and explicitly confirm it. Price tokens retain exact decimal text; an uncertain
+confirmation retains its original body and idempotency key while navigating in
+the current session. Logout, account changes and role changes clear that state.
+The feature uses shared shadcn controls and does not expose administrative zone
+configuration. Empty/unavailable area catalogs block quoting with an explanation.
+
+The isolated `npm run dev:booking-test` fixture is separate from production routing;
+it does not provide application authentication.

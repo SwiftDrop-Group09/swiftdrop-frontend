@@ -42,11 +42,11 @@ owning service when its screens are implemented.
 ## Current destinations
 
 The actual router currently implements `/dashboard`, `/profile` and
-`/admin/users`. The audit item links to `/admin/users#identity-audit`, the existing
+`/admin/users` and Customer-only `/customer/book`. The audit item links to `/admin/users#identity-audit`, the existing
 Identity audit section; its explicit View audit log control loads the records.
 This is Identity auditing, not a completed cross-service audit projection.
 
-Every other documented item is a disabled shadcn sidebar button marked **Soon**
+Every remaining documented item is a disabled shadcn sidebar button marked **Soon**
 with an accessible explanation. These items have no invented URL, API call, or
 placeholder success screen. Their feature branches are not merged by this
 navigation change. Enable an item only after registering its real route and

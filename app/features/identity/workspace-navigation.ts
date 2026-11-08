@@ -53,7 +53,7 @@ const navigation: readonly NavigationGroup[] = [
     label: 'Customer',
     roles: ['Customer'],
     items: [
-      { label: 'Book a delivery', icon: PackagePlus },
+      { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
       { label: 'Track a parcel', icon: MapPin },
       { label: 'Delivery history', icon: History },
       { label: 'Receipts', icon: ReceiptText },
