@@ -50,6 +50,59 @@ the configured Identity backend and browser origin/proxy setup in the handoff.
 
 ## Included dependencies
 
+The UI uses shadcn/ui's Radix **new-york** components, Tailwind CSS v4 and a
+single neutral token theme in `app/styles/app.css`. The login, registration,
+dashboard, profile and Admin screens use the same shared primitives. Legacy
+Identity CSS overrides and the separate theme file have been removed. Session,
+API, validation and Query code remain the existing application foundations.
+
+Components are source files owned by this repository, rather than a standalone
+runtime UI framework. Keep Radix, Tailwind, CVA, clsx, tailwind-merge and Lucide:
+they support the shadcn components. Login and registration adapt the official
+`login-02` and `signup-02` split layouts. Their stock photographs are served
+locally; see [photo credits and licenses](public/images/auth/CREDITS.md).
+
+Successful local or Google sign-in opens `/dashboard`. Registration confirms the
+password locally, creates the account, then signs in through the existing API.
+If that sign-in fails after account creation, the page offers a sign-in link
+without repeating registration. The dashboard adapts `dashboard-01` with only
+its responsive sidebar, header and empty main workspace. Profile and authorized
+Admin pages share that shell; demonstration charts and data are omitted.
+Role menus follow the SRS and authorization rules for Customer, Courier, Merchant,
+Dispatcher and Admin. See [workspace navigation](docs/workspace-navigation.md)
+for the requirement mapping and current destinations. Screens not yet implemented
+in this branch appear as disabled items marked Soon.
+
+Opening `/` waits for session restoration, then redirects to `/dashboard` for an
+authenticated session or `/login` for a signed-out visitor. Create account opens
+`/register`; `/signup` is also supported as an alias. Authenticated visitors to
+login or signup return to the dashboard. The former account landing card has
+been removed.
+
+The profile page has role-aware account information, editable personal contact
+details with save/reset, and a server-backed sign-in methods card. Password
+accounts can connect Google; Google-only accounts can add a password after Google
+confirmation. Both methods retain the same account and assigned roles. Rebuild
+Identity with the [connection endpoints](../swiftdrop-backend/docs/account-connections.md)
+alongside this frontend; no new secret or database migration is needed.
+
+Google's official sign-in control renders directly in the auth form. Supported
+SDK options set its outline theme, rectangular shape and responsive width; scoped
+CSS in `google-button.css` aligns its host and focus ring with the shared theme.
+The Google iframe retains its own branding. The ID-token and server nonce flow
+is unchanged, and there is no application dialog before provider consent.
+
+Add another component from this directory using the existing `components.json`:
+
+```powershell
+npx shadcn@latest add separator
+```
+
+Review generated changes and run `npm run check`. Import from
+`~/shared/components/ui/...`, compose feature layouts with utilities, and change
+theme colors in `app/styles/app.css`. See the official
+[React Router setup](https://ui.shadcn.com/docs/installation/react-router).
+
 | Area                 | Installed stack                                                              |
 | -------------------- | ---------------------------------------------------------------------------- |
 | Application          | React / React DOM 19.3.1, React Router 8.4.0 framework mode                  |
@@ -74,20 +127,22 @@ app/
   providers.tsx             TanStack Query provider with an isolated cache
   env.d.ts                  Types for public frontend environment variables
   portals/
-    public/index.tsx        Account landing route
+    public/index.tsx        Session-aware login/dashboard redirect
     public/not-found.tsx    Minimal client-side 404 handling
     auth/                   Login and Customer registration routes
+    customer/dashboard.tsx  Authenticated landing shell
     customer/profile.tsx    Shared self-profile route
     admin/users.tsx         Admin users and audit route
     courier/, merchant/, dispatcher/
                             Reserved for independently owned product routes
   features/identity/        Shared session, API, validation, screens and tests
-  shared/                   Reserved for general UI, transport, and utilities
-  styles/app.css            Tailwind and scoped account styling
+  shared/                   shadcn UI, hooks, transport, and utilities
+  styles/app.css            Tailwind, shadcn theme tokens and base styles
   test/                     DOM test setup and provider cache-isolation test
 .github/                    CI and pull-request template
 scripts/preview.mjs         Static preview of build/client
 public/favicon.ico          Neutral transparent browser favicon
+public/images/auth/         Local stock photos and license credits
 Dockerfile, nginx.conf      Static container hosting
 ```
 
@@ -124,7 +179,7 @@ use Query hooks for reads, mutations, and invalidation.
 The infrastructure test verifies Query cache isolation between application
 instances; Identity tests cover API, session and screen behavior. GitHub Actions
 runs `npm ci` and `npm run check` on pull requests and pushes to the repository's
-confirmed default branch, `main`, using `.nvmrc` and read-only permissions.
+default branch, `dev`, using `.nvmrc` and read-only permissions.
 
 ## Environment and backend integration
 
@@ -160,11 +215,9 @@ docker run --rm -p 8080:8080 swiftdrop-frontend
 The frontend-only image serves `build/client` using Nginx on port 8080. Nested
 application routes use the SPA fallback. Missing assets return 404; `/api` returns
 JSON 502 rather than HTML. Production ingress must route `/api` and future SSE
-connections to YARP and other requests to the frontend. No upstream service names
-are assumed. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
+connections to YARP and other requests to the frontend. The container proxies API requests to the Gateway service. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
 
-Docker build/runtime verification requires a running Docker Linux daemon. It was
-unavailable during setup; the container has not been verified locally.
+Docker build and SPA deep-link/missing-asset checks passed against a local Linux daemon during the PR integration review.
 
 ## References
 
@@ -174,3 +227,27 @@ unavailable during setup; the container has not been verified locally.
   and [route type generation](https://reactrouter.com/how-to/route-module-type-safety).
 - [Tailwind Vite integration](https://tailwindcss.com/docs/installation/using-vite).
 - [CONTRIBUTING.md](CONTRIBUTING.md) for frontend development conventions.
+
+## Customer booking
+
+`/customer/book` uses the shared Identity session and dashboard shell. Customers load
+active area IDs and names through `GET /api/v1/quotes/zones`, then request a quote
+and explicitly confirm it. Price tokens retain exact decimal text; an uncertain
+confirmation retains its original body and idempotency key while navigating in
+the current session. Logout, account changes and role changes clear that state.
+The feature uses shared shadcn controls and does not expose administrative zone
+configuration. Empty/unavailable area catalogs block quoting with an explanation.
+
+The isolated `npm run dev:booking-test` fixture is separate from production routing;
+it does not provide application authentication.
+
+## Courier workspace
+
+Courier-only `/courier` lists current assignments with service-date and overdue
+filters. `/courier/history` shows terminal summaries; assigned parcel details
+provide private notes, status/failure actions, proof photo and signature capture.
+Forms, filters, alerts, cards and actions compose shared shadcn components; the
+feature stylesheet and duplicate navigation were removed. The signature canvas
+retains its drawing behavior and uses shadcn actions. Requests retain the
+existing concurrency, retry/idempotency and session-isolation guards.
+Real JWT integration and private bucket acceptance remain backend prerequisites.

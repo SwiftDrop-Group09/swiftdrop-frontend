@@ -14,14 +14,21 @@ const fixture = await (
   await fetch('http://127.0.0.1:5088/__test/booking-context')
 ).json();
 assert(fixture.roles.includes('Courier'));
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({
+  ...(process.env.CHROME_PATH
+    ? { executablePath: process.env.CHROME_PATH }
+    : { channel: 'chrome' }),
+  headless: true,
+});
 const screenshots = new URL(
   '../../swiftdrop-backend/artifacts/courier-phase7-browser/',
   import.meta.url,
 );
 await mkdir(screenshots, { recursive: true });
 try {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const width = Number(process.env.COURIER_BROWSER_WIDTH ?? 390);
+  assert([320, 390, 1280].includes(width));
+  const page = await browser.newPage({ viewport: { width, height: 844 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/api/v1/auth/**', async (route) => {
@@ -59,7 +66,7 @@ try {
       `Courier screen did not load: ${await page.locator('body').innerText()}; page errors: ${errors.join('; ')}`,
     );
   }
-  const links = page.locator('.parcels a');
+  const links = page.getByTestId('courier-parcels').getByRole('link');
   await links.first().waitFor();
   assert(
     await page.evaluate(
@@ -110,18 +117,24 @@ try {
     fullPage: true,
   });
   await page
+    .getByRole('button', { name: 'Toggle Sidebar', exact: true })
+    .click();
+  await page
     .getByRole('link', { name: 'Delivery history', exact: true })
     .click();
   await page.getByRole('heading', { name: 'Delivery history' }).waitFor();
-  await page.locator('.parcels li').first().waitFor();
-  assert.equal(await page.locator('.parcels a').count(), 0);
+  await page.getByTestId('courier-parcels').locator('li').first().waitFor();
+  assert.equal(
+    await page.getByTestId('courier-parcels').getByRole('link').count(),
+    0,
+  );
   await page.screenshot({
     path: fileURLToPath(new URL('history-mobile.png', screenshots)),
     fullPage: true,
   });
   assert.deepEqual(errors, []);
   console.log(
-    'PASS Chrome 390px: real manifest/detail/history, proof validation, no horizontal overflow, no page errors. Identity is a browser-only stub; Delivery uses the owned fixture.',
+    `PASS Chrome ${width}px: real manifest/detail/history, proof validation, no horizontal overflow, no page errors. Identity is a browser-only stub; Delivery uses the owned fixture.`,
   );
 } finally {
   await browser.close();

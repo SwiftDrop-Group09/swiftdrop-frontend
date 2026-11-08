@@ -24,7 +24,18 @@ import {
   type Summary,
 } from './api';
 import { CourierWorkflow } from './workflow';
-import './styles.css';
+import { Button } from '~/shared/components/ui/button';
+import { Card } from '~/shared/components/ui/card';
+import { Alert } from '~/shared/components/ui/alert';
+import { Badge } from '~/shared/components/ui/badge';
+import { Input } from '~/shared/components/ui/input';
+import { Label } from '~/shared/components/ui/label';
+import { Textarea } from '~/shared/components/ui/textarea';
+import { Checkbox } from '~/shared/components/ui/checkbox';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '~/shared/components/ui/native-select';
 
 const Context = createContext<{
   api: CourierApi;
@@ -61,18 +72,14 @@ function Workspace({ api, scope }: { api: CourierApi; scope: string }) {
   }, [state.pending]);
   return (
     <Context.Provider value={{ api, scope, workflow }}>
-      <div className="courier">
-        <nav aria-label="Courier navigation">
-          <Link to="/courier">Assigned deliveries</Link>
-          <Link to="/courier/history">Delivery history</Link>
-        </nav>
+      <div className="mx-auto w-full max-w-6xl space-y-6 wrap-anywhere">
         {state.notice && <p role="status">{state.notice}</p>}
         {state.pending && <Pending />}
         {state.blocked ? (
-          <p role="alert">
+          <Alert variant="destructive">
             Access to delivery information has ended. Return to{' '}
             <Link to="/profile">your account</Link>.
-          </p>
+          </Alert>
         ) : (
           <Outlet />
         )}
@@ -98,7 +105,7 @@ export function CourierLayout() {
   if (!user.roles.includes('Courier'))
     return (
       <IdentityShell>
-        <p role="alert">A Courier account is required.</p>
+        <Alert variant="destructive">A Courier account is required.</Alert>
       </IdentityShell>
     );
   const scope = `${user.id}:${[...user.roles].sort().join(',')}`;
@@ -121,12 +128,12 @@ function Pending() {
     return () => clearInterval(t);
   }, []);
   return (
-    <aside aria-label="Pending delivery request">
+    <Alert aria-label="Pending delivery request" className="space-y-3">
       <p>
         The original request is retained in this open session. Keep this page
         open until its outcome is confirmed. Other actions are paused.
       </p>
-      <button
+      <Button
         disabled={state.busy || now < state.retryAt}
         onClick={() => {
           void workflow.submit().then((r) => {
@@ -137,8 +144,8 @@ function Pending() {
         }}
       >
         {state.busy ? 'Waiting for confirmation…' : 'Retry original request'}
-      </button>
-    </aside>
+      </Button>
+    </Alert>
   );
 }
 function Failure({ error, retry }: { error: unknown; retry: () => void }) {
@@ -151,7 +158,7 @@ function Failure({ error, retry }: { error: unknown; retry: () => void }) {
     }
   }, [error, workflow, queries, scope]);
   return (
-    <div role="alert">
+    <Alert variant="destructive" className="space-y-3">
       <p>
         {error instanceof CourierError
           ? error.message
@@ -159,8 +166,8 @@ function Failure({ error, retry }: { error: unknown; retry: () => void }) {
       </p>
       {!(
         error instanceof CourierError && [401, 403, 404].includes(error.status)
-      ) && <button onClick={retry}>Reload</button>}
-    </div>
+      ) && <Button onClick={retry}>Reload</Button>}
+    </Alert>
   );
 }
 function Pager({
@@ -173,16 +180,16 @@ function Pager({
   set: (p: number) => void;
 }) {
   return (
-    <nav aria-label="Pagination">
-      <button disabled={page === 1} onClick={() => set(page - 1)}>
+    <nav aria-label="Pagination" className="flex flex-wrap items-center gap-3">
+      <Button disabled={page === 1} onClick={() => set(page - 1)}>
         Previous
-      </button>
+      </Button>
       <span>
         Page {page} · {total} deliveries
       </span>
-      <button disabled={page * 20 >= total} onClick={() => set(page + 1)}>
+      <Button disabled={page * 20 >= total} onClick={() => set(page + 1)}>
         Next
-      </button>
+      </Button>
     </nav>
   );
 }
@@ -202,15 +209,17 @@ export function Manifest() {
   });
   return (
     <>
-      <h1>Assigned deliveries</h1>
+      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
+        Assigned deliveries
+      </h1>
       <p>
         With no selected date, Delivery uses today in the operations time zone
         (Asia/Colombo).
       </p>
-      <div className="filters">
-        <label>
+      <Card className="flex flex-wrap items-end gap-4 p-5">
+        <Label className="grid gap-2">
           Service date
-          <input
+          <Input
             type="date"
             value={date}
             onChange={(e) => {
@@ -218,28 +227,27 @@ export function Manifest() {
               setPage(1);
             }}
           />
-        </label>
-        <button
+        </Label>
+        <Button
           onClick={() => {
             setDate('');
             setPage(1);
           }}
         >
           Today
-        </button>
-        <label>
-          <input
-            type="checkbox"
+        </Button>
+        <Label className="grid gap-2">
+          <Checkbox
             checked={overdue}
-            onChange={(e) => {
-              setOverdue(e.target.checked);
+            onCheckedChange={(checked) => {
+              setOverdue(checked === true);
               setPage(1);
             }}
           />{' '}
           Include overdue
-        </label>
-        <button onClick={() => void q.refetch()}>Refresh</button>
-      </div>
+        </Label>
+        <Button onClick={() => void q.refetch()}>Refresh</Button>
+      </Card>
       {q.isPending ? (
         <p role="status">Loading assigned deliveries…</p>
       ) : q.isError ? (
@@ -249,17 +257,30 @@ export function Manifest() {
           {!q.data.items.length && (
             <p>No assigned deliveries match this day.</p>
           )}
-          <ul className="parcels">
+          <ul
+            data-testid="courier-parcels"
+            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          >
             {q.data.items.map((d) => (
-              <li key={d.id}>
-                <Link to={`/courier/parcels/${d.id}`}>{d.trackingNumber}</Link>
-                <strong>{d.status}</strong>
-                {d.isOverdue && <span className="overdue">Overdue</span>}
-                <p>
-                  {d.recipient.name} · {d.deliveryAddress.city}
-                </p>
-                <p>Service date: {d.serviceDate}</p>
-                <Price d={d} />
+              <li key={d.id} className="min-w-0">
+                <Card className="h-full gap-3 p-5">
+                  <Button
+                    asChild
+                    variant="link"
+                    className="h-auto justify-start whitespace-normal wrap-anywhere p-0"
+                  >
+                    <Link to={`/courier/parcels/${d.id}`}>
+                      {d.trackingNumber}
+                    </Link>
+                  </Button>
+                  <Badge variant="secondary">{d.status}</Badge>
+                  {d.isOverdue && <Badge variant="outline">Overdue</Badge>}
+                  <p>
+                    {d.recipient.name} · {d.deliveryAddress.city}
+                  </p>
+                  <p>Service date: {d.serviceDate}</p>
+                  <Price d={d} />
+                </Card>
               </li>
             ))}
           </ul>
@@ -278,7 +299,9 @@ export function History() {
   });
   return (
     <>
-      <h1>Delivery history</h1>
+      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
+        Delivery history
+      </h1>
       <p>
         Your completed and failed deliveries. Private recipient details are
         available only during an active assignment.
@@ -292,16 +315,22 @@ export function History() {
           {!q.data.items.length && (
             <p>No completed or failed deliveries yet.</p>
           )}
-          <ul className="parcels">
+          <ul
+            data-testid="courier-parcels"
+            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          >
             {q.data.items.map((d) => (
-              <li key={d.id}>
-                <strong>{d.trackingNumber}</strong>
-                <span>{d.status}</span>
-                <Price d={d} />
-                <p>Created: {new Date(d.createdAt).toLocaleString()}</p>
-                <small>
-                  Version {d.version} · Pricing {d.priceSnapshot.pricingVersion}
-                </small>
+              <li key={d.id} className="min-w-0">
+                <Card className="h-full gap-3 p-5">
+                  <strong>{d.trackingNumber}</strong>
+                  <Badge variant="secondary">{d.status}</Badge>
+                  <Price d={d} />
+                  <p>Created: {new Date(d.createdAt).toLocaleString()}</p>
+                  <small>
+                    Version {d.version} · Pricing{' '}
+                    {d.priceSnapshot.pricingVersion}
+                  </small>
+                </Card>
               </li>
             ))}
           </ul>
@@ -325,7 +354,9 @@ export function ParcelDetails() {
   )
     return (
       <>
-        <h1>{state.receipt.status} confirmed</h1>
+        <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
+          {state.receipt.status} confirmed
+        </h1>
         <p>{state.receipt.trackingNumber}</p>
         <Link to="/courier">Back to assigned deliveries</Link>
       </>
@@ -336,20 +367,22 @@ export function ParcelDetails() {
   const d = q.data;
   return (
     <>
-      <h1>{d.trackingNumber}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
+        {d.trackingNumber}
+      </h1>
       <p>
         {d.status} · Version {d.version} · <Price d={d} />
       </p>
-      <button disabled={!!state.pending} onClick={() => void q.refetch()}>
+      <Button disabled={!!state.pending} onClick={() => void q.refetch()}>
         Refresh parcel
-      </button>
-      <section className="parcel-addresses">
+      </Button>
+      <Card className="grid gap-6 p-6 sm:grid-cols-2">
         <div>
-          <h2>Pickup</h2>
+          <h2 className="text-lg font-semibold">Pickup</h2>
           <Address value={d.pickupAddress} />
         </div>
         <div>
-          <h2>Delivery</h2>
+          <h2 className="text-lg font-semibold">Delivery</h2>
           <Address value={d.deliveryAddress} />
           <p>
             {d.recipient.name}
@@ -357,7 +390,7 @@ export function ParcelDetails() {
             {d.recipient.phoneNumber}
           </p>
         </div>
-      </section>
+      </Card>
       <p>
         Package: {d.packageDetails.size} · {d.packageDetails.weightKg} kg
       </p>
@@ -368,7 +401,7 @@ export function ParcelDetails() {
         </p>
       )}
       <Actions key={`${id}:${d.version}`} d={d} />
-      <h2>Status history</h2>
+      <h2 className="text-lg font-semibold">Status history</h2>
       <ol>
         {d.history.map((h, i) => (
           <li key={i}>
@@ -424,40 +457,46 @@ export function Actions({ d }: { d: Detail }) {
   if (!active(d))
     return <p>No delivery actions are available in this state.</p>;
   return (
-    <section>
-      <h2>Delivery actions</h2>
-      {error && <p role="alert">{error}</p>}
-      <fieldset disabled={!!state.pending || state.busy || refreshing}>
+    <Card className="space-y-4 p-6">
+      <h2 className="text-lg font-semibold">Delivery actions</h2>
+      {error && <Alert variant="destructive">{error}</Alert>}
+      <fieldset
+        className="space-y-4 disabled:opacity-60"
+        disabled={!!state.pending || state.busy || refreshing}
+      >
         <legend>Update delivery</legend>
-        <label>
+        <Label className="grid gap-2">
           {d.status === 'OutForDelivery'
             ? 'Private failure note (optional)'
             : 'Private delivery note'}
-          <textarea
+          <Textarea
             maxLength={500}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-        </label>
+        </Label>
         {nextStage[d.status] && (
-          <button
+          <Button
             onClick={() =>
               void submit(() => statusAttempt(d, nextStage[d.status]!, notes))
             }
           >
             Mark {nextStage[d.status]}
-          </button>
+          </Button>
         )}
-        <label>
+        <Label className="grid gap-2">
           Failure reason
-          <select value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="">Choose a reason</option>
+          <NativeSelect
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          >
+            <NativeSelectOption value="">Choose a reason</NativeSelectOption>
             {reasons.map((r) => (
-              <option key={r}>{r}</option>
+              <NativeSelectOption key={r}>{r}</NativeSelectOption>
             ))}
-          </select>
-        </label>
-        <button
+          </NativeSelect>
+        </Label>
+        <Button
           onClick={() =>
             void submit(() =>
               statusAttempt(
@@ -470,26 +509,26 @@ export function Actions({ d }: { d: Detail }) {
           }
         >
           Report failed delivery
-        </button>
+        </Button>
         {d.status === 'OutForDelivery' && (
           <>
-            <h3>Proof of delivery</h3>
+            <h3 className="font-semibold">Proof of delivery</h3>
             <p>
               Provide a JPEG/PNG photo or drawn signature (both accepted), up to
               5 MiB each. Delivery is confirmed after the server accepts the
               proof.
             </p>
-            <label>
+            <Label className="grid gap-2">
               Recipient name
-              <input
+              <Input
                 maxLength={120}
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
               />
-            </label>
-            <label>
+            </Label>
+            <Label className="grid gap-2">
               Proof photo
-              <input
+              <Input
                 type="file"
                 accept="image/jpeg,image/png"
                 capture="environment"
@@ -498,27 +537,28 @@ export function Actions({ d }: { d: Detail }) {
                   e.target.value = '';
                 }}
               />
-            </label>
+            </Label>
             {photo && (
               <>
                 <span>Photo selected ({Math.ceil(photo.size / 1024)} KiB)</span>
-                <button onClick={() => setPhoto(undefined)}>
+                <Button onClick={() => setPhoto(undefined)}>
                   Remove photo
-                </button>
+                </Button>
               </>
             )}
             <Signature onChange={setSignature} />
-            <button
+            <Button
+              className="h-auto min-h-9 w-full whitespace-normal py-2"
               onClick={() =>
                 void submit(() => proofAttempt(d, recipient, photo, signature))
               }
             >
               Submit proof and complete delivery
-            </button>
+            </Button>
           </>
         )}
       </fieldset>
-    </section>
+    </Card>
   );
 }
 function Signature({ onChange }: { onChange: (f: File | undefined) => void }) {
@@ -535,12 +575,7 @@ function Signature({ onChange }: { onChange: (f: File | undefined) => void }) {
         width={560}
         height={180}
         aria-label="Draw recipient signature"
-        style={{
-          touchAction: 'none',
-          width: '100%',
-          maxWidth: 560,
-          border: '1px solid',
-        }}
+        className="h-auto w-full max-w-140 touch-none rounded-md border border-input bg-white text-black"
         onPointerDown={(e) => {
           generation.current++;
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -575,7 +610,7 @@ function Signature({ onChange }: { onChange: (f: File | undefined) => void }) {
           drawing.current = false;
         }}
       />
-      <button
+      <Button
         onClick={() => {
           if (!dirty.current) {
             setNotice('Draw a signature first.');
@@ -591,8 +626,8 @@ function Signature({ onChange }: { onChange: (f: File | undefined) => void }) {
         }}
       >
         Use signature
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={() => {
           canvas.current?.getContext('2d')?.clearRect(0, 0, 560, 180);
           generation.current++;
@@ -602,7 +637,7 @@ function Signature({ onChange }: { onChange: (f: File | undefined) => void }) {
         }}
       >
         Clear signature
-      </button>
+      </Button>
       <p role="status">{notice}</p>
     </div>
   );

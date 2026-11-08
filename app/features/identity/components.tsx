@@ -1,7 +1,11 @@
+import { Button } from '~/shared/components/ui/button';
+import { Alert } from '~/shared/components/ui/alert';
+import { FieldError as ShadcnFieldError } from '~/shared/components/ui/field';
 import type { ReactNode } from 'react';
 import { Link, Navigate } from 'react-router';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
+import { DashboardShell } from './dashboard-shell';
 
 export function safeError(error: unknown) {
   return error instanceof IdentityError
@@ -10,33 +14,33 @@ export function safeError(error: unknown) {
 }
 export function IdentityShell({ children }: { children: ReactNode }) {
   const { user } = useIdentity();
+  if (user) return <DashboardShell>{children}</DashboardShell>;
   return (
-    <div className="identity-app">
-      <header>
-        <Link className="brand" to="/">
-          SwiftDrop
-        </Link>
-        <nav aria-label="Account navigation">
-          {user ? (
-            <>
-              <Link to="/profile">My profile</Link>
-              {user.roles.includes('Courier') && (
-                <Link to="/courier">Courier deliveries</Link>
-              )}
-              {user.roles.includes('Admin') && (
-                <Link to="/admin/users">User administration</Link>
-              )}
-            </>
-          ) : (
-            <>
+    <div className="flex min-h-svh flex-col bg-muted/30">
+      <header className="border-b bg-background">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <Link className="text-xl font-semibold tracking-tight" to="/">
+            SwiftDrop
+          </Link>
+          <nav
+            className="flex flex-wrap items-center gap-1"
+            aria-label="Account navigation"
+          >
+            <Button asChild variant="ghost" size="sm">
               <Link to="/login">Sign in</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
               <Link to="/register">Register</Link>
-            </>
-          )}
-        </nav>
+            </Button>
+          </nav>
+        </div>
       </header>
-      <main>{children}</main>
-      <footer>SwiftDrop account services</footer>
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8 sm:px-6 sm:py-12">
+        {children}
+      </main>
+      <footer className="border-t px-4 py-5 text-center text-xs text-muted-foreground">
+        SwiftDrop account services
+      </footer>
     </div>
   );
 }
@@ -52,24 +56,22 @@ export function Protected({
   if (!user)
     return error ? (
       <>
-        <p role="alert">{error}</p>
-        <Link to="/login">Sign in</Link>
+        <Alert variant="destructive">{error}</Alert>
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/login">Sign in</Link>
+        </Button>
       </>
     ) : (
       <Navigate to="/login" replace />
     );
   if (admin && !user.roles.includes('Admin'))
     return (
-      <p role="alert">
+      <Alert variant="destructive">
         You do not have permission to view user administration.
-      </p>
+      </Alert>
     );
   return children;
 }
 export function FieldError({ message }: { message?: string }) {
-  return message ? (
-    <span role="alert" className="field-error">
-      {message}
-    </span>
-  ) : null;
+  return message ? <ShadcnFieldError>{message}</ShadcnFieldError> : null;
 }

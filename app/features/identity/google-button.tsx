@@ -1,6 +1,10 @@
+import { Button } from '~/shared/components/ui/button';
+import { Alert } from '~/shared/components/ui/alert';
+import { LoaderCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
+import './google-button.css';
 
 type GoogleSdk = {
   initialize(options: {
@@ -16,7 +20,10 @@ type GoogleSdk = {
       type: 'standard';
       theme: 'outline';
       size: 'large';
-      text: 'signin_with' | 'signup_with';
+      text: 'signin_with' | 'signup_with' | 'continue_with';
+      shape: 'rectangular';
+      logo_alignment: 'center';
+      width: string;
     },
   ): void;
   cancel(): void;
@@ -63,17 +70,27 @@ export function GoogleButton({
   onToken,
   disabled = false,
   text = 'signin_with',
+  onBusyChange,
 }: {
   onToken: (token: string) => Promise<void>;
   disabled?: boolean;
-  text?: 'signin_with' | 'signup_with';
+  text?: 'signin_with' | 'signup_with' | 'continue_with';
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const { session } = useIdentity();
   const container = useRef<HTMLDivElement>(null);
   const callback = useRef(onToken);
+  const alive = useRef(false);
   const [attempt, setAttempt] = useState(0);
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   useEffect(() => {
     callback.current = onToken;
   }, [onToken]);
@@ -81,10 +98,13 @@ export function GoogleButton({
     const clientId = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID;
     if (!clientId || disabled) return;
     let mounted = true;
+    let submitting = false;
     let sdk: GoogleSdk | undefined;
+    let observer: ResizeObserver | undefined;
+    const element = container.current;
     void Promise.all([loadGoogleSdk(), session.api.bootstrap(true)])
       .then(([google, bootstrap]) => {
-        if (!mounted || !container.current) return;
+        if (!mounted || !element) return;
         sdk = google;
         google.initialize({
           client_id: clientId,
@@ -92,62 +112,123 @@ export function GoogleButton({
           auto_select: false,
           ux_mode: 'popup',
           callback: (response) => {
-            if (!mounted || !response.credential) return;
+            if (!mounted || submitting || !response.credential) return;
+            submitting = true;
             setBusy(true);
+            onBusyChange?.(true);
             setError(null);
             void callback
               .current(response.credential)
-              .catch(() => {
-                /* Parent presents safe provider/link outcome. */
+              .catch((cause: unknown) => {
+                if (mounted)
+                  setError(
+                    cause instanceof IdentityError
+                      ? cause.message
+                      : 'Google sign-in could not be completed. Please try again.',
+                  );
               })
               .finally(() => {
-                if (mounted) {
+                if (alive.current) {
                   setBusy(false);
-                  setAttempt((value) => value + 1);
+                  onBusyChange?.(false);
+                  setReady(false);
+                  if (mounted) setAttempt((value) => value + 1);
                 }
               });
           },
         });
-        google.renderButton(container.current, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-          text,
-        });
+        let previousWidth = 0;
+        const render = () => {
+          if (!mounted || submitting) return;
+          const width = Math.min(
+            400,
+            Math.floor(element.getBoundingClientRect().width) || 384,
+          );
+          if (width === previousWidth) return;
+          previousWidth = width;
+          element.replaceChildren();
+          google.renderButton(element, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text,
+            shape: 'rectangular',
+            logo_alignment: 'center',
+            width: String(width),
+          });
+        };
+        render();
+        observer = new ResizeObserver(render);
+        observer.observe(element);
+        setReady(true);
       })
       .catch(() => {
         if (mounted)
           setError(
-            'Google sign-in could not load. Use local sign-in or try again.',
+            'Google sign-in could not load. Check your connection and try again.',
           );
       });
-    const element = container.current;
     return () => {
       mounted = false;
+      observer?.disconnect();
       sdk?.cancel();
       element?.replaceChildren();
     };
-  }, [session, attempt, disabled, text]);
-  if (!import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID)
-    return <p>Google sign-in is not configured for this deployment.</p>;
+  }, [session, attempt, disabled, text, onBusyChange]);
+  const configured = !!import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID;
   return (
-    <div className="google-signin" aria-busy={busy}>
-      <div ref={container} inert={disabled || busy} />
-      {disabled && <p>Enter your current password to enable Google linking.</p>}
-      {busy && <p role="status">Verifying Google sign-in…</p>}
-      {error && (
+    <div className="space-y-3" aria-busy={busy}>
+      {configured ? (
         <>
-          <p role="alert">{error}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setAttempt((value) => value + 1);
-            }}
-          >
-            Retry Google sign-in
-          </button>
+          {!ready && !error && !disabled && (
+            <p
+              role="status"
+              className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+            >
+              <LoaderCircle
+                className="size-4 animate-spin"
+                aria-hidden="true"
+              />
+              Loading Google sign-in...
+            </p>
+          )}
+          <div
+            className="google-sign-in"
+            ref={container}
+            inert={disabled || busy}
+            data-disabled={disabled || busy}
+          />
+          {busy && (
+            <p
+              role="status"
+              className="text-center text-sm text-muted-foreground"
+            >
+              Verifying Google sign-in...
+            </p>
+          )}
+          {error && (
+            <>
+              <Alert variant="destructive">{error}</Alert>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={disabled || busy}
+                onClick={() => {
+                  setError(null);
+                  setReady(false);
+                  setAttempt((value) => value + 1);
+                }}
+              >
+                Retry Google sign-in
+              </Button>
+            </>
+          )}
         </>
+      ) : (
+        <p className="text-center text-xs text-muted-foreground">
+          Google sign-in is not configured for this deployment.
+        </p>
       )}
     </div>
   );
