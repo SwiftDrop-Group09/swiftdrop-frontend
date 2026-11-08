@@ -8,6 +8,7 @@ import { AuthPage } from './auth-page';
 import { ProfilePage } from './profile-page';
 import { DashboardPage } from './dashboard-page';
 import { AdminPage } from './admin-page';
+import { SessionEntry } from './session-entry';
 import { IdentityProvider, IdentitySession } from './session';
 import type { Profile } from './contracts';
 import { admin, csrf, customer, json, pair } from './test-fixtures';
@@ -15,7 +16,7 @@ import { admin, csrf, customer, json, pair } from './test-fixtures';
 type Route = (
   path: string,
   init: RequestInit | undefined,
-) => Response | undefined;
+) => Response | Promise<Response> | undefined;
 function pathOf(input: RequestInfo | URL) {
   return typeof input === 'string'
     ? input
@@ -60,6 +61,8 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
   const session = new IdentitySession(api, () => queries.clear());
   const router = createMemoryRouter(
     [
+      { path: '/', element: <SessionEntry /> },
+      { path: '/signup', element: <SessionEntry register /> },
       { path: '/login', element: <AuthPage /> },
       { path: '/register', element: <AuthPage register /> },
       { path: '/profile', element: <ProfilePage /> },
@@ -87,6 +90,178 @@ afterEach(() => {
 });
 
 describe('Customer account screens', () => {
+  it('waits for session restoration at root before opening the dashboard', async () => {
+    let complete!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      complete = resolve;
+    });
+    const { router } = mount('/', undefined, (path) =>
+      path.endsWith('/auth/refresh') ? response : undefined,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Checking your session',
+    );
+    expect(router.state.location.pathname).toBe('/');
+    expect(
+      screen.queryByRole('heading', { name: 'Welcome back' }),
+    ).not.toBeInTheDocument();
+    await act(async () => {
+      complete(json(pair()));
+      await response;
+    });
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(router.state.location.pathname).toBe('/dashboard');
+  });
+
+  it('redirects a signed-out root visit to login and links to signup', async () => {
+    const { router, user } = mount('/');
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    expect(router.state.location.pathname).toBe('/login');
+    await user.click(screen.getByRole('link', { name: 'Create account' }));
+    await screen.findByRole('heading', { name: 'Create your account' });
+    expect(router.state.location.pathname).toBe('/register');
+  });
+
+  it('keeps sign-in usable when root session restoration fails', async () => {
+    const { router } = mount('/', undefined, (path) =>
+      path.endsWith('/auth/refresh')
+        ? json({ code: 'unavailable' }, 503)
+        : undefined,
+    );
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    expect(router.state.location.pathname).toBe('/login');
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+  });
+
+  it('resolves the signup alias to registration for a signed-out visitor', async () => {
+    const { router } = mount('/signup');
+    await screen.findByRole('heading', { name: 'Create your account' });
+    expect(router.state.location.pathname).toBe('/register');
+  });
+
+  it.each(['/login', '/register', '/signup'])(
+    'redirects an authenticated %s visit to the dashboard',
+    async (path) => {
+      const { router } = mount(path, customer);
+      await screen.findByRole('heading', { name: 'Dashboard' });
+      expect(router.state.location.pathname).toBe('/dashboard');
+      expect(
+        screen.queryByRole('heading', { name: 'Create your account' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Welcome back' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    { role: 'Customer' as const, groups: ['Workspace', 'Customer'] },
+    { role: 'Courier' as const, groups: ['Workspace', 'Courier'] },
+    { role: 'Merchant' as const, groups: ['Workspace', 'Merchant'] },
+    { role: 'Dispatcher' as const, groups: ['Workspace', 'Dispatch'] },
+    {
+      role: 'Admin' as const,
+      groups: ['Workspace', 'Dispatch', 'Administration'],
+    },
+  ])('shows the documented navigation for $role', async ({ role, groups }) => {
+    mount('/dashboard', { ...customer, roles: [role] });
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(
+      screen
+        .getAllByRole('navigation')
+        .map((nav) => nav.getAttribute('aria-label')),
+    ).toEqual(groups.map((group) => `${group} navigation`));
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'My profile' })).toHaveAttribute(
+      'href',
+      '/profile',
+    );
+  });
+
+  it('keeps unimplemented screens disabled instead of linking to missing routes', async () => {
+    const { user, router } = mount('/dashboard', customer);
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    const navigation = within(
+      screen.getByRole('navigation', { name: 'Customer navigation' }),
+    );
+    for (const label of [
+      'Book a delivery',
+      'Track a parcel',
+      'Delivery history',
+      'Receipts',
+    ]) {
+      const item = navigation.getByRole('button', { name: label });
+      expect(item).toBeDisabled();
+      expect(item).toHaveAccessibleDescription(
+        'Items marked Soon will be available in a future update.',
+      );
+      await user.click(item);
+      expect(router.state.location.pathname).toBe('/dashboard');
+    }
+    expect(navigation.queryByRole('link')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Business registration' }),
+    ).toBeDisabled();
+  });
+
+  it('combines assigned roles without duplicating shared or dispatch navigation', async () => {
+    mount('/dashboard', {
+      ...customer,
+      roles: ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'],
+    });
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    expect(screen.getAllByRole('navigation')).toHaveLength(6);
+    expect(screen.getAllByRole('link', { name: 'My profile' })).toHaveLength(1);
+    expect(
+      screen.getAllByRole('navigation', { name: 'Dispatch navigation' }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole('button', { name: 'Business registration' }),
+    ).toHaveLength(1);
+  });
+
+  it('updates navigation when the server profile changes roles', async () => {
+    const { session } = mount('/dashboard', admin);
+    await screen.findByRole('link', { name: 'User administration' });
+    act(() => session.updateUser({ ...customer, roles: ['Courier'] }));
+    expect(
+      screen.queryByRole('navigation', { name: 'Administration navigation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Dispatch navigation' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Courier navigation' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'User administration' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens the existing audit section and marks only the audit link active', async () => {
+    const { user, router } = mount('/dashboard', admin);
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    await user.click(screen.getByRole('link', { name: 'Audit logs' }));
+    await screen.findByRole('heading', { name: 'Identity audit log' });
+    expect(router.state.location).toMatchObject({
+      pathname: '/admin/users',
+      hash: '#identity-audit',
+    });
+    expect(screen.getByRole('link', { name: 'Audit logs' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      screen.getByRole('link', { name: 'User administration' }),
+    ).not.toHaveAttribute('aria-current');
+    expect(
+      screen.getByRole('button', { name: 'View audit log' }),
+    ).toBeInTheDocument();
+  });
+
   it('rejects mismatching confirmation before any registration request', async () => {
     const { user, fetcher } = mount('/register');
     const submit = screen.getByRole('button', {

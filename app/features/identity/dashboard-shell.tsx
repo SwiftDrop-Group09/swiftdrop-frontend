@@ -1,12 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import {
-  LayoutDashboard,
-  LogOut,
-  Package2,
-  UserRound,
-  Users,
-} from 'lucide-react';
+import { LogOut, Package2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +11,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -28,20 +23,15 @@ import { Separator } from '~/shared/components/ui/separator';
 import { Button } from '~/shared/components/ui/button';
 import { useIdentity } from './session';
 import { IdentityError } from './api';
+import { getWorkspaceNavigation } from './workspace-navigation';
 
 function AccountSidebar() {
   const { user, session } = useIdentity();
   const { setOpenMobile } = useSidebar();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
-  const items = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/profile', label: 'My profile', icon: UserRound },
-    ...(user!.roles.includes('Admin')
-      ? [{ to: '/admin/users', label: 'User administration', icon: Users }]
-      : []),
-  ];
+  const groups = getWorkspaceNavigation(user!.roles);
   return (
     <Sidebar variant="inset" collapsible="offcanvas">
       <SidebarHeader className="p-4">
@@ -62,29 +52,59 @@ function AccountSidebar() {
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <nav aria-label="Workspace navigation">
-              <SidebarMenu>
-                {items.map(({ to, label, icon: Icon }) => (
-                  <SidebarMenuItem key={to}>
-                    <SidebarMenuButton asChild isActive={pathname === to}>
-                      <Link
-                        to={to}
-                        aria-current={pathname === to ? 'page' : undefined}
-                        onClick={() => setOpenMobile(false)}
-                      >
-                        <Icon aria-hidden="true" />
-                        <span>{label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </nav>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {groups.map((group) => (
+          <SidebarGroup key={group.id}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <nav aria-label={`${group.label} navigation`}>
+                <SidebarMenu>
+                  {group.items.map(({ to, label, icon: Icon }) => {
+                    const active = to === `${pathname}${hash}`;
+                    return (
+                      <SidebarMenuItem key={label}>
+                        {to ? (
+                          <SidebarMenuButton asChild isActive={active}>
+                            <Link
+                              to={to}
+                              aria-current={active ? 'page' : undefined}
+                              onClick={() => setOpenMobile(false)}
+                            >
+                              <Icon aria-hidden="true" />
+                              <span>{label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        ) : (
+                          <>
+                            <SidebarMenuButton
+                              disabled
+                              className="pr-12"
+                              aria-describedby="navigation-availability"
+                            >
+                              <Icon aria-hidden="true" />
+                              <span>{label}</span>
+                            </SidebarMenuButton>
+                            <SidebarMenuBadge
+                              aria-hidden="true"
+                              className="text-muted-foreground"
+                            >
+                              Soon
+                            </SidebarMenuBadge>
+                          </>
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </nav>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+        <p
+          id="navigation-availability"
+          className="px-4 pb-3 text-xs leading-relaxed text-muted-foreground"
+        >
+          Items marked Soon will be available in a future update.
+        </p>
       </SidebarContent>
       <SidebarFooter className="gap-3 p-4">
         <div className="min-w-0 rounded-lg border bg-background p-3">

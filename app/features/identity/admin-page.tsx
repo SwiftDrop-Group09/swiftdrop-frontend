@@ -513,7 +513,7 @@ function AdminContent() {
           }}
         />
       )}
-      <section>
+      <section id="identity-audit" tabIndex={-1}>
         <Card className="min-w-0 space-y-5 p-6">
           <h2 className="text-xl font-semibold tracking-tight">
             Identity audit log

@@ -292,12 +292,6 @@ export function AuthPage({ register = false }: { register?: boolean }) {
                 </>
               )}
             </FieldDescription>
-            {register && (
-              <p className="text-center text-xs leading-relaxed text-muted-foreground">
-                Registration creates a Customer account. Other roles are
-                assigned by an administrator.
-              </p>
-            )}
           </>
         )}
       </div>

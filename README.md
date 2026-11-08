@@ -47,8 +47,8 @@ the configured Identity backend and browser origin/proxy setup in the handoff.
 ## Included dependencies
 
 The UI uses shadcn/ui's Radix **new-york** components, Tailwind CSS v4 and a
-single neutral token theme in `app/styles/app.css`. The landing, login,
-registration, dashboard, profile and Admin screens use the same shared primitives. Legacy
+single neutral token theme in `app/styles/app.css`. The login, registration,
+dashboard, profile and Admin screens use the same shared primitives. Legacy
 Identity CSS overrides and the separate theme file have been removed. Session,
 API, validation and Query code remain the existing application foundations.
 
@@ -64,6 +64,16 @@ If that sign-in fails after account creation, the page offers a sign-in link
 without repeating registration. The dashboard adapts `dashboard-01` with only
 its responsive sidebar, header and empty main workspace. Profile and authorized
 Admin pages share that shell; demonstration charts and data are omitted.
+Role menus follow the SRS and authorization rules for Customer, Courier, Merchant,
+Dispatcher and Admin. See [workspace navigation](docs/workspace-navigation.md)
+for the requirement mapping and current destinations. Screens not yet implemented
+in this branch appear as disabled items marked Soon.
+
+Opening `/` waits for session restoration, then redirects to `/dashboard` for an
+authenticated session or `/login` for a signed-out visitor. Create account opens
+`/register`; `/signup` is also supported as an alias. Authenticated visitors to
+login or signup return to the dashboard. The former account landing card has
+been removed.
 
 Google's official sign-in control renders directly in the auth form. Supported
 SDK options set its outline theme, rectangular shape and responsive width; scoped
@@ -106,7 +116,7 @@ app/
   providers.tsx             TanStack Query provider with an isolated cache
   env.d.ts                  Types for public frontend environment variables
   portals/
-    public/index.tsx        Account landing route
+    public/index.tsx        Session-aware login/dashboard redirect
     public/not-found.tsx    Minimal client-side 404 handling
     auth/                   Login and Customer registration routes
     customer/dashboard.tsx  Authenticated landing shell

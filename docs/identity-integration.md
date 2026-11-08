@@ -85,8 +85,16 @@ Local and Google sign-in navigate to `/dashboard`. Customer registration validat
 confirmation locally, submits only the existing registration fields, then performs
 a separate login to establish a session. A confirmed registration followed by a
 failed login offers a sign-in link without resubmitting account creation. The
-responsive dashboard shell contains existing profile and role-aware Admin links,
-sign-out, and an empty workspace. It introduces no booking workflows or demo data.
+responsive dashboard shell contains sign-out, an empty workspace, and
+[documented menus for all five roles](workspace-navigation.md). Only implemented
+screens have links; other menu items are disabled and marked Soon. It introduces
+no booking workflows or demo data. The registration page does not show internal
+role assignment instructions; the server still assigns Customer on signup.
+
+The root `/` waits for session restoration before replacing the URL with
+`/dashboard` or `/login`. `/signup` resolves to `/register` for signed-out visitors;
+authenticated visitors to any auth entry go to the dashboard. There is no
+intermediate landing card or application dialog.
 
 The auth layouts adapt shadcn's `login-02` and `signup-02`; the dashboard shell
 adapts `dashboard-01`. Pexels stock photos are stored locally with
