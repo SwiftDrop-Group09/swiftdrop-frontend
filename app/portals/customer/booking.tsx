@@ -1,5 +1,5 @@
-import { CustomerBookingPage } from '~/features/customer-booking/booking-page';
+import { CustomerBookingWorkspace } from '~/features/customer-booking/workspace';
 
 export default function BookingRoute() {
-  return <CustomerBookingPage />;
+  return <CustomerBookingWorkspace />;
 }

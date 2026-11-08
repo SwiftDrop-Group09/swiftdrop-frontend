@@ -1,13 +1,10 @@
 # SwiftDrop frontend setup
 
-React application foundation with the Phase 6 Customer quote and booking feature
-at `/customer/book`. The public index remains blank. The normal booking route
-requires a Customer session supplied by the application's IAM adapter; it does
-not create a fictional user or implement login/token storage.
-
-The Customer feature can be developed and verified independently using the
-separate local integration test entry described below. Test identities and test
-entry code are excluded from the normal application build.
+SwiftDrop's shared React application includes the Customer account and Admin
+Identity screens. See [Identity integration](docs/identity-integration.md) for
+implemented routes, browser security, client contracts, verification limits, and
+the independent booking/mobile handoff. Other product features remain owned by
+their feature branches.
 
 ## Start in the shared development environment
 
@@ -44,9 +41,63 @@ npm run dev
 ```
 
 On POSIX shells, use `cp .env.example .env.local`. Open the URL printed by the
-development server (normally `http://localhost:5173`). A blank page is expected.
+development server (normally `http://localhost:5173`). Account API calls require
+the configured Identity backend and browser origin/proxy setup in the handoff.
 
 ## Included dependencies
+
+The UI uses shadcn/ui's Radix **new-york** components, Tailwind CSS v4 and a
+single neutral token theme in `app/styles/app.css`. The login, registration,
+dashboard, profile and Admin screens use the same shared primitives. Legacy
+Identity CSS overrides and the separate theme file have been removed. Session,
+API, validation and Query code remain the existing application foundations.
+
+Components are source files owned by this repository, rather than a standalone
+runtime UI framework. Keep Radix, Tailwind, CVA, clsx, tailwind-merge and Lucide:
+they support the shadcn components. Login and registration adapt the official
+`login-02` and `signup-02` split layouts. Their stock photographs are served
+locally; see [photo credits and licenses](public/images/auth/CREDITS.md).
+
+Successful local or Google sign-in opens `/dashboard`. Registration confirms the
+password locally, creates the account, then signs in through the existing API.
+If that sign-in fails after account creation, the page offers a sign-in link
+without repeating registration. The dashboard adapts `dashboard-01` with only
+its responsive sidebar, header and empty main workspace. Profile and authorized
+Admin pages share that shell; demonstration charts and data are omitted.
+Role menus follow the SRS and authorization rules for Customer, Courier, Merchant,
+Dispatcher and Admin. See [workspace navigation](docs/workspace-navigation.md)
+for the requirement mapping and current destinations. Screens not yet implemented
+in this branch appear as disabled items marked Soon.
+
+Opening `/` waits for session restoration, then redirects to `/dashboard` for an
+authenticated session or `/login` for a signed-out visitor. Create account opens
+`/register`; `/signup` is also supported as an alias. Authenticated visitors to
+login or signup return to the dashboard. The former account landing card has
+been removed.
+
+The profile page has role-aware account information, editable personal contact
+details with save/reset, and a server-backed sign-in methods card. Password
+accounts can connect Google; Google-only accounts can add a password after Google
+confirmation. Both methods retain the same account and assigned roles. Rebuild
+Identity with the [connection endpoints](../swiftdrop-backend/docs/account-connections.md)
+alongside this frontend; no new secret or database migration is needed.
+
+Google's official sign-in control renders directly in the auth form. Supported
+SDK options set its outline theme, rectangular shape and responsive width; scoped
+CSS in `google-button.css` aligns its host and focus ring with the shared theme.
+The Google iframe retains its own branding. The ID-token and server nonce flow
+is unchanged, and there is no application dialog before provider consent.
+
+Add another component from this directory using the existing `components.json`:
+
+```powershell
+npx shadcn@latest add separator
+```
+
+Review generated changes and run `npm run check`. Import from
+`~/shared/components/ui/...`, compose feature layouts with utilities, and change
+theme colors in `app/styles/app.css`. See the official
+[React Router setup](https://ui.shadcn.com/docs/installation/react-router).
 
 | Area                 | Installed stack                                                              |
 | -------------------- | ---------------------------------------------------------------------------- |
@@ -68,25 +119,26 @@ its build-time root prerender; no production Node application server is required
 ```text
 app/
   root.tsx                  Document, loading/error fallbacks, framework outlet
-  routes.ts                 Public index, Customer booking and unknown-route fallback
+  routes.ts                 Account routes and technical unknown-route fallback
   providers.tsx             TanStack Query provider with an isolated cache
   env.d.ts                  Types for public frontend environment variables
   portals/
-    public/index.tsx        Blank starting route
+    public/index.tsx        Session-aware login/dashboard redirect
     public/not-found.tsx    Minimal client-side 404 handling
-    auth/                   Reserved for authentication screens
-    customer/booking.tsx    Customer route, consuming injected session/client adapters
-    courier/, merchant/, dispatcher/, admin/
-                            Reserved for role-specific routes and layouts
-  features/customer-booking/
-                            Quote/confirmation UI, contracts, validation, exact JSON and tests
-  shared/                   Reserved for general UI, transport, and utilities
-  styles/app.css            Tailwind import; no product styling
+    auth/                   Login and Customer registration routes
+    customer/dashboard.tsx  Authenticated landing shell
+    customer/profile.tsx    Shared self-profile route
+    admin/users.tsx         Admin users and audit route
+    courier/, merchant/, dispatcher/
+                            Reserved for independently owned product routes
+  features/identity/        Shared session, API, validation, screens and tests
+  shared/                   shadcn UI, hooks, transport, and utilities
+  styles/app.css            Tailwind, shadcn theme tokens and base styles
   test/                     DOM test setup and provider cache-isolation test
 .github/                    CI and pull-request template
 scripts/preview.mjs         Static preview of build/client
-test-harness/               Separate fictional-session integration entry; not a product route
 public/favicon.ico          Neutral transparent browser favicon
+public/images/auth/         Local stock photos and license credits
 Dockerfile, nginx.conf      Static container hosting
 ```
 
@@ -121,9 +173,9 @@ use Query hooks for reads, mutations, and invalidation.
 | `npm run check`                           | Formatting, lint, types, tests, production build      |
 
 The infrastructure test verifies Query cache isolation between application
-instances; feature tests should be added alongside implementation. GitHub Actions
+instances; Identity tests cover API, session and screen behavior. GitHub Actions
 runs `npm ci` and `npm run check` on pull requests and pushes to the repository's
-confirmed default branch, `main`, using `.nvmrc` and read-only permissions.
+default branch, `dev`, using `.nvmrc` and read-only permissions.
 
 ## Environment and backend integration
 
@@ -136,62 +188,11 @@ The browser API base is prepared as `VITE_API_BASE_URL=/api`. Development proxie
 `/api` and `/graphql`, retaining their paths, to `DEV_GATEWAY_TARGET`, whose
 default is `http://localhost:5000`. In the shared container workflow, the
 frontend Nginx container proxies these paths to the Gateway.
-Customer booking uses the implemented Delivery quote/confirmation POST contracts.
-The normal route is closed until an IAM/session adapter is supplied. The test
-entry uses a separate loopback-only Delivery harness and disposable database.
-
-Project architecture describes YARP, application JWTs, refresh sessions and SSE.
-Real Identity integration remains a separate task. Booking consumes a session
-snapshot, authenticated request adapter and eligible-zone provider; it owns no
-login, refresh, token storage or backend authorization. Production zone selection
-requires an approved Customer-usable source; the Admin zone route is not reused.
-
-## Customer booking development and acceptance
-
-`app/features/customer-booking` implements labelled pickup/delivery/recipient and
-parcel fields, quote preview/decline, explicit confirmation, server-returned
-tracking, validation, expiry and conflict/network recovery. React Hook Form/Zod
-validate usability; Query provides owner-scoped data/mutations without automatic
-mutation retries. All prices and tracking results come from Delivery.
-
-The API codec retains numeric JSON tokens before binary floating-point decoding.
-Large valid totals and exact decimal weights are never rounded through Number.
-Confirmation sends only quoteId/acceptTotal and one retained Idempotency-Key.
-An uncertain outcome retains its original owner/body/key, even after quote expiry;
-only a definite quote_expired/price_mismatch permits a fresh preview/acceptance.
-Session changes clear private UI/cache state and cannot display old responses.
-
-The application's future IAM composition can wrap the route in
-`BookingEnvironmentProvider`. It supplies a current session, authenticated
-request function, zone catalog and owner-scoped pending-attempt store. The
-feature's default store is memory-only. The host session must clear private
-attempts when the principal changes. The normal route never enables test auth
-from a URL, request header or environment flag.
-
-For interactive development before IAM is ready:
-
-1. Start the sibling backend's isolated booking harness (see its
-   [Phase 6 assessment](../swiftdrop-backend/docs/delivery-phase-6-assessment.md)).
-   Its default HTTP address is `http://127.0.0.1:5088`.
-2. In this repository, run `npm run dev:booking-test` and open
-   `http://127.0.0.1:5174`. It is a separate Vite entry with an explicit fictional
-   fixture banner, server-selected Customer and delivery areas from that same
-   disposable database. `BOOKING_TEST_TARGET` may override only a loopback URL.
-3. Estimate, decline or explicitly confirm. The test entry keeps only validated
-   owner/quote/amount/body/key metadata in tab sessionStorage for unknown-outcome
-   reload recovery; it stores no credentials, address or recipient details.
-
-The normal build remains `build/client`; the test entry is not registered in
-React Router, imported by the production root or copied into that output.
-The `/__test/booking-context` fixture endpoint is used only by the test entry.
-It is not a Customer production zone/auth endpoint.
-
-Focused tests cover exact transport and input boundaries, quote/decline,
-confirmation, duplicate clicks, changed input and stale responses, definite
-expiry/repricing, unknown outcomes after local expiry, retained attempts and
-principal changes. Run `npm run check` for formatting, zero-warning lint, strict
-types, all tests and the SPA production build. Browser fixture tests against
-real PostgreSQL are separate from future real-JWT acceptance.
+The Identity feature uses the actual versioned backend contract and same-origin
+cookie/CSRF transport. Configure the public Google Web client ID when enabling
+Google sign-in. Follow the [integration handoff](docs/identity-integration.md)
+before claiming deployed TLS/cookie or real Google sign-in verification. Other
+features must reuse the authenticated request seam and server-side authorization.
 
 React Router is configured with `ssr: false`. It still prerenders the root at build
 time: keep module initialization and initial rendering free of browser globals.
@@ -210,11 +211,9 @@ docker run --rm -p 8080:8080 swiftdrop-frontend
 The frontend-only image serves `build/client` using Nginx on port 8080. Nested
 application routes use the SPA fallback. Missing assets return 404; `/api` returns
 JSON 502 rather than HTML. Production ingress must route `/api` and future SSE
-connections to YARP and other requests to the frontend. No upstream service names
-are assumed. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
+connections to YARP and other requests to the frontend. The container proxies API requests to the Gateway service. TLS, SSE buffering/timeouts, and orchestration belong in infrastructure.
 
-Docker build/runtime verification requires a running Docker Linux daemon. It was
-unavailable during setup; the container has not been verified locally.
+Docker build and SPA deep-link/missing-asset checks passed against a local Linux daemon during the PR integration review.
 
 ## References
 
@@ -224,3 +223,16 @@ unavailable during setup; the container has not been verified locally.
   and [route type generation](https://reactrouter.com/how-to/route-module-type-safety).
 - [Tailwind Vite integration](https://tailwindcss.com/docs/installation/using-vite).
 - [CONTRIBUTING.md](CONTRIBUTING.md) for frontend development conventions.
+
+## Customer booking
+
+`/customer/book` uses the shared Identity session and dashboard shell. Customers load
+active area IDs and names through `GET /api/v1/quotes/zones`, then request a quote
+and explicitly confirm it. Price tokens retain exact decimal text; an uncertain
+confirmation retains its original body and idempotency key while navigating in
+the current session. Logout, account changes and role changes clear that state.
+The feature uses shared shadcn controls and does not expose administrative zone
+configuration. Empty/unavailable area catalogs block quoting with an explanation.
+
+The isolated `npm run dev:booking-test` fixture is separate from production routing;
+it does not provide application authentication.

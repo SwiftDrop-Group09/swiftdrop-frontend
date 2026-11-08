@@ -1,3 +1,18 @@
+import { Button } from '~/shared/components/ui/button';
+import { Card } from '~/shared/components/ui/card';
+import { Alert } from '~/shared/components/ui/alert';
+import { Badge } from '~/shared/components/ui/badge';
+import { Input } from '~/shared/components/ui/input';
+import { Label } from '~/shared/components/ui/label';
+import {
+  Field as FormField,
+  FieldDescription,
+  FieldError,
+} from '~/shared/components/ui/field';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '~/shared/components/ui/native-select';
 import {
   createContext,
   useContext,
@@ -75,47 +90,31 @@ export function CustomerBookingPage({
   }, [actor, dependencies.attempts, queryClient]);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-          <span className="text-xl font-black tracking-tight text-teal-800">
-            SwiftDrop<span className="text-orange-500">.</span>
-          </span>
-          <span className="text-sm font-medium text-slate-500">
-            Customer delivery
-          </span>
-        </div>
-      </header>
-      <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-teal-700">
-          A little less distance
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           Book a delivery
         </h1>
-        <p className="mt-3 max-w-xl text-slate-600">
+        <p className="max-w-xl text-sm text-muted-foreground">
           Tell us where your parcel is going. Review your quote, then confirm
-          when you’re ready.
+          when you are ready.
         </p>
-        {!actor ? (
-          <section
-            className="mt-8 max-w-xl rounded-2xl border border-slate-200 bg-white p-7"
-            aria-labelledby="access-title"
-          >
-            <h2 id="access-title" className="text-lg font-semibold">
-              Customer sign-in required
-            </h2>
-            <p className="mt-2 text-slate-600">
-              {principal
-                ? 'Use a Customer account to request a quote and book a delivery.'
-                : 'Sign in with your Customer account to continue. Account sign-in is not available on this screen yet.'}
-            </p>
-          </section>
-        ) : (
-          <BookingFlow key={actor} actor={actor} environment={dependencies} />
-        )}
-      </div>
-    </main>
+      </header>
+      {!actor ? (
+        <Card className="space-y-3 p-6" aria-labelledby="access-title">
+          <h2 id="access-title" className="text-lg font-semibold">
+            Customer sign-in required
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {principal
+              ? 'Use a Customer account to request a quote and book a delivery.'
+              : 'Sign in with your Customer account to continue.'}
+          </p>
+        </Card>
+      ) : (
+        <BookingFlow key={actor} actor={actor} environment={dependencies} />
+      )}
+    </div>
   );
 }
 
@@ -317,34 +316,34 @@ function BookingFlow({
 
   if (receipt)
     return (
-      <section
-        className="mt-9 max-w-2xl rounded-2xl border border-teal-200 bg-white p-7 sm:p-10"
+      <Card
+        className="max-w-2xl space-y-4 p-6 sm:p-8"
         aria-labelledby="booked-title"
       >
         <span
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-2xl text-teal-800"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-2xl text-primary"
           aria-hidden="true"
         >
           ✓
         </span>
-        <p className="mt-5 text-xs font-bold uppercase tracking-widest text-teal-700">
+        <p className="mt-5 text-xs font-bold uppercase tracking-widest text-primary">
           Confirmed
         </p>
         <h2 id="booked-title" className="mt-2 text-2xl font-bold">
           Your delivery is booked
         </h2>
-        <p className="mt-3 text-slate-600">
+        <p className="mt-3 text-muted-foreground">
           Keep this tracking number for your parcel.
         </p>
         <p
-          className="mt-4 break-all rounded-xl bg-slate-50 p-4 font-mono text-lg font-semibold"
+          className="mt-4 break-all rounded-xl bg-muted p-4 font-mono text-lg font-semibold"
           aria-label="Tracking number"
         >
           {receipt.trackingNumber}
         </p>
         <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt className="text-slate-500">Confirmed price</dt>
+            <dt className="text-muted-foreground">Confirmed price</dt>
             <dd className="mt-1 break-all font-semibold">
               {displayMoney(
                 receipt.priceSnapshot.total,
@@ -353,12 +352,12 @@ function BookingFlow({
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Parcel status</dt>
+            <dt className="text-muted-foreground">Parcel status</dt>
             <dd className="mt-1 font-semibold">{receipt.status}</dd>
           </div>
         </dl>
-        <button
-          className="mt-8 rounded-lg bg-teal-800 px-5 py-3 font-semibold text-white hover:bg-teal-900"
+        <Button
+          className="mt-3 w-full sm:w-auto"
           onClick={() => {
             form.reset(emptyBookingForm);
             setReceipt(null);
@@ -367,8 +366,8 @@ function BookingFlow({
           }}
         >
           Book another delivery
-        </button>
-      </section>
+        </Button>
+      </Card>
     );
 
   return (
@@ -407,17 +406,17 @@ function BookingFlow({
             errors={form.formState.errors}
             zones={zones.data ?? []}
           />
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          <Card className="space-y-4 p-6">
             <SectionTitle step="03" title="Recipient & parcel" />
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Field
+              <BookingInput
                 name="recipientName"
                 label="Recipient name"
                 register={form.register}
                 errors={form.formState.errors}
                 autoComplete="name"
               />
-              <Field
+              <BookingInput
                 name="recipientPhone"
                 label="Recipient phone number"
                 register={form.register}
@@ -425,7 +424,7 @@ function BookingFlow({
                 type="tel"
                 autoComplete="tel"
               />
-              <Field
+              <BookingInput
                 name="weightKg"
                 label="Weight (kg)"
                 register={form.register}
@@ -433,63 +432,62 @@ function BookingFlow({
                 inputMode="decimal"
                 hint="Greater than 0, up to 30 kg"
               />
-              <label className="block text-sm font-medium">
+              <Label className="block text-sm font-medium">
                 Parcel size
-                <select
-                  {...form.register('size')}
-                  className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-3"
-                >
-                  <option>Small</option>
-                  <option>Medium</option>
-                  <option>Large</option>
-                </select>
-              </label>
+                <NativeSelect {...form.register('size')} className="mt-2">
+                  <NativeSelectOption>Small</NativeSelectOption>
+                  <NativeSelectOption>Medium</NativeSelectOption>
+                  <NativeSelectOption>Large</NativeSelectOption>
+                </NativeSelect>
+              </Label>
             </div>
-          </section>
+          </Card>
         </fieldset>
         {zones.isPending && (
-          <p role="status" className="text-sm text-slate-600">
+          <p role="status" className="text-sm text-muted-foreground">
             Loading delivery areas…
           </p>
         )}
         {zones.isError && (
-          <div
-            role="alert"
-            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm"
-          >
+          <Alert variant="destructive">
             Delivery areas are unavailable.{' '}
-            <button
+            <Button
               type="button"
-              className="font-semibold underline"
+              className="mt-3 w-full sm:w-auto"
               onClick={() => {
                 void zones.refetch();
               }}
             >
               Try again
-            </button>
-          </div>
+            </Button>
+          </Alert>
+        )}
+        {zones.isSuccess && zones.data.length === 0 && (
+          <Alert>
+            No delivery areas are available yet. Please try again later.
+          </Alert>
         )}
         {!attempt && (
-          <button
+          <Button
             type="submit"
             disabled={
               busy || zones.isPending || zones.isError || !zones.data?.length
             }
-            className="w-full rounded-xl bg-teal-800 px-6 py-4 font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="mt-3 w-full sm:w-auto"
           >
             {estimate.isPending ? 'Getting your quote…' : 'Get delivery quote'}
-          </button>
+          </Button>
         )}
       </form>
-      <aside
-        className="rounded-2xl border border-slate-200 bg-white p-6 lg:sticky lg:top-6"
+      <Card
+        className="min-w-0 space-y-4 p-6 lg:sticky lg:top-6"
         aria-labelledby="quote-title"
       >
         <h2 id="quote-title" className="text-lg font-bold">
           Your delivery quote
         </h2>
         {!quote && !attempt && (
-          <p className="mt-3 text-sm leading-6 text-slate-500">
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
             Complete your delivery details to see the price. Requesting a quote
             does not book a parcel.
           </p>
@@ -502,69 +500,67 @@ function BookingFlow({
             >
               {displayMoney(quote.total, quote.currency)}
             </p>
-            <p className="mt-3 text-sm text-slate-500">
+            <p className="mt-3 text-sm text-muted-foreground">
               {expired && !attempt
                 ? 'Quote expired — request a new quote.'
                 : `Quote expires ${new Date(quote.expiresAt).toLocaleTimeString()}`}
             </p>
             {!attempt && (
               <>
-                <p className="mt-5 text-sm leading-6 text-slate-600">
+                <p className="mt-5 text-sm leading-6 text-muted-foreground">
                   By confirming, you accept this quoted total for the delivery
                   details above.
                 </p>
-                <button
+                <Button
                   type="button"
                   disabled={busy || expired}
                   onClick={() => {
                     void confirmQuote();
                   }}
-                  className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-semibold text-slate-950 hover:bg-orange-400 disabled:opacity-50"
+                  className="mt-3 w-full sm:w-auto"
                 >
                   Confirm & book delivery
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => {
                     setQuote(null);
                     setNotice('Quote declined. No delivery was booked.');
                   }}
-                  className="mt-3 w-full rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  className="mt-3 w-full sm:w-auto"
                 >
                   Decline quote
-                </button>
+                </Button>
               </>
             )}
           </>
         )}
         {attempt && (
           <>
-            <p className="mt-5 text-sm leading-6 text-slate-600">
+            <p className="mt-5 text-sm leading-6 text-muted-foreground">
               {confirm.isPending
                 ? 'Confirming your delivery. Please keep this screen open.'
                 : 'The booking outcome is not verified yet. Your original confirmation is retained so a retry cannot create a second parcel.'}
             </p>
-            <button
+            <Button
               type="button"
               disabled={busy || now < retryAt || !!blockedRetry}
               onClick={() => {
                 void confirmQuote();
               }}
-              className="mt-5 w-full rounded-xl bg-teal-800 px-4 py-3 font-semibold text-white hover:bg-teal-900 disabled:opacity-50"
+              className="mt-3 w-full sm:w-auto"
             >
               {confirm.isPending
                 ? 'Confirming…'
                 : now < retryAt
                   ? 'Please wait before retrying'
                   : 'Retry original confirmation'}
-            </button>
+            </Button>
           </>
         )}
         {error && (
-          <div
-            role="alert"
-            className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
-          >
+          <Alert variant="destructive" className="mt-5">
             {attempt ||
             [
               'quote_expired',
@@ -579,18 +575,21 @@ function BookingFlow({
                 {messages.join(' ')}
               </p>
             ))}
-          </div>
+          </Alert>
         )}
         {notice && (
-          <p role="status" className="mt-4 text-sm leading-6 text-slate-600">
+          <p
+            role="status"
+            className="mt-4 text-sm leading-6 text-muted-foreground"
+          >
             {notice}
           </p>
         )}
-        <div className="mt-7 border-t border-slate-100 pt-5 text-xs leading-5 text-slate-500">
+        <div className="mt-7 border-t border-border pt-5 text-xs leading-5 text-muted-foreground">
           You stay in control. A delivery is created only after you explicitly
           confirm a valid quote.
         </div>
-      </aside>
+      </Card>
     </div>
   );
 }
@@ -598,15 +597,13 @@ function BookingFlow({
 function SectionTitle({ step, title }: { step: string; title: string }) {
   return (
     <h2 className="flex items-center gap-3 font-bold">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-50 text-xs text-teal-800">
-        {step}
-      </span>
+      <Badge variant="secondary">{step}</Badge>
       {title}
     </h2>
   );
 }
 
-function Field({
+function BookingInput({
   name,
   label,
   register,
@@ -626,11 +623,9 @@ function Field({
   hint?: string;
 }) {
   return (
-    <div>
-      <label htmlFor={name} className="block text-sm font-medium">
-        {label}
-      </label>
-      <input
+    <FormField data-invalid={!!errors[name]}>
+      <Label htmlFor={name}>{label}</Label>
+      <Input
         id={name}
         {...register(name)}
         type={type}
@@ -638,17 +633,13 @@ function Field({
         inputMode={inputMode}
         aria-invalid={!!errors[name]}
         aria-describedby={errors[name] || hint ? `${name}-help` : undefined}
-        className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none transition focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
       />
-      {(errors[name] || hint) && (
-        <p
-          id={`${name}-help`}
-          className={`mt-1.5 text-xs ${errors[name] ? 'text-red-700' : 'text-slate-500'}`}
-        >
-          {errors[name]?.message ?? hint}
-        </p>
-      )}
-    </div>
+      {errors[name] ? (
+        <FieldError id={`${name}-help`}>{errors[name].message}</FieldError>
+      ) : hint ? (
+        <FieldDescription id={`${name}-help`}>{hint}</FieldDescription>
+      ) : null}
+    </FormField>
   );
 }
 
@@ -669,10 +660,10 @@ function AddressFields({
 }) {
   const zone = `${prefix}ZoneId` as const;
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
+    <Card className="space-y-4 p-6">
       <SectionTitle step={step} title={title} />
       <div className="mt-5 space-y-4">
-        <Field
+        <BookingInput
           name={`${prefix}Street`}
           label={`${prefix === 'pickup' ? 'Pickup' : 'Delivery'} street address`}
           register={register}
@@ -680,14 +671,14 @@ function AddressFields({
           autoComplete="street-address"
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field
+          <BookingInput
             name={`${prefix}City`}
             label={`${prefix === 'pickup' ? 'Pickup' : 'Delivery'} city`}
             register={register}
             errors={errors}
             autoComplete="address-level2"
           />
-          <Field
+          <BookingInput
             name={`${prefix}PostalCode`}
             label={`${prefix === 'pickup' ? 'Pickup' : 'Delivery'} postal code`}
             register={register}
@@ -696,30 +687,30 @@ function AddressFields({
           />
         </div>
         <div>
-          <label htmlFor={zone} className="block text-sm font-medium">
+          <Label htmlFor={zone} className="block text-sm font-medium">
             {prefix === 'pickup' ? 'Pickup' : 'Delivery'} area
-          </label>
-          <select
+          </Label>
+          <NativeSelect
             id={zone}
             {...register(zone)}
             aria-invalid={!!errors[zone]}
             aria-describedby={errors[zone] ? `${zone}-help` : undefined}
-            className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm"
+            className="mt-2"
           >
-            <option value="">Choose an area</option>
+            <NativeSelectOption value="">Choose an area</NativeSelectOption>
             {zones.map((item) => (
-              <option key={item.id} value={item.id}>
+              <NativeSelectOption key={item.id} value={item.id}>
                 {item.name}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
           {errors[zone] && (
-            <p id={`${zone}-help`} className="mt-1.5 text-xs text-red-700">
+            <p id={`${zone}-help`} className="mt-1.5 text-xs text-destructive">
               {errors[zone].message}
             </p>
           )}
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

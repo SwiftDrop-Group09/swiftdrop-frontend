@@ -1,4 +1,5 @@
-// Intentional blank entry point. Add the first public screen here.
+import { SessionEntry } from '~/features/identity/session-entry';
+
 export default function Index() {
-  return null;
+  return <SessionEntry />;
 }

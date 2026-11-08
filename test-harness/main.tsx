@@ -1,3 +1,5 @@
+import { Alert } from '../app/shared/components/ui/alert';
+import { Card } from '../app/shared/components/ui/card';
 import { createRoot } from 'react-dom/client';
 import { z } from 'zod';
 import { AppProviders } from '../app/providers';
@@ -20,13 +22,10 @@ async function start() {
     const context = contextSchema.parse(value);
     root.render(
       <AppProviders>
-        <div
-          className="bg-amber-100 px-5 py-2 text-center text-xs font-semibold text-amber-950"
-          role="note"
-        >
+        <Alert role="note">
           Local integration fixture · fictional Customer and delivery areas ·
           disposable data
-        </div>
+        </Alert>
         <CustomerBookingPage
           environment={{
             session: { principalId: context.actorId, roles: context.roles },
@@ -40,12 +39,12 @@ async function start() {
     );
   } catch {
     root.render(
-      <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <Card className="m-8 p-6">
         <h1>Booking fixture unavailable</h1>
         <p>
           Start the isolated Delivery booking harness, then reload this page.
         </p>
-      </main>,
+      </Card>,
     );
   }
 }
