@@ -12,7 +12,7 @@ export function AuthLayout({
 }) {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-8 p-6 sm:p-10 lg:px-14">
+      <div className="flex min-w-0 flex-col gap-8 p-6 sm:p-10 lg:px-14">
         <header className="flex items-center justify-between gap-4">
           <Link
             to="/"
@@ -33,9 +33,9 @@ export function AuthLayout({
         </header>
         <main
           id="main-content"
-          className="flex flex-1 items-center justify-center py-4 sm:py-8"
+          className="flex min-w-0 flex-1 items-center justify-center py-4 sm:py-8"
         >
-          <div className="w-full max-w-sm">{children}</div>
+          <div className="min-w-0 w-full max-w-sm">{children}</div>
         </main>
         <footer className="text-center text-xs text-muted-foreground">
           SwiftDrop · Every parcel starts here.
