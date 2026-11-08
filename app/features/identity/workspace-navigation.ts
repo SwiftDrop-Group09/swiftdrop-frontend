@@ -65,8 +65,8 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Courier'],
     items: [
       // Status, proof and failure actions belong to an assigned parcel's detail.
-      { label: 'Assigned deliveries', icon: Truck },
-      { label: 'Delivery history', icon: History },
+      { label: 'Assigned deliveries', icon: Truck, to: '/courier' },
+      { label: 'Delivery history', icon: History, to: '/courier/history' },
     ],
   },
   {

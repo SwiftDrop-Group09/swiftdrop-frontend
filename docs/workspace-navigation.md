@@ -42,7 +42,7 @@ owning service when its screens are implemented.
 ## Current destinations
 
 The actual router currently implements `/dashboard`, `/profile` and
-`/admin/users` and Customer-only `/customer/book`. The audit item links to `/admin/users#identity-audit`, the existing
+`/admin/users` and Customer-only `/customer/book`, plus Courier-only `/courier`, `/courier/history` and assigned parcel details at `/courier/parcels/:id`. The audit item links to `/admin/users#identity-audit`, the existing
 Identity audit section; its explicit View audit log control loads the records.
 This is Identity auditing, not a completed cross-service audit projection.
 

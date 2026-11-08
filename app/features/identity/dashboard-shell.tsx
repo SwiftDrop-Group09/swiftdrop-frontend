@@ -59,7 +59,10 @@ function AccountSidebar() {
               <nav aria-label={`${group.label} navigation`}>
                 <SidebarMenu>
                   {group.items.map(({ to, label, icon: Icon }) => {
-                    const active = to === `${pathname}${hash}`;
+                    const active =
+                      to === `${pathname}${hash}` ||
+                      (to === '/courier' &&
+                        pathname.startsWith('/courier/parcels/'));
                     return (
                       <SidebarMenuItem key={label}>
                         {to ? (
@@ -159,7 +162,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         ? 'Administration'
         : pathname === '/customer/book'
           ? 'Book a delivery'
-          : 'Dashboard';
+          : pathname.startsWith('/courier')
+            ? 'Courier deliveries'
+            : 'Dashboard';
   return (
     <SidebarProvider
       style={

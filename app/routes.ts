@@ -8,6 +8,11 @@ export default [
   route('dashboard', 'portals/customer/dashboard.tsx'),
   route('profile', 'portals/customer/profile.tsx'),
   route('admin/users', 'portals/admin/users.tsx'),
+  route('courier', 'portals/courier/layout.tsx', [
+    index('portals/courier/manifest.tsx'),
+    route('parcels/:id', 'portals/courier/details.tsx'),
+    route('history', 'portals/courier/history.tsx'),
+  ]),
   route('customer/book', 'portals/customer/booking.tsx'),
   route('*', 'portals/public/not-found.tsx'),
 ] satisfies RouteConfig;

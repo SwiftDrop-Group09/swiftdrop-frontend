@@ -1,5 +1,6 @@
 import { Button } from '~/shared/components/ui/button';
 import { Alert } from '~/shared/components/ui/alert';
+import { FieldError as ShadcnFieldError } from '~/shared/components/ui/field';
 import type { ReactNode } from 'react';
 import { Link, Navigate } from 'react-router';
 import { IdentityError } from './api';
@@ -72,9 +73,5 @@ export function Protected({
   return children;
 }
 export function FieldError({ message }: { message?: string }) {
-  return message ? (
-    <span role="alert" className="text-sm font-normal text-destructive">
-      {message}
-    </span>
-  ) : null;
+  return message ? <ShadcnFieldError>{message}</ShadcnFieldError> : null;
 }
