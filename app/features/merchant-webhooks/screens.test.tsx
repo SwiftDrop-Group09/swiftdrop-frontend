@@ -161,16 +161,44 @@ describe('WebhookScreens', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders active subscriptions table for approved merchant', async () => {
-    setupMount();
+  it('renders active subscriptions table for approved merchant and can send test event', async () => {
+    const user = userEvent.setup();
+    let testTriggered = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/test') && init?.method === 'POST') {
+        testTriggered = true;
+        return json(
+          {
+            id: '88888888-8888-4888-8888-888888888888',
+            eventId: '77777777-7777-4777-8777-777777777777',
+            subscriptionId: mockWebhooks.items[0]!.id,
+            replayGeneration: 0,
+            status: 'Pending',
+            attemptCount: 0,
+            dueAt: '2026-11-10T12:00:00Z',
+            safeErrorCode: null,
+            createdAt: '2026-11-10T12:00:00Z',
+          },
+          202,
+        );
+      }
+      return undefined;
+    });
 
     expect(
       await screen.findByText('https://api.merchant.com/webhook'),
     ).toBeInTheDocument();
     expect(screen.getByText('delivery.delivered')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+
+    const sendTestBtn = screen.getByRole('button', {
+      name: /Send Test Event/i,
+    });
+    await user.click(sendTestBtn);
+
+    expect(testTriggered).toBe(true);
     expect(
-      screen.getByRole('button', { name: /View Attempts/i }),
+      await screen.findByText('Test Event Dispatched'),
     ).toBeInTheDocument();
   });
 

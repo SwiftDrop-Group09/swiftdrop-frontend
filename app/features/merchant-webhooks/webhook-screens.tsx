@@ -8,6 +8,7 @@ import {
   Copy,
   Plus,
   RefreshCw,
+  Send,
   ShieldAlert,
   Trash2,
   Webhook,
@@ -76,6 +77,9 @@ export function WebhookScreens() {
   const [replayAttempt, setReplayAttempt] =
     useState<WebhookAttemptResponse | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [testSuccessMessage, setTestSuccessMessage] = useState<string | null>(
+    null,
+  );
 
   // 1. Fetch Merchant status to ensure approved
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -157,6 +161,33 @@ export function WebhookScreens() {
     onError: (err: unknown) => {
       setApiError(
         err instanceof WebhookError ? err.message : 'Failed to trigger replay.',
+      );
+    },
+  });
+
+  // 7. Test Webhook Mutation
+  const testMutation = useMutation({
+    mutationFn: (subId: string) => webhookApi.triggerTestWebhook(subId),
+    onSuccess: () => {
+      setTestSuccessMessage(
+        'Test delivery event sent! Attempt recorded in the history.',
+      );
+      setApiError(null);
+      void queryClient.invalidateQueries({
+        queryKey: ['merchant', 'webhooks'],
+      });
+      if (selectedWebhook) {
+        void queryClient.invalidateQueries({
+          queryKey: ['merchant', 'webhooks', selectedWebhook.id, 'attempts'],
+        });
+      }
+      setTimeout(() => setTestSuccessMessage(null), 5000);
+    },
+    onError: (err: unknown) => {
+      setApiError(
+        err instanceof WebhookError
+          ? err.message
+          : 'Failed to trigger test webhook.',
       );
     },
   });
@@ -289,6 +320,17 @@ export function WebhookScreens() {
             </Alert>
           )}
 
+          {/* Top-level Test Success Message */}
+          {testSuccessMessage && (
+            <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900">
+              <Check className="h-4 w-4 text-emerald-600" />
+              <AlertTitle className="font-semibold">
+                Test Event Dispatched
+              </AlertTitle>
+              <AlertDescription>{testSuccessMessage}</AlertDescription>
+            </Alert>
+          )}
+
           {/* View 1: Attempts Timeline for Selected Webhook */}
           {selectedWebhook ? (
             <Card>
@@ -310,11 +352,29 @@ export function WebhookScreens() {
                     {selectedWebhook.endpointUrl}
                   </CardDescription>
                 </div>
-                <Badge
-                  variant={selectedWebhook.isActive ? 'default' : 'secondary'}
-                >
-                  {selectedWebhook.isActive ? 'Active' : 'Inactive'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {selectedWebhook.isActive && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={testMutation.isPending}
+                      onClick={() => {
+                        setApiError(null);
+                        testMutation.mutate(selectedWebhook.id);
+                      }}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                      {testMutation.isPending
+                        ? 'Sending...'
+                        : 'Send Test Event'}
+                    </Button>
+                  )}
+                  <Badge
+                    variant={selectedWebhook.isActive ? 'default' : 'secondary'}
+                  >
+                    {selectedWebhook.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 {attemptsLoading ? (
@@ -492,6 +552,20 @@ export function WebhookScreens() {
                             {new Date(sub.createdAt).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right space-x-2">
+                            {sub.isActive && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={testMutation.isPending}
+                                onClick={() => {
+                                  setApiError(null);
+                                  testMutation.mutate(sub.id);
+                                }}
+                              >
+                                <Send className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                Send Test Event
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"

@@ -221,6 +221,19 @@ export class WebhookApi {
     );
     return webhookJobResponseSchema.parse(await response.json());
   }
+
+  async triggerTestWebhook(
+    subscriptionId: string,
+    token?: string,
+  ): Promise<WebhookJobResponse> {
+    const response = await this.request(
+      `/v1/merchant/webhooks/${subscriptionId}/test`,
+      'POST',
+      undefined,
+      token,
+    );
+    return webhookJobResponseSchema.parse(await response.json());
+  }
 }
 
 export function useWebhookApi(): WebhookApi {
