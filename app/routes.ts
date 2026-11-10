@@ -8,6 +8,7 @@ export default [
   route('dashboard', 'portals/customer/dashboard.tsx'),
   route('profile', 'portals/customer/profile.tsx'),
   route('merchant', 'portals/merchant/index.tsx'),
+  route('merchant/webhooks', 'portals/merchant/webhooks.tsx'),
   route('admin/users', 'portals/admin/users.tsx'),
   route('admin/merchants', 'portals/admin/merchants.tsx'),
   route('courier', 'portals/courier/layout.tsx', [
