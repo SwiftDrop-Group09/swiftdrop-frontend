@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Check,
   Copy,
+  History,
   Plus,
   RefreshCw,
   Send,
@@ -447,13 +448,14 @@ export function WebhookScreens() {
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className="h-8 text-xs font-medium"
                                   onClick={() => {
                                     setReplayAttempt(attempt);
                                     setReplayReason('');
                                     setReplayError(null);
                                   }}
                                 >
-                                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                                   Replay
                                 </Button>
                               )}
@@ -513,10 +515,12 @@ export function WebhookScreens() {
                       <TableRow>
                         <TableHead>Endpoint URL</TableHead>
                         <TableHead>Subscribed Events</TableHead>
-                        <TableHead>Version</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="w-20">Version</TableHead>
+                        <TableHead className="w-24">Status</TableHead>
+                        <TableHead className="w-28">Created</TableHead>
+                        <TableHead className="text-right whitespace-nowrap min-w-[280px]">
+                          Actions
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -551,45 +555,53 @@ export function WebhookScreens() {
                           <TableCell className="text-xs text-muted-foreground">
                             {new Date(sub.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            {sub.isActive && (
+                          <TableCell className="text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              {sub.isActive && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs font-medium"
+                                  disabled={testMutation.isPending}
+                                  onClick={() => {
+                                    setApiError(null);
+                                    testMutation.mutate(sub.id);
+                                  }}
+                                >
+                                  <Send className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                                  Send Test Event
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={testMutation.isPending}
-                                onClick={() => {
-                                  setApiError(null);
-                                  testMutation.mutate(sub.id);
-                                }}
+                                className="h-8 text-xs font-medium"
+                                onClick={() => setSelectedWebhook(sub)}
                               >
-                                <Send className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                                Send Test Event
+                                <History className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                                View Attempts
                               </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedWebhook(sub)}
-                            >
-                              View Attempts
-                            </Button>
-                            {sub.isActive && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      'Deactivate this webhook subscription? Unsent jobs will be cancelled.',
-                                    )
-                                  ) {
-                                    deleteMutation.mutate(sub.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
+                              {sub.isActive && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  title="Deactivate Webhook"
+                                  onClick={() => {
+                                    if (
+                                      confirm(
+                                        'Deactivate this webhook subscription? Unsent jobs will be cancelled.',
+                                      )
+                                    ) {
+                                      deleteMutation.mutate(sub.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span className="sr-only">Deactivate</span>
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
