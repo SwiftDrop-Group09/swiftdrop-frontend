@@ -97,7 +97,11 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Admin'],
     items: [
       { label: 'User administration', icon: Users, to: '/admin/users' },
-      { label: 'Merchant approvals', icon: ShieldCheck, to: '/admin/merchants' },
+      {
+        label: 'Merchant approvals',
+        icon: ShieldCheck,
+        to: '/admin/merchants',
+      },
       { label: 'Delivery zones', icon: Map },
       { label: 'Pricing tiers', icon: SlidersHorizontal },
       { label: 'Delivery reports', icon: FileChartColumn },

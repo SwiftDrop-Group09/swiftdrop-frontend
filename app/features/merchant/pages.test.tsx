@@ -130,17 +130,13 @@ describe('Merchant Portal Screens', () => {
   it('renders onboarding registration form when user has no registered business', async () => {
     setupMount('/merchant');
 
-    expect(
-      await screen.findByLabelText(/Business Name/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Business Name/i)).toBeInTheDocument();
 
     expect(
       screen.getByLabelText(/Business Contact Email/i),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByLabelText(/Contact Phone Number/i),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Contact Phone Number/i)).toBeInTheDocument();
 
     expect(
       screen.getByLabelText(/Default Pickup Address/i),
