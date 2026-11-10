@@ -45,7 +45,7 @@ const navigation: readonly NavigationGroup[] = [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
       { label: 'My profile', icon: UserRound, to: '/profile' },
       // Onboarding accepts any authenticated applicant, before a Merchant role.
-      { label: 'Business registration', icon: Store },
+      { label: 'Business registration', icon: Store, to: '/merchant' },
     ],
   },
   {
@@ -76,7 +76,7 @@ const navigation: readonly NavigationGroup[] = [
     items: [
       { label: 'Business overview', icon: ChartNoAxesCombined },
       { label: 'Orders', icon: ClipboardList },
-      { label: 'API keys', icon: KeyRound },
+      { label: 'API keys', icon: KeyRound, to: '/merchant' },
       { label: 'Webhooks', icon: Webhook },
     ],
   },
@@ -97,7 +97,11 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Admin'],
     items: [
       { label: 'User administration', icon: Users, to: '/admin/users' },
-      { label: 'Merchant approvals', icon: ShieldCheck },
+      {
+        label: 'Merchant approvals',
+        icon: ShieldCheck,
+        to: '/admin/merchants',
+      },
       { label: 'Delivery zones', icon: Map },
       { label: 'Pricing tiers', icon: SlidersHorizontal },
       { label: 'Delivery reports', icon: FileChartColumn },

@@ -202,8 +202,8 @@ describe('Customer account screens', () => {
       navigation.getByRole('link', { name: 'Book a delivery' }),
     ).toHaveAttribute('href', '/customer/book');
     expect(
-      screen.getByRole('button', { name: 'Business registration' }),
-    ).toBeDisabled();
+      screen.getByRole('link', { name: 'Business registration' }),
+    ).toHaveAttribute('href', '/merchant');
   });
 
   it('combines assigned roles without duplicating shared or dispatch navigation', async () => {
@@ -218,7 +218,7 @@ describe('Customer account screens', () => {
       screen.getAllByRole('navigation', { name: 'Dispatch navigation' }),
     ).toHaveLength(1);
     expect(
-      screen.getAllByRole('button', { name: 'Business registration' }),
+      screen.getAllByRole('link', { name: 'Business registration' }),
     ).toHaveLength(1);
   });
 

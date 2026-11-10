@@ -7,7 +7,9 @@ export default [
   route('signup', 'portals/auth/signup.tsx'),
   route('dashboard', 'portals/customer/dashboard.tsx'),
   route('profile', 'portals/customer/profile.tsx'),
+  route('merchant', 'portals/merchant/index.tsx'),
   route('admin/users', 'portals/admin/users.tsx'),
+  route('admin/merchants', 'portals/admin/merchants.tsx'),
   route('courier', 'portals/courier/layout.tsx', [
     index('portals/courier/manifest.tsx'),
     route('parcels/:id', 'portals/courier/details.tsx'),
