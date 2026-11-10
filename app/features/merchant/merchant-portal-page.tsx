@@ -1,8 +1,17 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, KeyRound, Plus, ShieldAlert, Store } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  KeyRound,
+  Plus,
+  ShieldAlert,
+  Store,
+  Webhook,
+} from 'lucide-react';
 import { apiKeyScopes, registerMerchantSchema } from './contracts';
 import type {
   ApiKeyResponse,
@@ -602,7 +611,20 @@ export function MerchantPortalPage() {
                 Manage your business registration, approvals, and API keys.
               </p>
             </div>
-            {business && <StatusBadge status={business.status} />}
+            <div className="flex items-center gap-3">
+              {business?.status === 'Approved' && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link
+                    to="/merchant/webhooks"
+                    className="flex items-center gap-2"
+                  >
+                    <Webhook className="w-4 h-4 text-emerald-600" />
+                    Webhooks
+                  </Link>
+                </Button>
+              )}
+              {business && <StatusBadge status={business.status} />}
+            </div>
           </div>
 
           {isLoading ? (
@@ -667,15 +689,29 @@ export function MerchantPortalPage() {
               )}
 
               {business.status === 'Approved' && (
-                <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900">
-                  <AlertTitle className="font-semibold">
-                    Account Approved & Active
-                  </AlertTitle>
-                  <AlertDescription>
-                    Your business is fully approved. You can generate API keys
-                    below to automate deliveries.
-                  </AlertDescription>
-                </Alert>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-emerald-300 bg-emerald-50 text-emerald-900 rounded-lg">
+                  <div>
+                    <h3 className="font-semibold text-base">
+                      Account Approved & Active
+                    </h3>
+                    <p className="text-sm text-emerald-800">
+                      Your business is fully approved. You can generate API keys
+                      below or configure delivery status webhooks.
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white"
+                  >
+                    <Link
+                      to="/merchant/webhooks"
+                      className="flex items-center gap-2"
+                    >
+                      <Webhook className="w-4 h-4" />
+                      Configure Webhooks
+                    </Link>
+                  </Button>
+                </div>
               )}
 
               <Card className="shadow-sm">

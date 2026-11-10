@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -235,6 +236,14 @@ export function WebhookScreens() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Link
+                  to="/merchant"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Merchant Portal & API Keys
+                </Link>
+              </div>
               <h1 className="text-2xl font-bold tracking-tight">
                 Delivery Status Webhooks
               </h1>
