@@ -248,8 +248,8 @@ export function WebhookScreens() {
                 Delivery Status Webhooks
               </h1>
               <p className="text-muted-foreground text-sm">
-                Receive cryptographically signed HTTP notifications when
-                delivery statuses update.
+                Receive automatic real-time notifications whenever your delivery
+                statuses update.
               </p>
             </div>
             {isApproved && !selectedWebhook && (
@@ -415,8 +415,8 @@ export function WebhookScreens() {
                   Active Subscriptions
                 </CardTitle>
                 <CardDescription>
-                  Configured webhook receivers receiving delivery lifecycle
-                  events.
+                  Your configured webhook endpoints receiving delivery status
+                  updates.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -532,16 +532,14 @@ export function WebhookScreens() {
               <DialogHeader>
                 <DialogTitle>Register Webhook Endpoint</DialogTitle>
                 <DialogDescription>
-                  Specify your public HTTPS destination and select the delivery
-                  events you wish to receive.
+                  Enter your endpoint URL and choose which delivery events you
+                  wish to receive.
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleCreateSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="url">
-                    Destination URL (Port 443 HTTPS only)
-                  </Label>
+                  <Label htmlFor="url">Endpoint URL (HTTPS)</Label>
                   <Input
                     id="url"
                     placeholder="https://api.yourdomain.com/webhooks/swiftdrop"
@@ -628,7 +626,7 @@ export function WebhookScreens() {
                   <div className="p-3 bg-muted rounded-md space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-muted-foreground uppercase">
-                        Secret (HMAC-SHA256)
+                        Signing Secret Key
                       </span>
                       <span className="text-xs font-mono text-muted-foreground">
                         Version {oneTimeSecret.secretVersion}
@@ -662,10 +660,8 @@ export function WebhookScreens() {
 
                   <Alert>
                     <AlertDescription className="text-xs text-muted-foreground">
-                      Use this secret with the{' '}
-                      <code>X-SwiftDrop-Signature</code> and{' '}
-                      <code>X-SwiftDrop-Timestamp</code> headers to verify
-                      payload authenticity.
+                      Use this secret key to verify that incoming webhook
+                      notifications are genuinely sent by SwiftDrop.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -693,21 +689,17 @@ export function WebhookScreens() {
                   Manual Webhook Replay
                 </DialogTitle>
                 <DialogDescription>
-                  An audited manual replay creates a fresh attempt generation
-                  while preserving the original event ID for receiver
-                  idempotency.
+                  Resend this delivery notification to your endpoint.
                 </DialogDescription>
               </DialogHeader>
 
               {replayAttempt && selectedWebhook && (
                 <form onSubmit={handleReplaySubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="reason">
-                      Business Justification Reason (Required)
-                    </Label>
+                    <Label htmlFor="reason">Reason for Replay (Required)</Label>
                     <Textarea
                       id="reason"
-                      placeholder="e.g., Merchant endpoint outage resolved; verified receiver readiness."
+                      placeholder="e.g., Endpoint outage resolved; resending missed notification."
                       rows={3}
                       value={replayReason}
                       onChange={(e) => setReplayReason(e.target.value)}
