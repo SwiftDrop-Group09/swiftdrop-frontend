@@ -77,7 +77,7 @@ const navigation: readonly NavigationGroup[] = [
       { label: 'Business overview', icon: ChartNoAxesCombined },
       { label: 'Orders', icon: ClipboardList },
       { label: 'API keys', icon: KeyRound, to: '/merchant' },
-      { label: 'Webhooks', icon: Webhook },
+      { label: 'Webhooks', icon: Webhook, to: '/merchant/webhooks' },
     ],
   },
   {
