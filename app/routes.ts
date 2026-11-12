@@ -17,5 +17,15 @@ export default [
     route('history', 'portals/courier/history.tsx'),
   ]),
   route('customer/book', 'portals/customer/booking.tsx'),
+  route('customer/tracking', 'portals/customer/tracking.tsx'),
+  route('customer/history', 'portals/customer/history.tsx'),
+  route('customer/receipts', 'portals/customer/receipt.tsx'),
+  route('customer/parcels/:id', 'portals/customer/tracking.tsx', {
+    id: 'customer-parcel-detail',
+  }),
+  route('customer/parcels/:id/receipt', 'portals/customer/receipt.tsx', {
+    id: 'customer-parcel-receipt',
+  }),
+  route('track', 'portals/public/track.tsx'),
   route('*', 'portals/public/not-found.tsx'),
 ] satisfies RouteConfig;
