@@ -1,3 +1,4 @@
+import { AuditPage } from '~/features/audit/audit-page';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -54,6 +55,15 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
           pageSize: 20,
         }),
       );
+    if (url.includes('/audit-logs'))
+      return Promise.resolve(
+        json({
+          items: [],
+          totalCount: 0,
+          hasMore: false,
+          recordingEnabled: true,
+        }),
+      );
     return Promise.resolve(json({ code: 'validation' }, 400));
   });
   const api = new IdentityApi(fetcher);
@@ -70,6 +80,7 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
       { path: '/profile', element: <ProfilePage /> },
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/admin/users', element: <AdminPage /> },
+      { path: '/admin/audit', element: <AuditPage /> },
     ],
     { initialEntries: [path] },
   );
@@ -263,14 +274,14 @@ describe('Customer account screens', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('opens the existing audit section and marks only the audit link active', async () => {
+  it('opens the dedicated audit page and marks only the audit link active', async () => {
     const { user, router } = mount('/dashboard', admin);
     await screen.findByRole('heading', { name: 'Dashboard' });
     await user.click(screen.getByRole('link', { name: 'Audit logs' }));
-    await screen.findByRole('heading', { name: 'Identity audit log' });
+    await screen.findByRole('heading', { name: 'Audit log' });
     expect(router.state.location).toMatchObject({
-      pathname: '/admin/users',
-      hash: '#identity-audit',
+      pathname: '/admin/audit',
+      hash: '',
     });
     expect(screen.getByRole('link', { name: 'Audit logs' })).toHaveAttribute(
       'aria-current',
@@ -280,7 +291,7 @@ describe('Customer account screens', () => {
       screen.getByRole('link', { name: 'User administration' }),
     ).not.toHaveAttribute('aria-current');
     expect(
-      screen.getByRole('button', { name: 'View audit log' }),
+      screen.getByRole('button', { name: 'Apply filters' }),
     ).toBeInTheDocument();
   });
 
@@ -1246,38 +1257,20 @@ describe('Admin controls', () => {
       ),
     ).not.toContain(password);
   });
-  it('loads safe audit records with canonical paging', async () => {
-    const { user, fetcher } = mount('/admin/users', admin, (path) =>
-      path.startsWith('/api/v1/audit-logs?')
-        ? json({
-            items: [
-              {
-                id: 1,
-                actorId: admin.id,
-                action: 'RolesChanged',
-                resourceId: customer.id,
-                timestamp: '2026-10-26T00:00:00Z',
-                resultCode: 'success',
-              },
-            ],
-            totalCount: 21,
-            page: path.includes('page=2') ? 2 : 1,
-            pageSize: 20,
-          })
-        : undefined,
+  it('keeps audit records out of user management', async () => {
+    const { fetcher } = mount('/admin/users', admin);
+    await screen.findByRole('heading', { name: 'User administration' });
+    expect(
+      screen.queryByRole('heading', { name: 'Identity audit log' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Audit log' })).toHaveAttribute(
+      'href',
+      '/admin/audit',
     );
-    await user.click(
-      await screen.findByRole('button', { name: 'View audit log' }),
-    );
-    expect(await screen.findByText('RolesChanged')).toBeInTheDocument();
-    const audit = within(section('Identity audit log'));
-    await user.click(audit.getByRole('button', { name: 'Next' }));
-    await waitFor(() =>
-      expect(
-        fetcher.mock.calls.some(
-          (value) => value[0] === '/api/v1/audit-logs?page=2&pageSize=20',
-        ),
-      ).toBe(true),
-    );
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).includes('/audit-logs'),
+      ),
+    ).toBe(false);
   });
 });
