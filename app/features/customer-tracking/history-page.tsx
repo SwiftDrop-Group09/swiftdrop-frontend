@@ -128,7 +128,7 @@ function OrderHistoryContent() {
               </AlertDescription>
             </Alert>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+            <Card className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
               <Package className="size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">
                 No matching parcels found
@@ -136,7 +136,7 @@ function OrderHistoryContent() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Try clearing your filters or create a new delivery booking.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="space-y-4">
               <div className="overflow-x-auto">

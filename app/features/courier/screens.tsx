@@ -1,3 +1,4 @@
+import { FieldSet, FieldLegend } from '~/shared/components/ui/field';
 import {
   createContext,
   useContext,
@@ -460,11 +461,11 @@ export function Actions({ d }: { d: Detail }) {
     <Card className="space-y-4 p-6">
       <h2 className="text-lg font-semibold">Delivery actions</h2>
       {error && <Alert variant="destructive">{error}</Alert>}
-      <fieldset
+      <FieldSet
         className="space-y-4 disabled:opacity-60"
         disabled={!!state.pending || state.busy || refreshing}
       >
-        <legend>Update delivery</legend>
+        <FieldLegend>Update delivery</FieldLegend>
         <Label className="grid gap-2">
           {d.status === 'OutForDelivery'
             ? 'Private failure note (optional)'
@@ -557,7 +558,7 @@ export function Actions({ d }: { d: Detail }) {
             </Button>
           </>
         )}
-      </fieldset>
+      </FieldSet>
     </Card>
   );
 }

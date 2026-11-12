@@ -166,7 +166,7 @@ describe('Customer account screens', () => {
       groups: ['Workspace', 'Dispatch', 'Administration'],
     },
   ])('shows the documented navigation for $role', async ({ role, groups }) => {
-    mount('/dashboard', { ...customer, roles: [role] });
+    const { user } = mount('/dashboard', { ...customer, roles: [role] });
     await screen.findByRole('heading', { name: 'Dashboard' });
     expect(
       screen
@@ -177,10 +177,10 @@ describe('Customer account screens', () => {
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('link', { name: 'My profile' })).toHaveAttribute(
-      'href',
-      '/profile',
-    );
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    expect(
+      screen.getByRole('menuitem', { name: 'My profile' }),
+    ).toHaveAttribute('href', '/profile');
   });
 
   it('keeps unimplemented screens disabled instead of linking to missing routes', async () => {
@@ -227,13 +227,17 @@ describe('Customer account screens', () => {
   });
 
   it('combines assigned roles without duplicating shared or dispatch navigation', async () => {
-    mount('/dashboard', {
+    const { user } = mount('/dashboard', {
       ...customer,
       roles: ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'],
     });
     await screen.findByRole('heading', { name: 'Dashboard' });
     expect(screen.getAllByRole('navigation')).toHaveLength(6);
-    expect(screen.getAllByRole('link', { name: 'My profile' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    expect(
+      screen.getAllByRole('menuitem', { name: 'My profile' }),
+    ).toHaveLength(1);
+    await user.keyboard('{Escape}');
     expect(
       screen.getAllByRole('navigation', { name: 'Dispatch navigation' }),
     ).toHaveLength(1);
@@ -367,7 +371,19 @@ describe('Customer account screens', () => {
     expect(sidebar).toHaveAttribute('data-state', 'collapsed');
     await user.keyboard('{Control>}b{/Control}');
     expect(sidebar).toHaveAttribute('data-state', 'expanded');
-    await user.click(screen.getByRole('link', { name: 'My profile' }));
+    const accountMenu = screen.getByRole('button', {
+      name: 'Open account menu',
+    });
+    expect(
+      screen.queryByRole('menuitem', { name: 'My profile' }),
+    ).not.toBeInTheDocument();
+    accountMenu.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('menuitem', { name: 'My profile' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(accountMenu).toHaveFocus();
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('menuitem', { name: 'My profile' }));
     await screen.findByRole('heading', { name: 'My profile' });
     expect(router.state.location.pathname).toBe('/profile');
   });
@@ -525,7 +541,8 @@ describe('Customer account screens', () => {
     );
     await screen.findByDisplayValue(customer.fullName);
     queries.setQueryData(['private-parcels'], ['secret']);
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(
       await screen.findByRole('heading', { name: 'Welcome back' }),
     ).toBeInTheDocument();
@@ -535,7 +552,8 @@ describe('Customer account screens', () => {
   it('shows unconfirmed server logout instead of claiming successful revocation', async () => {
     const { user } = mount('/profile', customer);
     await screen.findByDisplayValue(customer.fullName);
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Server logout could not be confirmed',
     );

@@ -1,3 +1,4 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import { Button } from '~/shared/components/ui/button';
 import { Alert } from '~/shared/components/ui/alert';
 import { FieldError as ShadcnFieldError } from '~/shared/components/ui/field';
@@ -20,7 +21,7 @@ export function IdentityShell({ children }: { children: ReactNode }) {
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link className="text-xl font-semibold tracking-tight" to="/">
-            SwiftDrop
+            <BrandLogo />
           </Link>
           <nav
             className="flex flex-wrap items-center gap-1"

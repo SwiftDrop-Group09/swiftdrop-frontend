@@ -103,22 +103,26 @@ function TrackingHub() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {data.items.map((item) => (
-                <Link
+                <Card
                   key={item.id}
-                  to={`/customer/parcels/${item.id}`}
-                  className="flex items-center justify-between rounded-lg border p-3.5 transition-colors hover:bg-muted/40"
+                  className="transition-colors hover:bg-muted/40"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-mono text-sm font-semibold">
-                      {item.trackingNumber}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {item.pickupCity} → {item.deliveryCity} ·{' '}
-                      {item.recipientName}
-                    </p>
-                  </div>
-                  <StatusBadge status={item.status} />
-                </Link>
+                  <Link
+                    to={`/customer/parcels/${item.id}`}
+                    className="flex items-center justify-between gap-3 p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-mono text-sm font-semibold">
+                        {item.trackingNumber}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.pickupCity} → {item.deliveryCity} ·{' '}
+                        {item.recipientName}
+                      </p>
+                    </div>
+                    <StatusBadge status={item.status} />
+                  </Link>
+                </Card>
               ))}
             </div>
           )}

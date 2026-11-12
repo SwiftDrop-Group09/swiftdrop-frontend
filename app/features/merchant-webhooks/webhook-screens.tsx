@@ -33,6 +33,7 @@ import { IdentityShell, Protected } from '../identity/components';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
+import { Checkbox } from '~/shared/components/ui/checkbox';
 import { Textarea } from '~/shared/components/ui/textarea';
 import {
   Card,
@@ -641,30 +642,29 @@ export function WebhookScreens() {
 
                 <div className="space-y-2">
                   <Label>Delivery Events to Subscribe</Label>
-                  <div className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-48 overflow-y-auto">
+                  <Card className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-48 overflow-y-auto">
                     {webhookEvents.map((evt) => {
                       const isSelected = selectedEvents.includes(evt);
                       return (
-                        <label
+                        <Label
                           key={evt}
                           className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-muted/50 p-1 rounded"
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
-                            onChange={(e) => {
+                            onCheckedChange={(checked) => {
                               setSelectedEvents((prev) =>
-                                e.target.checked
+                                checked === true
                                   ? [...prev, evt]
                                   : prev.filter((x) => x !== evt),
                               );
                             }}
                           />
                           <span className="font-mono">{evt}</span>
-                        </label>
+                        </Label>
                       );
                     })}
-                  </div>
+                  </Card>
                   {createErrors.events && (
                     <p className="text-xs text-destructive">
                       {createErrors.events}
@@ -709,7 +709,7 @@ export function WebhookScreens() {
 
               {oneTimeSecret && (
                 <div className="space-y-4 py-2">
-                  <div className="p-3 bg-muted rounded-md space-y-1">
+                  <Card className="p-3 bg-muted rounded-md space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-muted-foreground uppercase">
                         Signing Secret Key
@@ -742,7 +742,7 @@ export function WebhookScreens() {
                         )}
                       </Button>
                     </div>
-                  </div>
+                  </Card>
 
                   <Alert>
                     <AlertDescription className="text-xs text-muted-foreground">

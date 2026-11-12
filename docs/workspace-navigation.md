@@ -1,5 +1,12 @@
 # Workspace navigation
 
+The current user's name and email appear in the sidebar footer. Selecting this
+control opens a shadcn dropdown containing My profile and Sign out, available to
+every role. Profile is no longer duplicated in the navigation groups. The menu
+supports keyboard navigation and closes the mobile drawer when opening profile.
+The shared `BrandLogo` text wordmark is used across application headers, public
+tracking and receipt views, with a matching SVG favicon.
+
 The sidebar follows the current documentation contracts, inspected on 9 November
 2026: [SRS sections 3.1-3.5](../../swiftdrop-docs/requirements/srs.md),
 [authorization and ownership](../../swiftdrop-docs/security/authorization.md),

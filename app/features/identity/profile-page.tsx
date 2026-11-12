@@ -1,4 +1,5 @@
-﻿import {
+import { Avatar, AvatarFallback } from '~/shared/components/ui/avatar';
+import {
   Mail,
   ShieldCheck,
   UserRound,
@@ -261,12 +262,11 @@ function ProfileContent() {
       </header>
       <Card>
         <CardContent className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
-          <span
-            className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-xl font-semibold text-primary-foreground"
-            aria-hidden="true"
-          >
-            {initials}
-          </span>
+          <Avatar className="size-16 rounded-2xl" aria-hidden="true">
+            <AvatarFallback className="rounded-2xl bg-primary text-xl font-semibold text-primary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1 space-y-2">
             <p className="wrap-break-word text-xl font-semibold tracking-tight">
               {account.fullName}

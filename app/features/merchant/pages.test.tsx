@@ -277,12 +277,17 @@ describe('Merchant Portal Screens', () => {
       await screen.findByText(/Generate New API Key/i),
     ).toBeInTheDocument();
 
-    const scopeCheckbox = screen.getByRole<HTMLInputElement>('checkbox', {
+    const scopeCheckbox = screen.getByRole('checkbox', {
       name: /orders:write/i,
     });
-    if (!scopeCheckbox.checked) {
+    if (scopeCheckbox.getAttribute('aria-checked') !== 'true') {
       await user.click(scopeCheckbox);
     }
+    expect(scopeCheckbox).toBeChecked();
+    await user.click(scopeCheckbox);
+    expect(scopeCheckbox).not.toBeChecked();
+    await user.click(scopeCheckbox);
+    expect(scopeCheckbox).toBeChecked();
 
     const submitCreate = screen.getByRole('button', { name: /^Create Key$/i });
     await user.click(submitCreate);

@@ -26,6 +26,7 @@ import { IdentityShell, Protected } from '../identity/components';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
+import { Checkbox } from '~/shared/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -336,14 +337,14 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
             Loading API keys…
           </p>
         ) : keys.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center">
+          <Card className="rounded-lg border border-dashed p-6 text-center">
             <p className="text-sm text-muted-foreground">
               No API keys generated yet. Click "Generate Key" to create your
               first integration key.
             </p>
-          </div>
+          </Card>
         ) : (
-          <div className="rounded-md border">
+          <Card className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -403,7 +404,7 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         )}
       </CardContent>
 
@@ -428,13 +429,12 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
               <div className="space-y-2">
                 {apiKeyScopes.map((scope) => (
                   <div key={scope} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       id={`scope-${scope}`}
                       value={scope}
                       checked={selectedScopes.includes(scope)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
+                      onCheckedChange={(checked) => {
+                        if (checked === true) {
                           setSelectedScopes((prev) => [...prev, scope]);
                           setScopeError(null);
                         } else {
@@ -449,14 +449,13 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
                           }
                         }
                       }}
-                      className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
                     />
-                    <label
+                    <Label
                       htmlFor={`scope-${scope}`}
                       className="font-mono text-xs cursor-pointer"
                     >
                       {scope}
-                    </label>
+                    </Label>
                   </div>
                 ))}
               </div>
@@ -689,20 +688,17 @@ export function MerchantPortalPage() {
               )}
 
               {business.status === 'Approved' && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-emerald-300 bg-emerald-50 text-emerald-900 rounded-lg">
+                <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-border bg-muted text-foreground rounded-lg">
                   <div>
                     <h3 className="font-semibold text-base">
                       Account Approved & Active
                     </h3>
-                    <p className="text-sm text-emerald-800">
+                    <p className="text-sm text-muted-foreground">
                       Your business is fully approved. You can generate API keys
                       below or configure delivery status webhooks.
                     </p>
                   </div>
-                  <Button
-                    asChild
-                    className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
+                  <Button asChild className="shrink-0">
                     <Link
                       to="/merchant/webhooks"
                       className="flex items-center gap-2"
@@ -711,7 +707,7 @@ export function MerchantPortalPage() {
                       Configure Webhooks
                     </Link>
                   </Button>
-                </div>
+                </Card>
               )}
 
               <Card className="shadow-sm">

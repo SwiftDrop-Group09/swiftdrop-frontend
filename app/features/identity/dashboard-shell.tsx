@@ -1,6 +1,7 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { LogOut, Package2 } from 'lucide-react';
+import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -20,14 +21,21 @@ import {
   useSidebar,
 } from '~/shared/components/ui/sidebar';
 import { Separator } from '~/shared/components/ui/separator';
-import { Button } from '~/shared/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/shared/components/ui/dropdown-menu';
 import { useIdentity } from './session';
 import { IdentityError } from './api';
 import { getWorkspaceNavigation } from './workspace-navigation';
 
 function AccountSidebar() {
   const { user, session } = useIdentity();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, isMobile } = useSidebar();
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
@@ -39,12 +47,7 @@ function AccountSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Package2 className="size-5" aria-hidden="true" />
-                </span>
-                <span className="text-lg font-semibold tracking-tight">
-                  SwiftDrop
-                </span>
+                <BrandLogo />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -109,44 +112,78 @@ function AccountSidebar() {
           Items marked Soon will be available in a future update.
         </p>
       </SidebarContent>
-      <SidebarFooter className="gap-3 p-4">
-        <div className="min-w-0 rounded-lg border bg-background p-3">
-          <p className="truncate text-sm font-medium">{user!.fullName}</p>
-          <p
-            className="truncate text-xs text-muted-foreground"
-            title={user!.email}
-          >
-            {user!.email}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          className="justify-start"
-          disabled={signingOut}
-          onClick={() => {
-            setSigningOut(true);
-            void session
-              .logout()
-              .then(() => {
-                window.google?.accounts.id.disableAutoSelect();
-                return navigate('/login', { replace: true });
-              })
-              .catch((cause: unknown) =>
-                navigate('/login', {
-                  replace: true,
-                  state: {
-                    logoutError:
-                      cause instanceof IdentityError
-                        ? cause.message
-                        : 'Server logout could not be confirmed. You have been signed out on this page.',
-                  },
-                }),
-              );
-          }}
-        >
-          <LogOut aria-hidden="true" />
-          {signingOut ? 'Signing out…' : 'Sign out'}
-        </Button>
+      <SidebarFooter className="mt-auto p-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  aria-label="Open account menu"
+                  disabled={signingOut}
+                >
+                  <UserRound aria-hidden="true" />
+                  <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {user!.fullName}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {user!.email}
+                    </span>
+                  </span>
+                  <ChevronsUpDown className="ml-auto" aria-hidden="true" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side={isMobile ? 'top' : 'right'}
+                align="end"
+                sideOffset={8}
+                className="w-64 max-w-[calc(100vw-2rem)]"
+              >
+                <DropdownMenuLabel className="grid gap-1">
+                  <span className="truncate">{user!.fullName}</span>
+                  <span className="truncate text-xs font-normal text-muted-foreground">
+                    {user!.email}
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" onClick={() => setOpenMobile(false)}>
+                    <UserRound aria-hidden="true" />
+                    My profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={signingOut}
+                  onSelect={() => {
+                    setSigningOut(true);
+                    void session
+                      .logout()
+                      .then(() => {
+                        window.google?.accounts.id.disableAutoSelect();
+                        return navigate('/login', { replace: true });
+                      })
+                      .catch((cause: unknown) =>
+                        navigate('/login', {
+                          replace: true,
+                          state: {
+                            logoutError:
+                              cause instanceof IdentityError
+                                ? cause.message
+                                : 'Server logout could not be confirmed. You have been signed out on this page.',
+                          },
+                        }),
+                      );
+                  }}
+                >
+                  <LogOut aria-hidden="true" />
+                  {signingOut ? 'Signing out…' : 'Sign out'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
@@ -166,14 +203,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             ? 'Courier deliveries'
             : 'Dashboard';
   return (
-    <SidebarProvider
-      style={
-        {
-          '--sidebar-width': '17rem',
-          '--header-height': '3.5rem',
-        } as React.CSSProperties
-      }
-    >
+    <SidebarProvider className="[--sidebar-width:17rem] [--header-height:3.5rem]">
       <a
         href="#main-content"
         className="sr-only z-50 rounded-md bg-background p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
