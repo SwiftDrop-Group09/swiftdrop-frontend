@@ -1,3 +1,8 @@
+import { AdminWorkspace } from '~/features/identity/admin-workspace';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -177,23 +182,19 @@ export default function AdminPricingRoute() {
   return (
     <IdentityShell>
       <Protected admin>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Pricing Tiers Configuration
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Configure tariff rates by delivery zone, size brackets, and
-                per-kg incremental weights.
-              </p>
-            </div>
-            <Button onClick={openCreate} size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Pricing Tier
-            </Button>
-          </div>
-
+        <AdminWorkspace
+          title="Pricing Tiers Configuration"
+          description="Configure tariff rates by delivery zone, size brackets, and per-kg incremental weights."
+          actions={
+            <>
+              {' '}
+              <Button onClick={openCreate} size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Pricing Tier
+              </Button>{' '}
+            </>
+          }
+        >
           {errorMsg && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -271,13 +272,22 @@ export default function AdminPricingRoute() {
             </CardHeader>
             <CardContent>
               {pricingQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Loading pricing tiers...
-                </p>
+                <WorkspaceLoading label="Loading pricing tiers..." />
+              ) : pricingQuery.isError ? (
+                <WorkspaceNotice
+                  title="Unable to load pricing tiers"
+                  description="Your saved tariffs are unchanged. Check your connection and try again."
+                  destructive
+                  pending={pricingQuery.isFetching}
+                  retry={() => {
+                    void pricingQuery.refetch();
+                  }}
+                />
               ) : pricingQuery.data?.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No pricing tiers match the selected criteria.
-                </p>
+                <WorkspaceNotice
+                  title="No pricing tiers match the selected criteria."
+                  description="Choose another zone or add a pricing tier to get started."
+                />
               ) : (
                 <Table>
                   <TableHeader>
@@ -500,7 +510,7 @@ export default function AdminPricingRoute() {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
+        </AdminWorkspace>
       </Protected>
     </IdentityShell>
   );

@@ -14,6 +14,7 @@ export default [
   route('admin/zones', 'portals/admin/zones.tsx'),
   route('admin/pricing', 'portals/admin/pricing.tsx'),
   route('admin/reports', 'portals/admin/reports.tsx'),
+  route('dispatch/zones', 'portals/dispatcher/zones.tsx'),
   route('courier', 'portals/courier/layout.tsx', [
     index('portals/courier/manifest.tsx'),
     route('parcels/:id', 'portals/courier/details.tsx'),

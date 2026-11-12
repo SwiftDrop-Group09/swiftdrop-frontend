@@ -1,10 +1,11 @@
 import { IdentityShell, Protected } from './components';
+import { RoleHome } from './role-home';
 
 export function DashboardPage() {
   return (
     <IdentityShell>
       <Protected>
-        <div className="min-h-80 flex-1" aria-label="Dashboard workspace" />
+        <RoleHome />
       </Protected>
     </IdentityShell>
   );

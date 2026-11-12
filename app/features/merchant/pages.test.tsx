@@ -360,7 +360,7 @@ describe('Admin Merchant Approvals Screens', () => {
 
     expect(
       await screen.findByText(
-        /You do not have permission to view user administration/i,
+        /You do not have permission to view this administration page/i,
       ),
     ).toBeInTheDocument();
   });

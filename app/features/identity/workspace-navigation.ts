@@ -86,7 +86,7 @@ const navigation: readonly NavigationGroup[] = [
     items: [
       { label: 'Unassigned parcels', icon: ClipboardList },
       { label: 'Courier workload', icon: Users },
-      { label: 'Zone summary', icon: Map },
+      { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },
     ],
   },
   {

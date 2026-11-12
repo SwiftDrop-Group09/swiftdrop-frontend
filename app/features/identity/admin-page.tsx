@@ -14,6 +14,11 @@ import { useIdentity } from './session';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Card } from '~/shared/components/ui/card';
+import { AdminWorkspace } from './admin-workspace';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { FieldSet, FieldLegend } from '~/shared/components/ui/field';
 import {
   Table,
@@ -40,13 +45,20 @@ export function Pagination({
       className="flex flex-wrap items-center justify-between gap-3"
       aria-label="Pagination"
     >
-      <Button disabled={page === 1 || pending} onClick={() => change(page - 1)}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page === 1 || pending}
+        onClick={() => change(page - 1)}
+      >
         Previous
       </Button>
       <span>
         Page {page} · {total} records
       </span>
       <Button
+        variant="outline"
+        size="sm"
         disabled={page * 20 >= total || pending}
         onClick={() => change(page + 1)}
       >
@@ -101,16 +113,16 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
   });
   return (
     <section>
-      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
-        <h2 className="text-xl font-semibold tracking-tight">
+      <Card className="w-full space-y-5 p-4 sm:p-6">
+        <h2 className="text-lg font-semibold tracking-tight">
           Create user account
         </h2>
-        <p>
+        <p className="text-sm leading-6 text-muted-foreground">
           Generate a unique password and share it privately. The password is
           cleared after submission and cannot be retrieved later.
         </p>
         <form
-          className="grid gap-5"
+          className="grid gap-5 sm:grid-cols-2"
           onSubmit={(event) => {
             void submit(event);
           }}
@@ -159,9 +171,10 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
             />
             <FieldError message={form.formState.errors.password?.message} />
           </Label>
-          <div>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
             <Button
               type="button"
+              variant="outline"
               disabled={mutation.isPending}
               onClick={() => {
                 const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -177,17 +190,24 @@ function CreateUser({ created }: { created: (user: Profile) => void }) {
             >
               Generate password
             </Button>
-            <Button type="button" onClick={() => setReveal((value) => !value)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReveal((value) => !value)}
+            >
               {reveal ? 'Hide password' : 'Show password'}
             </Button>
           </div>
           {confirm && (
-            <Alert role="status">
+            <Alert role="status" className="sm:col-span-2">
               Confirm creating this account. Make sure its initial password has
               been shared privately.
             </Alert>
           )}
-          <Button disabled={mutation.isPending}>
+          <Button
+            className="sm:col-span-2 sm:justify-self-start"
+            disabled={mutation.isPending}
+          >
             {mutation.isPending
               ? 'Creating…'
               : confirm
@@ -272,15 +292,15 @@ function UserEditor({
   });
   return (
     <section>
-      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
-        <h2 className="text-xl font-semibold tracking-tight">
+      <Card className="w-full space-y-5 p-4 sm:p-6">
+        <h2 className="text-lg font-semibold tracking-tight">
           Edit {profile.fullName}
         </h2>
         <p className="break-all text-xs text-muted-foreground">
           Account ID: {profile.id}
         </p>
         <form
-          className="grid gap-5"
+          className="grid gap-5 sm:grid-cols-2"
           onSubmit={(event) => {
             void submit(event);
           }}
@@ -316,7 +336,9 @@ function UserEditor({
             />
             Account active
           </Label>
-          <Button disabled={mutation.isPending}>Review account change</Button>
+          <Button className="sm:justify-self-end" disabled={mutation.isPending}>
+            Review account change
+          </Button>
         </form>
         <FieldSet
           className="grid gap-3 rounded-lg border p-4"
@@ -432,32 +454,34 @@ function AdminContent() {
   return (
     <>
       <section>
-        <Card className="min-w-0 space-y-5 p-6">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            User administration
-          </h1>
-          <p>
-            Manage account status and roles. Every change is checked and audited
-            by the server.
-          </p>
+        <Card className="min-w-0 space-y-5 p-4 sm:p-6">
+          <h2 className="text-lg font-semibold tracking-tight">
+            User accounts
+          </h2>
           {users.isPending ? (
-            <Alert role="status">Loading users…</Alert>
+            <WorkspaceLoading label="Loading users…" />
           ) : users.error ? (
-            <Alert variant="destructive">{safeError(users.error)}</Alert>
+            <WorkspaceNotice
+              title="Unable to load users"
+              description={safeError(users.error)}
+              destructive
+              pending={users.isFetching}
+              retry={() => {
+                void users.refetch();
+              }}
+            />
           ) : (
             <>
               <div className="min-w-0">
                 <Table>
-                  <caption className="mb-3 text-left text-sm text-muted-foreground">
-                    User accounts
-                  </caption>
+                  <caption className="sr-only">User accounts</caption>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Roles</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -475,8 +499,12 @@ function AdminContent() {
                             {profile.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <Button onClick={() => setSelected(profile)}>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelected(profile)}
+                          >
                             Edit {profile.email}
                           </Button>
                         </TableCell>
@@ -517,8 +545,8 @@ function AdminContent() {
         />
       )}
       <section id="identity-audit" tabIndex={-1}>
-        <Card className="min-w-0 space-y-5 p-6">
-          <h2 className="text-xl font-semibold tracking-tight">
+        <Card className="min-w-0 space-y-5 p-4 sm:p-6">
+          <h2 className="text-lg font-semibold tracking-tight">
             Identity audit log
           </h2>
           <Button onClick={() => setShowAudit((value) => !value)}>
@@ -533,7 +561,7 @@ function AdminContent() {
               <>
                 <div className="min-w-0">
                   <Table>
-                    <caption className="mb-3 text-left text-sm text-muted-foreground">
+                    <caption className="sr-only">
                       Identity audit records · UTC timestamps
                     </caption>
                     <TableHeader>
@@ -582,7 +610,17 @@ export function AdminPage() {
   return (
     <IdentityShell>
       <Protected admin>
-        <AdminContent />
+        <AdminWorkspace
+          title="User administration"
+          description="Manage account status and roles. Every change is checked and audited by the server."
+          actions={
+            <Button asChild variant="outline">
+              <a href="#identity-audit">Identity audit log</a>
+            </Button>
+          }
+        >
+          <AdminContent />
+        </AdminWorkspace>
       </Protected>
     </IdentityShell>
   );

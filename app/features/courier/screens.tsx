@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { FieldSet, FieldLegend } from '~/shared/components/ui/field';
 import {
   createContext,
@@ -73,7 +74,7 @@ function Workspace({ api, scope }: { api: CourierApi; scope: string }) {
   }, [state.pending]);
   return (
     <Context.Provider value={{ api, scope, workflow }}>
-      <div className="mx-auto w-full max-w-6xl space-y-6 wrap-anywhere">
+      <div className="w-full min-w-0 space-y-6 wrap-anywhere">
         {state.notice && <p role="status">{state.notice}</p>}
         {state.pending && <Pending />}
         {state.blocked ? (
@@ -209,14 +210,15 @@ export function Manifest() {
     queryFn: () => api.manifest(date, overdue, page),
   });
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        Assigned deliveries
-      </h1>
-      <p>
-        With no selected date, Delivery uses today in the operations time zone
-        (Asia/Colombo).
-      </p>
+    <WorkspacePage
+      title={<>Assigned deliveries</>}
+      description={
+        <>
+          With no selected date, Delivery uses today in the operations time zone
+          (Asia/Colombo).
+        </>
+      }
+    >
       <Card className="flex flex-wrap items-end gap-4 p-5">
         <Label className="grid gap-2">
           Service date
@@ -288,7 +290,7 @@ export function Manifest() {
           <Pager page={page} total={q.data.totalCount} set={setPage} />
         </>
       )}
-    </>
+    </WorkspacePage>
   );
 }
 export function History() {
@@ -299,14 +301,15 @@ export function History() {
     queryFn: () => api.history(page),
   });
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        Delivery history
-      </h1>
-      <p>
-        Your completed and failed deliveries. Private recipient details are
-        available only during an active assignment.
-      </p>
+    <WorkspacePage
+      title={<>Delivery history</>}
+      description={
+        <>
+          Your completed and failed deliveries. Private recipient details are
+          available only during an active assignment.
+        </>
+      }
+    >
       {q.isPending ? (
         <p role="status">Loading history…</p>
       ) : q.isError ? (
@@ -338,7 +341,7 @@ export function History() {
           <Pager page={page} total={q.data.totalCount} set={setPage} />
         </>
       )}
-    </>
+    </WorkspacePage>
   );
 }
 export function ParcelDetails() {
@@ -354,26 +357,27 @@ export function ParcelDetails() {
     ['Delivered', 'Failed'].includes(state.receipt.status)
   )
     return (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-          {state.receipt.status} confirmed
-        </h1>
-        <p>{state.receipt.trackingNumber}</p>
+      <WorkspacePage
+        title={<> {state.receipt.status} confirmed</>}
+        description={<>{state.receipt.trackingNumber}</>}
+      >
         <Link to="/courier">Back to assigned deliveries</Link>
-      </>
+      </WorkspacePage>
     );
   if (q.isPending) return <p role="status">Loading parcel…</p>;
   if (q.isError)
     return <Failure error={q.error} retry={() => void q.refetch()} />;
   const d = q.data;
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        {d.trackingNumber}
-      </h1>
-      <p>
-        {d.status} · Version {d.version} · <Price d={d} />
-      </p>
+    <WorkspacePage
+      title={<> {d.trackingNumber} </>}
+      description={
+        <>
+          {' '}
+          {d.status} · Version {d.version} · <Price d={d} />{' '}
+        </>
+      }
+    >
       <Button disabled={!!state.pending} onClick={() => void q.refetch()}>
         Refresh parcel
       </Button>
@@ -413,7 +417,7 @@ export function ParcelDetails() {
           </li>
         ))}
       </ol>
-    </>
+    </WorkspacePage>
   );
 }
 function Address({ value }: { value: Detail['deliveryAddress'] }) {

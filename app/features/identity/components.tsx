@@ -7,6 +7,7 @@ import { Link, Navigate } from 'react-router';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
 import { DashboardShell } from './dashboard-shell';
+import type { Profile } from './contracts';
 
 export function safeError(error: unknown) {
   return error instanceof IdentityError
@@ -48,9 +49,11 @@ export function IdentityShell({ children }: { children: ReactNode }) {
 export function Protected({
   children,
   admin = false,
+  roles,
 }: {
   children: ReactNode;
   admin?: boolean;
+  roles?: readonly Profile['roles'][number][];
 }) {
   const { user, restoring, error } = useIdentity();
   if (restoring) return <p role="status">Restoring your session…</p>;
@@ -68,7 +71,13 @@ export function Protected({
   if (admin && !user.roles.includes('Admin'))
     return (
       <Alert variant="destructive">
-        You do not have permission to view user administration.
+        You do not have permission to view this administration page.
+      </Alert>
+    );
+  if (roles && !roles.some((role) => user.roles.includes(role)))
+    return (
+      <Alert variant="destructive">
+        This page requires a {roles.join(' or ')} account.
       </Alert>
     );
   return children;
