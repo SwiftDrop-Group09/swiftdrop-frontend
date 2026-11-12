@@ -1,7 +1,11 @@
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
-import { Alert, AlertDescription, AlertTitle } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '~/shared/components/ui/alert';
 import { Button } from '~/shared/components/ui/button';
 import {
   Card,
@@ -39,7 +43,8 @@ function DeliveredReceiptsList() {
         <CardHeader>
           <CardTitle>Completed Deliveries</CardTitle>
           <CardDescription>
-            Select a delivered parcel to view, print, or download its PDF receipt.
+            Select a delivered parcel to view, print, or download its PDF
+            receipt.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -57,7 +62,9 @@ function DeliveredReceiptsList() {
           ) : !data?.items.length ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
               <ReceiptText className="size-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium">No receipts available yet</p>
+              <p className="mt-2 text-sm font-medium">
+                No receipts available yet
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Receipts become available once a parcel is marked Delivered.
               </p>
@@ -123,7 +130,8 @@ function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
         <Alert variant="destructive">
           <AlertTitle>Receipt unavailable</AlertTitle>
           <AlertDescription>
-            Official receipts are only available for delivered parcels belonging to your account.
+            Official receipts are only available for delivered parcels belonging
+            to your account.
           </AlertDescription>
         </Alert>
       ) : (
@@ -137,10 +145,9 @@ export function CustomerReceiptPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected roles={['Customer', 'Admin']}>
+      <Protected>
         {id ? <ParcelReceiptDetail parcelId={id} /> : <DeliveredReceiptsList />}
       </Protected>
     </IdentityShell>
   );
 }
-

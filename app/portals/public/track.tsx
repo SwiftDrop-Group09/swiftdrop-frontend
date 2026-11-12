@@ -3,4 +3,3 @@ import { PublicTrackingPage } from '~/features/customer-tracking/public-tracking
 export default function PublicTrackRoute() {
   return <PublicTrackingPage />;
 }
-

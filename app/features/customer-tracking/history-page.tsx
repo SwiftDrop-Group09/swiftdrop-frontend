@@ -12,13 +12,7 @@ import {
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { Alert, AlertDescription } from '~/shared/components/ui/alert';
 import { Button } from '~/shared/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '~/shared/components/ui/card';
+import { Card, CardContent, CardHeader } from '~/shared/components/ui/card';
 import { Input } from '~/shared/components/ui/input';
 import { Skeleton } from '~/shared/components/ui/skeleton';
 import {
@@ -75,14 +69,19 @@ function OrderHistoryContent() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Order History</h1>
         <p className="text-sm text-muted-foreground">
-          Browse your past and active parcel bookings, track live status, or download receipts.
+          Browse your past and active parcel bookings, track live status, or
+          download receipts.
         </p>
       </div>
 
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by status">
+            <div
+              className="flex flex-wrap gap-1.5"
+              role="tablist"
+              aria-label="Filter by status"
+            >
               {FILTER_TABS.map((tab) => (
                 <Button
                   key={tab.value}
@@ -131,7 +130,9 @@ function OrderHistoryContent() {
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
               <Package className="size-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium">No matching parcels found</p>
+              <p className="mt-2 text-sm font-medium">
+                No matching parcels found
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Try clearing your filters or create a new delivery booking.
               </p>
@@ -249,10 +250,9 @@ function OrderHistoryContent() {
 export function OrderHistoryPage() {
   return (
     <IdentityShell>
-      <Protected roles={['Customer', 'Dispatcher', 'Admin']}>
+      <Protected>
         <OrderHistoryContent />
       </Protected>
     </IdentityShell>
   );
 }
-

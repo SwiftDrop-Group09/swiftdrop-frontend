@@ -12,7 +12,11 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
-import { Alert, AlertDescription, AlertTitle } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '~/shared/components/ui/alert';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
 import {
@@ -223,7 +227,9 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
         receipt.trackingNumber,
       );
     } catch {
-      setDownloadError('Unable to download PDF receipt right now. Please try again.');
+      setDownloadError(
+        'Unable to download PDF receipt right now. Please try again.',
+      );
     } finally {
       setDownloading(false);
     }
@@ -241,7 +247,8 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
             Receipt {receipt.receiptNumber}
           </CardTitle>
           <CardDescription>
-            Tracking #{receipt.trackingNumber} · Pricing {receipt.pricingVersion}
+            Tracking #{receipt.trackingNumber} · Pricing{' '}
+            {receipt.pricingVersion}
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
@@ -256,7 +263,7 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
           </Button>
           <Button
             size="sm"
-            onClick={handleDownload}
+            onClick={() => void handleDownload()}
             disabled={downloading}
             type="button"
           >
@@ -280,7 +287,9 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Delivered</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Delivered
+            </p>
             <p className="mt-0.5 text-sm font-medium">
               {formatDateTime(receipt.deliveredAt)}
             </p>
@@ -288,7 +297,8 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
           <div>
             <p className="text-xs font-medium text-muted-foreground">Parcel</p>
             <p className="mt-0.5 text-sm font-medium">
-              {receipt.packageDetails.size} · {receipt.packageDetails.weightKg} kg
+              {receipt.packageDetails.size} · {receipt.packageDetails.weightKg}{' '}
+              kg
             </p>
           </div>
         </div>
@@ -299,7 +309,9 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
               <MapPin className="size-3.5" />
               Pickup Address
             </p>
-            <p className="text-sm font-medium">{receipt.pickupAddress.street}</p>
+            <p className="text-sm font-medium">
+              {receipt.pickupAddress.street}
+            </p>
             <p className="text-sm text-muted-foreground">
               {receipt.pickupAddress.city}, {receipt.pickupAddress.postalCode}
             </p>
@@ -349,4 +361,3 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
     </Card>
   );
 }
-

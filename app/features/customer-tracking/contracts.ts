@@ -165,4 +165,3 @@ export type ProofOfDeliveryInfo = {
   uploadedAt: string;
   hasImage: boolean;
 };
-

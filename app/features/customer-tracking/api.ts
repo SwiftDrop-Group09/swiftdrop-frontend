@@ -20,7 +20,9 @@ export class CustomerTrackingApiError extends Error {
   }
 }
 
-async function readError(response: Response): Promise<CustomerTrackingApiError> {
+async function readError(
+  response: Response,
+): Promise<CustomerTrackingApiError> {
   try {
     const body = (await response.json()) as {
       code?: string;
@@ -30,10 +32,15 @@ async function readError(response: Response): Promise<CustomerTrackingApiError> 
     return new CustomerTrackingApiError(
       body.code ?? `http_${response.status}`,
       response.status,
-      body.detail ?? body.title ?? 'The tracking request could not be completed.',
+      body.detail ??
+        body.title ??
+        'The tracking request could not be completed.',
     );
   } catch {
-    return new CustomerTrackingApiError(`http_${response.status}`, response.status);
+    return new CustomerTrackingApiError(
+      `http_${response.status}`,
+      response.status,
+    );
   }
 }
 
@@ -216,7 +223,11 @@ export async function parseSseStream(
     if (currentEvent === 'snapshot' || currentEvent === 'message') {
       try {
         const parsed = JSON.parse(raw) as ParcelEventSnapshot;
-        if (parsed && typeof parsed.id === 'string' && typeof parsed.version === 'number') {
+        if (
+          parsed &&
+          typeof parsed.id === 'string' &&
+          typeof parsed.version === 'number'
+        ) {
           onSnapshot(parsed);
         }
       } catch {
@@ -270,4 +281,3 @@ export async function subscribeParcelEvents(
   }
   await parseSseStream(response.body, onSnapshot, signal);
 }
-

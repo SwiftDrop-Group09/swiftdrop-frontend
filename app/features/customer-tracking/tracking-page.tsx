@@ -10,7 +10,11 @@ import {
   Search,
 } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
-import { Alert, AlertDescription, AlertTitle } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '~/shared/components/ui/alert';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
 import {
@@ -54,7 +58,8 @@ function TrackingHub() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Track a Parcel</h1>
         <p className="text-sm text-muted-foreground">
-          Select one of your active bookings below or look up any tracking number.
+          Select one of your active bookings below or look up any tracking
+          number.
         </p>
       </div>
 
@@ -63,7 +68,10 @@ function TrackingHub() {
           <CardTitle className="text-base">Track by Tracking Number</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLookup} className="flex flex-col gap-2 sm:flex-row">
+          <form
+            onSubmit={handleLookup}
+            className="flex flex-col gap-2 sm:flex-row"
+          >
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -105,7 +113,8 @@ function TrackingHub() {
                       {item.trackingNumber}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {item.pickupCity} → {item.deliveryCity} · {item.recipientName}
+                      {item.pickupCity} → {item.deliveryCity} ·{' '}
+                      {item.recipientName}
                     </p>
                   </div>
                   <StatusBadge status={item.status} />
@@ -149,7 +158,8 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
       <Alert variant="destructive">
         <AlertTitle>Parcel not found</AlertTitle>
         <AlertDescription>
-          This parcel could not be loaded or you do not have permission to view it.
+          This parcel could not be loaded or you do not have permission to view
+          it.
         </AlertDescription>
       </Alert>
     );
@@ -235,7 +245,9 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             <p className="font-medium">{parcel.recipient.name}</p>
-            <p className="text-muted-foreground">{parcel.recipient.phoneNumber}</p>
+            <p className="text-muted-foreground">
+              {parcel.recipient.phoneNumber}
+            </p>
             <p className="text-muted-foreground">
               {parcel.deliveryAddress.street}, {parcel.deliveryAddress.city}{' '}
               {parcel.deliveryAddress.postalCode}
@@ -310,10 +322,9 @@ export function CustomerTrackingPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected roles={['Customer', 'Dispatcher', 'Admin']}>
+      <Protected>
         {id ? <ParcelLiveDetail parcelId={id} /> : <TrackingHub />}
       </Protected>
     </IdentityShell>
   );
 }
-

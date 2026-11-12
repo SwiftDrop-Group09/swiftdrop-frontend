@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ArrowLeft, Clock, MapPin, Search, Truck } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '~/shared/components/ui/alert';
 import { Button } from '~/shared/components/ui/button';
 import {
   Card,
@@ -33,7 +37,10 @@ export function PublicTrackingPage() {
     <div className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold tracking-tight">
+          <Link
+            to="/"
+            className="flex items-center gap-2 font-bold tracking-tight"
+          >
             <Truck className="size-5 text-primary" />
             <span>SwiftDrop</span>
           </Link>
@@ -49,11 +56,15 @@ export function PublicTrackingPage() {
           <CardHeader>
             <CardTitle>Track Your Parcel</CardTitle>
             <CardDescription>
-              Enter your SwiftDrop tracking number to view the latest public delivery status.
+              Enter your SwiftDrop tracking number to view the latest public
+              delivery status.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col gap-2 sm:flex-row"
+            >
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -75,7 +86,8 @@ export function PublicTrackingPage() {
           <Alert variant="destructive">
             <AlertTitle>Tracking number not found</AlertTitle>
             <AlertDescription>
-              We could not find a parcel matching "{activeCode}". Please double-check the code and try again.
+              We could not find a parcel matching "{activeCode}". Please
+              double-check the code and try again.
             </AlertDescription>
           </Alert>
         )}
@@ -106,7 +118,10 @@ export function PublicTrackingPage() {
                 </p>
                 <ol className="space-y-2.5 border-l pl-4">
                   {data.timeline.map((entry, idx) => (
-                    <li key={`${entry.timestamp}-${idx}`} className="space-y-0.5">
+                    <li
+                      key={`${entry.timestamp}-${idx}`}
+                      className="space-y-0.5"
+                    >
                       <p className="text-sm font-medium">{entry.label}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatDateTime(entry.timestamp)}
@@ -122,4 +137,3 @@ export function PublicTrackingPage() {
     </div>
   );
 }
-

@@ -9,10 +9,7 @@ import {
   listCustomerParcels,
   subscribeParcelEvents,
 } from './api';
-import type {
-  CustomerParcelQuery,
-  ParcelEventSnapshot,
-} from './contracts';
+import type { CustomerParcelQuery, ParcelEventSnapshot } from './contracts';
 
 export function useCustomerParcels(query: CustomerParcelQuery) {
   const { session } = useIdentity();
@@ -88,11 +85,16 @@ export function useParcelProof(parcelId: string | undefined, enabled = true) {
 
 export type LiveConnectionState = 'connecting' | 'live' | 'polling' | 'closed';
 
-export function useLiveParcelTracking(parcelId: string | undefined, active: boolean) {
+export function useLiveParcelTracking(
+  parcelId: string | undefined,
+  active: boolean,
+) {
   const { session } = useIdentity();
   const queryClient = useQueryClient();
-  const [connectionState, setConnectionState] = useState<LiveConnectionState>('connecting');
-  const [latestSnapshot, setLatestSnapshot] = useState<ParcelEventSnapshot | null>(null);
+  const [connectionState, setConnectionState] =
+    useState<LiveConnectionState>('connecting');
+  const [latestSnapshot, setLatestSnapshot] =
+    useState<ParcelEventSnapshot | null>(null);
 
   useEffect(() => {
     if (!parcelId || !active) {
@@ -110,7 +112,9 @@ export function useLiveParcelTracking(parcelId: string | undefined, active: bool
       if (snapshot.version > lastVersion) {
         lastVersion = snapshot.version;
         setLatestSnapshot(snapshot);
-        void queryClient.invalidateQueries({ queryKey: ['customer-parcel', parcelId] });
+        void queryClient.invalidateQueries({
+          queryKey: ['customer-parcel', parcelId],
+        });
       }
     };
 
@@ -118,7 +122,9 @@ export function useLiveParcelTracking(parcelId: string | undefined, active: bool
       setConnectionState('polling');
       if (fallbackTimer) return;
       fallbackTimer = setInterval(() => {
-        void queryClient.invalidateQueries({ queryKey: ['customer-parcel', parcelId] });
+        void queryClient.invalidateQueries({
+          queryKey: ['customer-parcel', parcelId],
+        });
       }, 8000);
     };
 
@@ -159,4 +165,3 @@ export function useLiveParcelTracking(parcelId: string | undefined, active: bool
 
   return { connectionState, latestSnapshot };
 }
-

@@ -27,10 +27,14 @@ import { formatDateTime, formatMoney, StatusBadge } from './components';
 import { useCustomerParcels } from './hooks';
 
 function CustomerDashboardContent() {
-  const { snapshot } = useIdentity();
+  const { session } = useIdentity();
+  const user = session.getSnapshot().user;
   const navigate = useNavigate();
   const [trackingQuery, setTrackingQuery] = useState('');
-  const { data, isLoading, isError } = useCustomerParcels({ page: 1, pageSize: 5 });
+  const { data, isLoading, isError } = useCustomerParcels({
+    page: 1,
+    pageSize: 5,
+  });
 
   const items = data?.items ?? [];
   const activeCount = items.filter(
@@ -39,7 +43,9 @@ function CustomerDashboardContent() {
       item.status !== 'Failed' &&
       item.status !== 'Cancelled',
   ).length;
-  const deliveredCount = items.filter((item) => item.status === 'Delivered').length;
+  const deliveredCount = items.filter(
+    (item) => item.status === 'Delivered',
+  ).length;
 
   const handleTrackSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -53,10 +59,12 @@ function CustomerDashboardContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Welcome back{snapshot.user?.fullName ? `, ${snapshot.user.fullName}` : ''}
+            Welcome back
+            {user?.fullName ? `, ${user.fullName}` : ''}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track live deliveries, review past orders, and download official receipts.
+            Track live deliveries, review past orders, and download official
+            receipts.
           </p>
         </div>
         <Button asChild>
@@ -71,7 +79,8 @@ function CustomerDashboardContent() {
         <CardHeader>
           <CardTitle className="text-base">Quick Parcel Lookup</CardTitle>
           <CardDescription>
-            Enter any SwiftDrop tracking number to check its live delivery progress.
+            Enter any SwiftDrop tracking number to check its live delivery
+            progress.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -186,7 +195,8 @@ function CustomerDashboardContent() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {parcel.pickupCity} → {parcel.deliveryCity} · To{' '}
-                      {parcel.recipientName} · {formatDateTime(parcel.createdAt)}
+                      {parcel.recipientName} ·{' '}
+                      {formatDateTime(parcel.createdAt)}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -230,4 +240,3 @@ export function CustomerDashboardWorkspace() {
     </IdentityShell>
   );
 }
-

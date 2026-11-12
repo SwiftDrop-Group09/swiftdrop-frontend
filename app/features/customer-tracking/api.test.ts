@@ -48,12 +48,14 @@ describe('customer-tracking api', () => {
   });
 
   it('surfaces ProblemDetails errors cleanly', async () => {
-    const mockRequest = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ code: 'forbidden', title: 'Forbidden' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
+    const mockRequest = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ code: 'forbidden', title: 'Forbidden' }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
 
     await expect(
       listCustomerParcels(mockRequest, '/api', { page: 1 }),
@@ -94,4 +96,3 @@ describe('customer-tracking api', () => {
     fetchSpy.mockRestore();
   });
 });
-
