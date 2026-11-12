@@ -189,19 +189,29 @@ export class IdentitySession {
     });
     if (generation !== this.generation)
       throw new IdentityError('session_changed');
-    if (response.status === 401 && method === 'GET') {
+    if (response.status === 401) {
       headers.set('Authorization', `Bearer ${await this.refresh()}`);
-      response = await fetch(input, {
-        ...init,
-        headers,
-        credentials: 'include',
-        cache: 'no-store',
-        redirect: 'error',
-      });
       if (generation !== this.generation)
         throw new IdentityError('session_changed');
+      // Identity decides whether the global session is still valid. Another
+      // service can reject a valid token because its integration is unavailable.
+      // Retry reads only; a mutation must retain its original caller-owned retry.
+      if (method === 'GET') {
+        response = await fetch(input, {
+          ...init,
+          headers,
+          credentials: 'include',
+          cache: 'no-store',
+          redirect: 'error',
+        });
+        if (generation !== this.generation)
+          throw new IdentityError('session_changed');
+      }
     }
-    if (response.status === 401) {
+    const identityResource = /^\/v1\/(auth|users|audit-logs)(\/|$)/.test(
+      url.pathname.slice(this.api.base.length),
+    );
+    if (response.status === 401 && identityResource) {
       this.clear();
       throw await responseFailure(response);
     }
