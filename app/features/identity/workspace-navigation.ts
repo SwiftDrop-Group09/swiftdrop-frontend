@@ -54,9 +54,9 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Customer'],
     items: [
       { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
-      { label: 'Track a parcel', icon: MapPin },
-      { label: 'Delivery history', icon: History },
-      { label: 'Receipts', icon: ReceiptText },
+      { label: 'Track a parcel', icon: MapPin, to: '/customer/tracking' },
+      { label: 'Delivery history', icon: History, to: '/customer/history' },
+      { label: 'Receipts', icon: ReceiptText, to: '/customer/receipts' },
     ],
   },
   {

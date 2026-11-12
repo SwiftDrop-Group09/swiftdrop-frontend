@@ -184,13 +184,20 @@ describe('Customer account screens', () => {
   });
 
   it('keeps unimplemented screens disabled instead of linking to missing routes', async () => {
-    const { user, router } = mount('/dashboard', customer);
+    const { user, router } = mount('/dashboard', {
+      ...customer,
+      roles: ['Customer', 'Dispatcher'],
+    });
     await screen.findByRole('heading', { name: 'Dashboard' });
-    const navigation = within(
-      screen.getByRole('navigation', { name: 'Customer navigation' }),
+    const dispatchNav = within(
+      screen.getByRole('navigation', { name: 'Dispatch navigation' }),
     );
-    for (const label of ['Track a parcel', 'Delivery history', 'Receipts']) {
-      const item = navigation.getByRole('button', { name: label });
+    for (const label of [
+      'Unassigned parcels',
+      'Courier workload',
+      'Zone summary',
+    ]) {
+      const item = dispatchNav.getByRole('button', { name: label });
       expect(item).toBeDisabled();
       expect(item).toHaveAccessibleDescription(
         'Items marked Soon will be available in a future update.',
@@ -198,9 +205,22 @@ describe('Customer account screens', () => {
       await user.click(item);
       expect(router.state.location.pathname).toBe('/dashboard');
     }
+    const customerNav = within(
+      screen.getByRole('navigation', { name: 'Customer navigation' }),
+    );
     expect(
-      navigation.getByRole('link', { name: 'Book a delivery' }),
+      customerNav.getByRole('link', { name: 'Book a delivery' }),
     ).toHaveAttribute('href', '/customer/book');
+    expect(
+      customerNav.getByRole('link', { name: 'Track a parcel' }),
+    ).toHaveAttribute('href', '/customer/tracking');
+    expect(
+      customerNav.getByRole('link', { name: 'Delivery history' }),
+    ).toHaveAttribute('href', '/customer/history');
+    expect(customerNav.getByRole('link', { name: 'Receipts' })).toHaveAttribute(
+      'href',
+      '/customer/receipts',
+    );
     expect(
       screen.getByRole('link', { name: 'Business registration' }),
     ).toHaveAttribute('href', '/merchant');
