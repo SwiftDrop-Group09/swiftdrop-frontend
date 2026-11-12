@@ -11,12 +11,15 @@ See [README.md](README.md) for commands, configuration, and source boundaries.
 - Put domain logic, endpoint functions, validation, and Query hooks in features.
   Put general components, native-fetch transport, and utilities in shared code.
   Portals must not import other portals; shared code must not depend on portals.
-- Use shadcn/ui from `app/shared/components/ui` for application controls and
+- Use only shadcn/ui from `app/shared/components/ui` for application controls and
   surfaces. Use Tailwind utilities for layout and semantic theme tokens from
-  `app/styles/app.css`; avoid hardcoded colors or a second global CSS component
-  layer. Google Identity Services renders its sign-in control directly. The only
-  component CSS exception is `google-button.css` for the provider host layout and
-  focus ring. Use SDK options for its appearance; preserve the ID-token/nonce flow.
+  `app/styles/app.css`. Do not add custom CSS, component stylesheets, CSS modules,
+  CSS-in-JS or inline feature styling. Keep the global stylesheet limited to the
+  Tailwind/shadcn theme and base setup. Existing legacy CSS must be replaced with
+  shadcn/Tailwind equivalents when editing its component. Google Identity Services
+  renders its sign-in control directly; use SDK appearance options and Tailwind
+  host utilities, preserving the ID-token/nonce flow. See [AGENTS.md](AGENTS.md)
+  for the repository-wide UI rules.
 - Keep one application build. Use `~/` for source imports. Retain strict types,
   type-aware linting, framework route splitting, and SPA-safe initial rendering.
 - Obtain DTOs, permissions, authentication, and state transitions from the owning
