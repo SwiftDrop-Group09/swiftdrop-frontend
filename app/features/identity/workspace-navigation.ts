@@ -45,7 +45,7 @@ const navigation: readonly NavigationGroup[] = [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
       { label: 'My profile', icon: UserRound, to: '/profile' },
       // Onboarding accepts any authenticated applicant, before a Merchant role.
-      { label: 'Business registration', icon: Store },
+      { label: 'Business registration', icon: Store, to: '/merchant' },
     ],
   },
   {
@@ -54,9 +54,9 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Customer'],
     items: [
       { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
-      { label: 'Track a parcel', icon: MapPin },
-      { label: 'Delivery history', icon: History },
-      { label: 'Receipts', icon: ReceiptText },
+      { label: 'Track a parcel', icon: MapPin, to: '/customer/tracking' },
+      { label: 'Delivery history', icon: History, to: '/customer/history' },
+      { label: 'Receipts', icon: ReceiptText, to: '/customer/receipts' },
     ],
   },
   {
@@ -76,8 +76,8 @@ const navigation: readonly NavigationGroup[] = [
     items: [
       { label: 'Business overview', icon: ChartNoAxesCombined },
       { label: 'Orders', icon: ClipboardList },
-      { label: 'API keys', icon: KeyRound },
-      { label: 'Webhooks', icon: Webhook },
+      { label: 'API keys', icon: KeyRound, to: '/merchant' },
+      { label: 'Webhooks', icon: Webhook, to: '/merchant/webhooks' },
     ],
   },
   {
@@ -97,7 +97,11 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Admin'],
     items: [
       { label: 'User administration', icon: Users, to: '/admin/users' },
-      { label: 'Merchant approvals', icon: ShieldCheck },
+      {
+        label: 'Merchant approvals',
+        icon: ShieldCheck,
+        to: '/admin/merchants',
+      },
       { label: 'Delivery zones', icon: Map },
       { label: 'Pricing tiers', icon: SlidersHorizontal },
       { label: 'Delivery reports', icon: FileChartColumn },

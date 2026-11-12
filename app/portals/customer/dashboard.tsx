@@ -1,5 +1,5 @@
-import { DashboardPage } from '~/features/identity/dashboard-page';
+import { CustomerDashboardWorkspace } from '~/features/customer-tracking/dashboard-page';
 
 export default function DashboardRoute() {
-  return <DashboardPage />;
+  return <CustomerDashboardWorkspace />;
 }

@@ -183,13 +183,58 @@ describe('one in-memory session', () => {
     vi.stubGlobal('fetch', fetcher);
     const session = new IdentitySession(api);
     await session.restore();
-    await expect(
-      session.authenticatedRequest('/api/v1/parcels', {
-        method: 'POST',
-        body: '{}',
-      }),
-    ).rejects.toThrow();
+    const response = await session.authenticatedRequest('/api/v1/parcels', {
+      method: 'POST',
+      body: '{}',
+    });
+    expect(response.status).toBe(401);
     expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(session.getSnapshot().user).toEqual(customer);
+  });
+  it('keeps a valid Identity session when Delivery rejects even the refreshed GET', async () => {
+    const api = new IdentityApi();
+    const refresh = vi.spyOn(api, 'refresh').mockResolvedValue(pair());
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ code: 'unauthorized' }, 401));
+    vi.stubGlobal('fetch', fetcher);
+    const session = new IdentitySession(api);
+    await session.restore();
+    const response = await session.authenticatedRequest(
+      '/api/v1/parcels?page=1&pageSize=5',
+    );
+    expect(response.status).toBe(401);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(session.getSnapshot().user).toEqual(customer);
+  });
+  it('still clears the session when Identity rejects refresh after a Delivery 401', async () => {
+    const api = new IdentityApi();
+    vi.spyOn(api, 'refresh')
+      .mockResolvedValueOnce(pair())
+      .mockRejectedValueOnce(new IdentityError('invalid_credentials', 401));
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json({}, 401));
+    vi.stubGlobal('fetch', fetcher);
+    const session = new IdentitySession(api);
+    await session.restore();
+    await expect(
+      session.authenticatedRequest('/api/v1/parcels'),
+    ).rejects.toMatchObject({ status: 401 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(session.getSnapshot().user).toBeNull();
+  });
+  it('clears the session if an Identity resource rejects the fresh token too', async () => {
+    const api = new IdentityApi();
+    vi.spyOn(api, 'refresh').mockResolvedValue(pair());
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(json({}, 401)),
+    );
+    const session = new IdentitySession(api);
+    await session.restore();
+    await expect(
+      session.authenticatedRequest('/api/v1/users/me'),
+    ).rejects.toMatchObject({ status: 401 });
     expect(session.getSnapshot().user).toBeNull();
   });
   it('refuses to send bearer tokens to another origin or unrelated path', async () => {

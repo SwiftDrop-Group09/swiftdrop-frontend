@@ -202,3 +202,22 @@ Identity errors include an opaque UUID `correlationId` and matching `X-Correlati
 header. The UI maps stable error codes to fixed messages and does not expose raw
 server details or credentials. Private Query caches clear on principal or role
 changes as well as logout.
+
+## Delivery rejection and session recovery (12 November 2026)
+
+A Delivery/Merchant 401 is a resource-service rejection, not proof that the
+Identity session is invalid. The shared transport verifies the session through
+Identity refresh, retries a GET at most once, and returns a remaining service 401
+to the feature's error UI. It does not clear a valid global session. Mutations
+are never replayed automatically; a 401 can verify Identity through refresh but
+the original response remains available to the feature's retry workflow.
+
+A rejected Identity refresh still clears the session. Identity-owned auth/users/
+audit resources rejecting a fresh token also clear it. Account/role private-cache
+clearing and stale-response checks remain in place.
+
+Validation: npm run check passed format, lint, types, all 239 tests and production
+build. A Chromium regression against that build confirmed two Delivery 401s, a
+successful Identity refresh, a visible resource error and no dashboard-to-login
+redirect or page errors. Browser API responses were isolated fixtures. The
+backend and infra companion PRs add Delivery's real token verifier/configuration.
