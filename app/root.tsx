@@ -11,16 +11,18 @@ import {
 import { AppProviders } from './providers';
 import { IdentityProvider } from './features/identity/session';
 import './styles/app.css';
+import { ThemeController } from './shared/theme';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <Meta />
         <Links />
+        <script src="/theme.js" />
       </head>
       <body>
         {children}
@@ -40,6 +42,7 @@ export function HydrateFallback() {
 export default function App() {
   return (
     <AppProviders>
+      <ThemeController />
       <IdentityProvider>
         <Outlet />
       </IdentityProvider>

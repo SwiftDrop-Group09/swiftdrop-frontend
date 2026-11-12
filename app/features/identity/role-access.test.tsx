@@ -1,0 +1,97 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
+import type { ReactNode } from 'react';
+import { CustomerDashboardWorkspace } from '~/features/customer-tracking/dashboard-page';
+import { OrderHistoryPage } from '~/features/customer-tracking/history-page';
+import { CustomerTrackingPage } from '~/features/customer-tracking/tracking-page';
+import { CustomerReceiptPage } from '~/features/customer-tracking/receipt-page';
+import { CustomerBookingWorkspace } from '~/features/customer-booking/workspace';
+import { ZoneSummaryPage } from '~/features/dispatch/zone-summary-page';
+import { IdentityApi } from './api';
+import { IdentityProvider, IdentitySession } from './session';
+import type { Profile } from './contracts';
+import { customer, csrf, json, pair } from './test-fixtures';
+
+const matchMedia = window.matchMedia.bind(window);
+beforeEach(() => vi.stubGlobal('matchMedia', matchMedia));
+afterEach(() => vi.unstubAllGlobals());
+
+function mount(role: Profile['roles'][number], path: string, page: ReactNode) {
+  const privateReads = vi.fn();
+  const fetcher = vi.fn<typeof fetch>((input) => {
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    if (url.endsWith('/auth/csrf')) return Promise.resolve(json(csrf));
+    if (url.endsWith('/auth/refresh'))
+      return Promise.resolve(json(pair({ ...customer, roles: [role] })));
+    privateReads(url);
+    if (url.endsWith('/zones/summary'))
+      return Promise.resolve(json({ zones: [] }));
+    return Promise.resolve(json({ code: 'not_found' }, 404));
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const queries = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const session = new IdentitySession(new IdentityApi(fetcher), () =>
+    queries.clear(),
+  );
+  render(
+    <QueryClientProvider client={queries}>
+      <IdentityProvider session={session}>
+        <MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>
+      </IdentityProvider>
+    </QueryClientProvider>,
+  );
+  return privateReads;
+}
+
+describe('Role-aware workspaces', () => {
+  it.each(['Courier', 'Merchant', 'Dispatcher', 'Admin'] as const)(
+    'does not request Customer data on a %s dashboard',
+    async (role) => {
+      const reads = mount(role, '/dashboard', <CustomerDashboardWorkspace />);
+      await screen.findByRole('heading', { level: 1, name: 'Dashboard' });
+      expect(reads).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('link', { name: 'Book a Delivery' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+  it.each([
+    { path: '/customer/history', Page: OrderHistoryPage },
+    { path: '/customer/tracking', Page: CustomerTrackingPage },
+    { path: '/customer/receipts', Page: CustomerReceiptPage },
+    { path: '/customer/book', Page: CustomerBookingWorkspace },
+  ])(
+    'blocks an Admin-only account from Customer route $path before private reads',
+    async ({ path, Page }) => {
+      const reads = mount('Admin', path, <Page />);
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'requires a Customer account',
+      );
+      expect(reads).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'] as const)(
+    'enforces the zone-summary policy for %s',
+    async (role) => {
+      const reads = mount(role, '/dispatch/zones', <ZoneSummaryPage />);
+      if (role === 'Dispatcher' || role === 'Admin') {
+        await screen.findByText('No zone activity yet');
+        await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+      } else {
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          'requires a Dispatcher or Admin account',
+        );
+        expect(reads).not.toHaveBeenCalled();
+      }
+    },
+  );
+});

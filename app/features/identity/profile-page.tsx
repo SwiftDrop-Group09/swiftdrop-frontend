@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Avatar, AvatarFallback } from '~/shared/components/ui/avatar';
 import {
   Mail,
@@ -251,15 +252,10 @@ function ProfileContent() {
       .join('')
       .toUpperCase() || 'SD';
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          My profile
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Your details, account access and connected sign-in methods.
-        </p>
-      </header>
+    <WorkspacePage
+      title={<>My profile</>}
+      description="Your details, account access and connected sign-in methods."
+    >
       <Card>
         <CardContent className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
           <Avatar className="size-16 rounded-2xl" aria-hidden="true">
@@ -353,7 +349,7 @@ function ProfileContent() {
           </div>
         </div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }
 

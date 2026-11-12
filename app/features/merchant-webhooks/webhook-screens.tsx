@@ -1,3 +1,5 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -66,6 +68,7 @@ import {
 } from '~/shared/components/ui/dialog';
 
 export function WebhookScreens() {
+  const { user, restoring } = useIdentity();
   const queryClient = useQueryClient();
   const webhookApi = useWebhookApi();
   const merchantApi = useMerchantApi();
@@ -85,7 +88,8 @@ export function WebhookScreens() {
 
   // 1. Fetch Merchant status to ensure approved
   const { data: business, isLoading: businessLoading } = useQuery({
-    queryKey: ['merchant', 'me'],
+    queryKey: ['merchant', 'me', user?.id],
+    enabled: !restoring && !!user,
     queryFn: () => merchantApi.getMyMerchant(),
   });
 
@@ -95,14 +99,20 @@ export function WebhookScreens() {
     isLoading: webhooksLoading,
     error: webhooksError,
   } = useQuery({
-    queryKey: ['merchant', 'webhooks'],
+    queryKey: ['merchant', 'webhooks', user?.id],
     queryFn: () => webhookApi.listWebhooks(1, 50),
     enabled: business?.status === 'Approved',
   });
 
   // 3. Fetch Attempts for Selected Webhook
   const { data: attemptsData, isLoading: attemptsLoading } = useQuery({
-    queryKey: ['merchant', 'webhooks', selectedWebhook?.id, 'attempts'],
+    queryKey: [
+      'merchant',
+      'webhooks',
+      user?.id,
+      selectedWebhook?.id,
+      'attempts',
+    ],
     queryFn: () => webhookApi.listAttempts(selectedWebhook!.id, 1, 50),
     enabled: !!selectedWebhook,
   });
@@ -265,39 +275,33 @@ export function WebhookScreens() {
   return (
     <Protected>
       <IdentityShell>
-        <div className="space-y-6 max-w-6xl mx-auto py-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Link
-                  to="/merchant"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Merchant Portal & API Keys
+        <WorkspacePage
+          title={<>Delivery Status Webhooks</>}
+          description="Receive automatic real-time notifications whenever your delivery statuses update."
+          actions={
+            <>
+              <Button asChild variant="outline">
+                <Link to="/merchant">
+                  <ArrowLeft aria-hidden="true" />
+                  Business and API keys
                 </Link>
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Delivery Status Webhooks
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Receive automatic real-time notifications whenever your delivery
-                statuses update.
-              </p>
-            </div>
-            {isApproved && !selectedWebhook && (
-              <Button
-                onClick={() => {
-                  resetCreateForm();
-                  setApiError(null);
-                  setCreateDialogOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Register Webhook
-              </Button>
-            )}
-          </div>
+              </Button>{' '}
+              {isApproved && !selectedWebhook && (
+                <Button
+                  onClick={() => {
+                    resetCreateForm();
+                    setApiError(null);
+                    setCreateDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Register Webhook
+                </Button>
+              )}{' '}
+            </>
+          }
+        >
+          {/* Header */}
 
           {/* Status Alert if Not Approved */}
           {!businessLoading && !isApproved && (
@@ -813,7 +817,7 @@ export function WebhookScreens() {
               )}
             </DialogContent>
           </Dialog>
-        </div>
+        </WorkspacePage>
       </IdentityShell>
     </Protected>
   );

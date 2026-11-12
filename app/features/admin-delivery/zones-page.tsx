@@ -1,3 +1,8 @@
+import { AdminWorkspace } from '~/features/identity/admin-workspace';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Plus, Pencil, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -172,23 +177,19 @@ export default function AdminZonesRoute() {
   return (
     <IdentityShell>
       <Protected admin>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Delivery Zones Configuration
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Define geographic service regions, postal coverage codes, and
-                real-time operational boundaries.
-              </p>
-            </div>
-            <Button onClick={openCreate} size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Delivery Zone
-            </Button>
-          </div>
-
+        <AdminWorkspace
+          title="Delivery Zones Configuration"
+          description="Define geographic service regions, postal coverage codes, and real-time operational boundaries."
+          actions={
+            <>
+              {' '}
+              <Button onClick={openCreate} size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Delivery Zone
+              </Button>{' '}
+            </>
+          }
+        >
           {errorMsg && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -260,13 +261,22 @@ export default function AdminZonesRoute() {
             </CardHeader>
             <CardContent>
               {zonesQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Loading delivery zones...
-                </p>
+                <WorkspaceLoading label="Loading delivery zones..." />
+              ) : zonesQuery.isError ? (
+                <WorkspaceNotice
+                  title="Unable to load delivery zones"
+                  description="Your saved configuration is unchanged. Check your connection and try again."
+                  destructive
+                  pending={zonesQuery.isFetching}
+                  retry={() => {
+                    void zonesQuery.refetch();
+                  }}
+                />
               ) : zonesQuery.data?.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No delivery zones configured yet.
-                </p>
+                <WorkspaceNotice
+                  title="No delivery zones configured yet."
+                  description="Add a delivery zone to define the areas your team serves."
+                />
               ) : (
                 <Table>
                   <TableHeader>
@@ -450,7 +460,7 @@ export default function AdminZonesRoute() {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
+        </AdminWorkspace>
       </Protected>
     </IdentityShell>
   );

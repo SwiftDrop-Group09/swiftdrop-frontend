@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
@@ -54,15 +55,10 @@ function TrackingHub() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Track a Parcel</h1>
-        <p className="text-sm text-muted-foreground">
-          Select one of your active bookings below or look up any tracking
-          number.
-        </p>
-      </div>
-
+    <WorkspacePage
+      title={<>Track a Parcel</>}
+      description="Select one of your active bookings below or look up any tracking number."
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Track by Tracking Number</CardTitle>
@@ -128,7 +124,7 @@ function TrackingHub() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -326,7 +322,7 @@ export function CustomerTrackingPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         {id ? <ParcelLiveDetail parcelId={id} /> : <TrackingHub />}
       </Protected>
     </IdentityShell>

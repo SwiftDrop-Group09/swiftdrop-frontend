@@ -1,4 +1,5 @@
 import { BrandLogo } from '~/shared/components/brand-logo';
+import { ThemeMenu } from '~/shared/components/theme-menu';
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react';
@@ -21,6 +22,14 @@ import {
   useSidebar,
 } from '~/shared/components/ui/sidebar';
 import { Separator } from '~/shared/components/ui/separator';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '~/shared/components/ui/breadcrumb';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -143,7 +152,7 @@ function AccountSidebar() {
                 <DropdownMenuLabel className="grid gap-1">
                   <span className="truncate">{user!.fullName}</span>
                   <span className="truncate text-xs font-normal text-muted-foreground">
-                    {user!.email}
+                    {user!.roles.join(', ') || 'Account'}
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -153,6 +162,8 @@ function AccountSidebar() {
                     My profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <ThemeMenu />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={signingOut}
@@ -192,6 +203,34 @@ function AccountSidebar() {
 // dashboard-01's sidebar/inset composition, with all demo content removed.
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const adminPage = {
+    '/admin/users': 'Users',
+    '/admin/merchants': 'Merchant approvals',
+    '/admin/zones': 'Delivery zones',
+    '/admin/pricing': 'Pricing tiers',
+    '/admin/reports': 'Delivery reports',
+    '/dispatch/zones': 'Zone summary',
+    '/customer/book': 'Book a delivery',
+    '/customer/tracking': 'Track a parcel',
+    '/customer/history': 'Delivery history',
+    '/customer/receipts': 'Receipts',
+    '/courier': 'Assigned deliveries',
+    '/courier/history': 'Delivery history',
+    '/merchant': 'Business and API keys',
+    '/merchant/webhooks': 'Webhooks',
+    '/profile': 'My profile',
+  }[pathname];
+  const sectionName = pathname.startsWith('/admin/')
+    ? 'Administration'
+    : pathname.startsWith('/dispatch/')
+      ? 'Dispatch'
+      : pathname.startsWith('/customer/')
+        ? 'Customer'
+        : pathname.startsWith('/courier')
+          ? 'Courier'
+          : pathname.startsWith('/merchant')
+            ? 'Merchant'
+            : 'Account';
   const title =
     pathname === '/profile'
       ? 'Account'
@@ -212,11 +251,29 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </a>
       <AccountSidebar />
       <SidebarInset className="min-w-0">
-        <header className="flex h-(--header-height) shrink-0 items-center gap-3 border-b px-4 lg:px-6">
+        <header className="sticky top-0 z-20 flex h-(--header-height) shrink-0 items-center gap-3 border-b bg-background px-4 lg:px-6">
           <SidebarTrigger />
           <Separator orientation="vertical" className="!h-4" />
-          {pathname === '/dashboard' ? (
-            <h1 className="text-sm font-medium">{title}</h1>
+          {adminPage ? (
+            <Breadcrumb>
+              <BreadcrumbList className="flex-nowrap">
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:block" />
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  {sectionName}
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{adminPage}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          ) : pathname === '/dashboard' ? (
+            <p className="text-sm font-medium">{title}</p>
           ) : (
             <p className="text-sm font-medium">{title}</p>
           )}

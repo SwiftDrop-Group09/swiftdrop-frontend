@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
@@ -31,14 +32,10 @@ function DeliveredReceiptsList() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Delivery Receipts</h1>
-        <p className="text-sm text-muted-foreground">
-          Official itemized receipts are available for all completed deliveries.
-        </p>
-      </div>
-
+    <WorkspacePage
+      title={<>Delivery Receipts</>}
+      description="Official itemized receipts are available for all completed deliveries."
+    >
       <Card>
         <CardHeader>
           <CardTitle>Completed Deliveries</CardTitle>
@@ -108,7 +105,7 @@ function DeliveredReceiptsList() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -116,7 +113,10 @@ function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
   const { data: receipt, isLoading, error } = useParcelReceipt(parcelId);
 
   return (
-    <div className="space-y-6">
+    <WorkspacePage
+      title="Delivery receipt"
+      description="View and download the receipt for your completed delivery."
+    >
       <Button variant="ghost" size="sm" className="-ml-2 print:hidden" asChild>
         <Link to={`/customer/parcels/${parcelId}`}>
           <ArrowLeft className="mr-1.5 size-4" />
@@ -137,7 +137,7 @@ function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
       ) : (
         <ReceiptCard receipt={receipt} />
       )}
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -145,7 +145,7 @@ export function CustomerReceiptPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         {id ? <ParcelReceiptDetail parcelId={id} /> : <DeliveredReceiptsList />}
       </Protected>
     </IdentityShell>

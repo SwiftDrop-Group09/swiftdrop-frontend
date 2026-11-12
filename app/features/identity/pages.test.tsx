@@ -192,11 +192,7 @@ describe('Customer account screens', () => {
     const dispatchNav = within(
       screen.getByRole('navigation', { name: 'Dispatch navigation' }),
     );
-    for (const label of [
-      'Unassigned parcels',
-      'Courier workload',
-      'Zone summary',
-    ]) {
+    for (const label of ['Unassigned parcels', 'Courier workload']) {
       const item = dispatchNav.getByRole('button', { name: label });
       expect(item).toBeDisabled();
       expect(item).toHaveAccessibleDescription(
@@ -208,6 +204,9 @@ describe('Customer account screens', () => {
     const customerNav = within(
       screen.getByRole('navigation', { name: 'Customer navigation' }),
     );
+    expect(
+      dispatchNav.getByRole('link', { name: 'Zone summary' }),
+    ).toHaveAttribute('href', '/dispatch/zones');
     expect(
       customerNav.getByRole('link', { name: 'Book a delivery' }),
     ).toHaveAttribute('href', '/customer/book');
@@ -312,7 +311,7 @@ describe('Customer account screens', () => {
       ),
     ).toBe(false);
   });
-  it('creates an account, signs in once, and lands on the empty dashboard shell', async () => {
+  it('creates an account, signs in once, and lands on the role-aware dashboard', async () => {
     const { user, fetcher, router } = mount('/register', undefined, (path) =>
       path.endsWith('/auth/register')
         ? json(customer, 201)
@@ -337,7 +336,11 @@ describe('Customer account screens', () => {
     await user.click(submit);
     await screen.findByRole('heading', { name: 'Dashboard' });
     expect(router.state.location.pathname).toBe('/dashboard');
-    expect(screen.getByLabelText('Dashboard workspace')).toBeEmptyDOMElement();
+    expect(
+      within(screen.getByLabelText('Dashboard workspace')).getByRole('link', {
+        name: 'Open Book a delivery',
+      }),
+    ).toHaveAttribute('href', '/customer/book');
     const registration = fetcher.mock.calls.find((call) =>
       pathOf(call[0]).endsWith('/auth/register'),
     )!;
@@ -492,7 +495,11 @@ describe('Customer account screens', () => {
       await screen.findByRole('heading', { name: 'Dashboard' }),
     ).toBeInTheDocument();
     expect(screen.getByText(customer.fullName)).toBeInTheDocument();
-    expect(screen.getByLabelText('Dashboard workspace')).toBeEmptyDOMElement();
+    expect(
+      within(screen.getByLabelText('Dashboard workspace')).getByRole('link', {
+        name: 'Open Book a delivery',
+      }),
+    ).toHaveAttribute('href', '/customer/book');
     expect(
       screen.queryByRole('link', { name: 'User administration' }),
     ).not.toBeInTheDocument();

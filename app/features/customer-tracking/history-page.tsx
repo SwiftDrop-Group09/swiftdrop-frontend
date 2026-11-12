@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -65,15 +66,10 @@ function OrderHistoryContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Order History</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse your past and active parcel bookings, track live status, or
-          download receipts.
-        </p>
-      </div>
-
+    <WorkspacePage
+      title={<>Order History</>}
+      description="Browse your past and active parcel bookings, track live status, or download receipts."
+    >
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -243,14 +239,14 @@ function OrderHistoryContent() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
 export function OrderHistoryPage() {
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         <OrderHistoryContent />
       </Protected>
     </IdentityShell>

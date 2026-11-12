@@ -1,3 +1,8 @@
+import { AdminWorkspace } from '~/features/identity/admin-workspace';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -145,30 +150,26 @@ export default function AdminReportsRoute() {
   return (
     <IdentityShell>
       <Protected admin>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Delivery Performance Reports
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                System delivery outcomes, success/failure rates, and terminal
-                history across UTC windows.
-              </p>
-            </div>
-            {reportQuery.data && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportCsv}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
-            )}
-          </div>
-
+        <AdminWorkspace
+          title="Delivery Performance Reports"
+          description="System delivery outcomes, success/failure rates, and terminal history across UTC windows."
+          actions={
+            <>
+              {' '}
+              {reportQuery.data && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportCsv}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+              )}{' '}
+            </>
+          }
+        >
           {/* Date Range Selection Card */}
           <Card>
             <CardHeader className="pb-3">
@@ -249,21 +250,23 @@ export default function AdminReportsRoute() {
           )}
 
           {reportQuery.isError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error Loading Report</AlertTitle>
-              <AlertDescription>
-                {reportQuery.error instanceof AdminDeliveryError
+            <WorkspaceNotice
+              title="Error Loading Report"
+              destructive
+              pending={reportQuery.isFetching}
+              retry={() => {
+                void reportQuery.refetch();
+              }}
+              description={
+                reportQuery.error instanceof AdminDeliveryError
                   ? reportQuery.error.message
-                  : 'Failed to retrieve delivery reports. Please verify the date parameters and try again.'}
-              </AlertDescription>
-            </Alert>
+                  : 'Failed to retrieve delivery reports. Please verify the date parameters and try again.'
+              }
+            />
           )}
 
           {reportQuery.isLoading && isValid && (
-            <div className="flex items-center justify-center p-8 text-muted-foreground text-sm">
-              Generating system delivery report...
-            </div>
+            <WorkspaceLoading label="Generating system delivery report..." />
           )}
 
           {/* High-level KPI Cards using shadcn Card */}
@@ -448,7 +451,7 @@ export default function AdminReportsRoute() {
               </Card>
             </div>
           )}
-        </div>
+        </AdminWorkspace>
       </Protected>
     </IdentityShell>
   );
