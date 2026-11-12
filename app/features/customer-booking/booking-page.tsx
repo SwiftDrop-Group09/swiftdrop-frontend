@@ -8,6 +8,7 @@ import {
   Field as FormField,
   FieldDescription,
   FieldError,
+  FieldSet,
 } from '~/shared/components/ui/field';
 import {
   NativeSelect,
@@ -386,7 +387,7 @@ function BookingFlow({
         noValidate
         className="space-y-5"
       >
-        <fieldset
+        <FieldSet
           disabled={!!attempt}
           className="space-y-5 disabled:opacity-70"
         >
@@ -442,7 +443,7 @@ function BookingFlow({
               </Label>
             </div>
           </Card>
-        </fieldset>
+        </FieldSet>
         {zones.isPending && (
           <p role="status" className="text-sm text-muted-foreground">
             Loading delivery areas…

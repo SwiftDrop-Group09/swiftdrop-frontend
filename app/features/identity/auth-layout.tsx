@@ -1,6 +1,6 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Package2 } from 'lucide-react';
 
 // Adapted from the official shadcn login-02 and signup-02 split-screen blocks.
 export function AuthLayout({
@@ -19,10 +19,7 @@ export function AuthLayout({
             className="flex items-center gap-2.5 text-lg font-semibold tracking-tight"
             aria-label="SwiftDrop home"
           >
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Package2 className="size-5" aria-hidden="true" />
-            </span>
-            SwiftDrop
+            <BrandLogo />
           </Link>
           <Link
             to={register ? '/login' : '/register'}

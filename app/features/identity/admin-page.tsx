@@ -14,6 +14,7 @@ import { useIdentity } from './session';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Card } from '~/shared/components/ui/card';
+import { FieldSet, FieldLegend } from '~/shared/components/ui/field';
 import {
   Table,
   TableBody,
@@ -317,11 +318,13 @@ function UserEditor({
           </Label>
           <Button disabled={mutation.isPending}>Review account change</Button>
         </form>
-        <fieldset
+        <FieldSet
           className="grid gap-3 rounded-lg border p-4"
           disabled={mutation.isPending}
         >
-          <legend className="px-1 text-sm font-medium">Assigned roles</legend>
+          <FieldLegend className="px-1 text-sm font-medium">
+            Assigned roles
+          </FieldLegend>
           {roles.map((role) => (
             <Label key={role} className="flex items-center gap-2">
               <Checkbox
@@ -338,7 +341,7 @@ function UserEditor({
               {role}
             </Label>
           ))}
-        </fieldset>
+        </FieldSet>
         <Button
           disabled={mutation.isPending}
           onClick={() => {
@@ -376,7 +379,7 @@ function UserEditor({
           Deactivate account
         </Button>
         {confirmation && (
-          <div
+          <Card
             role="group"
             aria-labelledby="confirm-title"
             className="space-y-4 rounded-lg border bg-muted/50 p-4"
@@ -398,7 +401,7 @@ function UserEditor({
             >
               Cancel
             </Button>
-          </div>
+          </Card>
         )}
         {mutation.error && (
           <Alert variant="destructive">{safeError(mutation.error)}</Alert>

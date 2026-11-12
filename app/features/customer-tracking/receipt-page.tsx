@@ -60,7 +60,7 @@ function DeliveredReceiptsList() {
               </AlertDescription>
             </Alert>
           ) : !data?.items.length ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+            <Card className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
               <ReceiptText className="size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">
                 No receipts available yet
@@ -68,7 +68,7 @@ function DeliveredReceiptsList() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Receipts become available once a parcel is marked Delivered.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="divide-y">
               {data.items.map((parcel) => (

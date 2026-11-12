@@ -257,6 +257,22 @@ describe('WebhookScreens', () => {
     );
     await user.type(urlInput, 'https://newendpoint.com/webhook');
 
+    const eventCheckbox = screen.getByRole('checkbox', {
+      name: 'delivery.delivered',
+    });
+    const initiallyChecked =
+      eventCheckbox.getAttribute('aria-checked') === 'true';
+    await user.click(eventCheckbox);
+    expect(eventCheckbox).toHaveAttribute(
+      'aria-checked',
+      String(!initiallyChecked),
+    );
+    await user.click(eventCheckbox);
+    expect(eventCheckbox).toHaveAttribute(
+      'aria-checked',
+      String(initiallyChecked),
+    );
+
     const submitBtn = screen.getByRole('button', { name: /^Register$/i });
     await user.click(submitBtn);
 

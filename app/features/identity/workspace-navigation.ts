@@ -14,7 +14,6 @@ import {
   SlidersHorizontal,
   Store,
   Truck,
-  UserRound,
   Users,
   Webhook,
   type LucideIcon,
@@ -43,7 +42,6 @@ const navigation: readonly NavigationGroup[] = [
     label: 'Workspace',
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-      { label: 'My profile', icon: UserRound, to: '/profile' },
       // Onboarding accepts any authenticated applicant, before a Merchant role.
       { label: 'Business registration', icon: Store, to: '/merchant' },
     ],

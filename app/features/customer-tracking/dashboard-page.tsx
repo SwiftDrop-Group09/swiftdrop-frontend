@@ -169,7 +169,7 @@ function CustomerDashboardContent() {
               </AlertDescription>
             </Alert>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+            <Card className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
               <History className="size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">No deliveries yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -178,7 +178,7 @@ function CustomerDashboardContent() {
               <Button className="mt-4" size="sm" asChild>
                 <Link to="/customer/book">Book a Delivery</Link>
               </Button>
-            </div>
+            </Card>
           ) : (
             <div className="divide-y">
               {items.map((parcel) => (

@@ -4,7 +4,6 @@ import { LoaderCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
-import './google-button.css';
 
 type GoogleSdk = {
   initialize(options: {
@@ -193,7 +192,7 @@ export function GoogleButton({
             </p>
           )}
           <div
-            className="google-sign-in"
+            className="mx-auto flex min-h-10 w-full min-w-0 max-w-100 justify-center rounded-md scheme-light focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[disabled=true]:opacity-50"
             ref={container}
             inert={disabled || busy}
             data-disabled={disabled || busy}

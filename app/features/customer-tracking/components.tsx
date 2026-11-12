@@ -1,3 +1,4 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
@@ -8,7 +9,6 @@ import {
   Package,
   Printer,
   ShieldCheck,
-  Truck,
   XCircle,
 } from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
@@ -106,20 +106,20 @@ export function DeliveryStepper({ status }: { status: ParcelStatus }) {
         const completed = index <= activeIndex;
         const current = index === activeIndex;
         return (
-          <div
+          <Card
             key={step}
             className={`flex items-center gap-2.5 rounded-lg border p-3 transition-colors sm:flex-col sm:items-start ${
               current
                 ? 'border-primary bg-primary/5'
                 : completed
-                  ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/20'
+                  ? 'border-border bg-accent'
                   : 'border-border bg-muted/30 opacity-65'
             }`}
           >
             <div
               className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 completed
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
@@ -133,7 +133,7 @@ export function DeliveryStepper({ status }: { status: ParcelStatus }) {
                 {current ? 'Current' : completed ? 'Done' : 'Pending'}
               </p>
             </div>
-          </div>
+          </Card>
         );
       })}
     </div>
@@ -240,8 +240,7 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Truck className="size-5 text-primary" />
-            <span className="text-lg font-bold tracking-tight">SwiftDrop</span>
+            <BrandLogo />
           </div>
           <CardTitle className="mt-2 text-xl">
             Receipt {receipt.receiptNumber}
@@ -279,7 +278,7 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
           </Alert>
         )}
 
-        <div className="grid gap-4 rounded-lg bg-muted/40 p-4 sm:grid-cols-3">
+        <Card className="grid gap-4 rounded-lg bg-muted/40 p-4 sm:grid-cols-3">
           <div>
             <p className="text-xs font-medium text-muted-foreground">Booked</p>
             <p className="mt-0.5 text-sm font-medium">
@@ -301,7 +300,7 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
               kg
             </p>
           </div>
-        </div>
+        </Card>
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="space-y-1">

@@ -59,7 +59,7 @@ function ConnectGoogle({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <div
+    <Card
       className="space-y-4 rounded-lg border bg-muted/30 p-4"
       aria-label="Connect Google"
     >
@@ -130,7 +130,7 @@ function ConnectGoogle({
         }}
       />
       {error && <Alert variant="destructive">{error}</Alert>}
-    </div>
+    </Card>
   );
 }
 
@@ -153,7 +153,7 @@ function AddPassword({
     defaultValues: { password: '', confirmation: '' },
   });
   return (
-    <div
+    <Card
       className="space-y-4 rounded-lg border bg-muted/30 p-4"
       aria-label="Add password"
     >
@@ -280,7 +280,7 @@ function AddPassword({
         </form>
       )}
       {error && <Alert variant="destructive">{error}</Alert>}
-    </div>
+    </Card>
   );
 }
 
