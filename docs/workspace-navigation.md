@@ -1,5 +1,14 @@
 # Workspace navigation
 
+## Current role review
+
+See [role workspace review](role-workspace-review.md) for the current route and
+API audit. `/dispatch/zones` is implemented for Dispatcher and Admin; other
+Dispatcher operations and Merchant order/dashboard links remain disabled pending
+their backend contracts. Customer-only pages are guarded before private reads.
+Non-Customer dashboards display their authorized workspace links. The shared
+responsive shell and design rules are documented in `AGENTS.md`.
+
 The current user's name and email appear in the sidebar footer. Selecting this
 control opens a shadcn dropdown containing My profile and Sign out, available to
 every role. Profile is no longer duplicated in the navigation groups. The menu
