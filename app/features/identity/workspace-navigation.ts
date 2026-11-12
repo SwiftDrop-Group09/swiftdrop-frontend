@@ -102,9 +102,13 @@ const navigation: readonly NavigationGroup[] = [
         icon: ShieldCheck,
         to: '/admin/merchants',
       },
-      { label: 'Delivery zones', icon: Map },
-      { label: 'Pricing tiers', icon: SlidersHorizontal },
-      { label: 'Delivery reports', icon: FileChartColumn },
+      { label: 'Delivery zones', icon: Map, to: '/admin/zones' },
+      { label: 'Pricing tiers', icon: SlidersHorizontal, to: '/admin/pricing' },
+      {
+        label: 'Delivery reports',
+        icon: FileChartColumn,
+        to: '/admin/reports',
+      },
       {
         label: 'Audit logs',
         icon: ScrollText,
