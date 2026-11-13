@@ -3,6 +3,15 @@ import { IdentityApi, IdentityError } from './api';
 import { csrf, customer, json, pair } from './test-fixtures';
 
 describe('browser Identity API', () => {
+  it('explains outdated filter APIs without silently returning unfiltered users', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ code: 'validation_failed' }, 400));
+    await expect(
+      new IdentityApi(fetcher).users('token', 1, { role: 'Customer' }),
+    ).rejects.toThrow('Restart the backend');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('bootstraps CSRF and uses cookie refresh without any JSON token', async () => {
     const fetcher = vi
       .fn<typeof fetch>()

@@ -1,3 +1,4 @@
+import { AppLoading } from '~/shared/components/app-loading';
 import type { ReactNode } from 'react';
 import { matchPath, Navigate, useLocation } from 'react-router';
 import type { Profile } from './contracts';
@@ -61,12 +62,7 @@ export function AccessGate({
 }) {
   const { user, restoring } = useIdentity();
   const location = useLocation();
-  if (restoring)
-    return (
-      <p role="status" className="p-6">
-        Restoring your session…
-      </p>
-    );
+  if (restoring) return <AppLoading />;
   if (!user)
     return (
       <Navigate

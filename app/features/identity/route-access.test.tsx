@@ -13,6 +13,7 @@ afterEach(() => {
   user = null;
 });
 const cases: { path: string; allowed: Profile['roles'] }[] = [
+  { path: '/merchant', allowed: ['Customer', 'Merchant'] },
   { path: '/admin/users', allowed: ['Admin'] },
   { path: '/admin/audit', allowed: ['Admin'] },
   { path: '/admin/merchants', allowed: ['Admin'] },
@@ -37,10 +38,6 @@ const cases: { path: string; allowed: Profile['roles'] }[] = [
   {
     path: '/merchant/orders/11111111-1111-4111-8111-111111111111',
     allowed: ['Merchant'],
-  },
-  {
-    path: '/merchant',
-    allowed: ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'],
   },
   {
     path: '/profile',

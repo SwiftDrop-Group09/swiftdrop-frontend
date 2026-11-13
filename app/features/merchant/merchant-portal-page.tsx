@@ -597,12 +597,15 @@ export function MerchantPortalPage() {
     error,
   } = useQuery<BusinessResponse | null>({
     queryKey: ['my-merchant-business', user?.id],
-    enabled: !restoring && !!user,
+    enabled:
+      !restoring &&
+      !!user &&
+      user.roles.some((role) => role === 'Customer' || role === 'Merchant'),
     queryFn: () => api.getMyMerchant(),
   });
 
   return (
-    <Protected>
+    <Protected roles={['Customer', 'Merchant']}>
       <IdentityShell>
         <WorkspacePage
           title={<>Merchant Portal</>}

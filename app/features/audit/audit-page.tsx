@@ -1,6 +1,12 @@
 import { useState } from 'react';
+import {
+  FilterBuilder,
+  FilterLabels,
+  type FilterRule,
+  type FilterField,
+} from '~/shared/components/filter-builder';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminWorkspace } from '~/features/identity/admin-workspace';
 import { useIdentity } from '~/features/identity/session';
@@ -40,7 +46,8 @@ import {
 } from '~/shared/components/ui/dialog';
 import {
   readAudit,
-  validateFilters,
+  readActorNames,
+  actorLabel,
   emptyFilters,
   services,
   type AuditFilters,
@@ -89,14 +96,13 @@ const selects: {
 ];
 function AuditContent() {
   const { user, session } = useIdentity();
-  const [draft, setDraft] = useState(emptyFilters);
+  const [rules, setRules] = useState<FilterRule[]>([]);
   const [filters, setFilters] = useState(emptyFilters);
   const [snapshot, setSnapshot] = useState(() => new Date().toISOString());
   const [history, setHistory] = useState<Cursors[]>([{}]);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const [selected, setSelected] = useState<Activity | null>(null);
-  const [invalid, setInvalid] = useState('');
   const query = useQuery({
     queryKey: [
       'system-audit',
@@ -110,30 +116,79 @@ function AuditContent() {
       readAudit(session, filters, history[page] ?? {}, snapshot, size, signal),
     retry: false,
   });
-  function update(key: keyof AuditFilters, value: string) {
-    setDraft((current) => ({ ...current, [key]: value }));
-  }
+  const actorIds = [
+    ...new Set(
+      query.data?.items.flatMap((item) =>
+        item.actorId ? [item.actorId] : [],
+      ) ?? [],
+    ),
+  ].sort();
+  const actors = useQuery({
+    queryKey: ['audit-actor-names', user!.id, actorIds],
+    queryFn: ({ signal }) => readActorNames(session, actorIds, signal),
+    enabled: actorIds.length > 0,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const label = (item: Activity) =>
+    actorLabel(item, actors.data, actors.isFetching, actors.isError);
   function resetPage() {
     setPage(0);
     setHistory([{}]);
     setSnapshot(new Date().toISOString());
   }
-  function apply() {
-    const validation = validateFilters(draft);
-    if (validation) {
-      setInvalid(validation);
-      return;
+  const dynamicFields: FilterField[] = [
+    {
+      key: 'actorId',
+      label: 'Actor',
+      options: actorIds.map((id) => ({
+        value: id,
+        label: actors.data?.[id] ?? 'Account ' + id.slice(0, 8),
+      })),
+    },
+    ...(['action', 'ip', 'resourceId', 'correlationId'] as const).map(
+      (key) => ({
+        key,
+        label: {
+          action: 'Action contains',
+          ip: 'IP address',
+          resourceId: 'Resource ID',
+          correlationId: 'Correlation ID',
+        }[key],
+        options: [
+          ...new Set(
+            query.data?.items.flatMap((item) => {
+              const value = key === 'ip' ? item.ipAddress : item[key];
+              return value ? [value] : [];
+            }) ?? [],
+          ),
+        ]
+          .sort()
+          .map((value) => ({ value, label: value })),
+      }),
+    ),
+  ];
+  const fields: FilterField[] = [
+    ...selects.map((field) => ({
+      key: field.key,
+      label: field.label,
+      options: field.values.map((value) => ({ value, label: value })),
+    })),
+    ...dynamicFields,
+  ];
+  function changeRules(next: FilterRule[]) {
+    setRules(next);
+    const updated: AuditFilters = {
+      ...emptyFilters,
+    };
+    for (const rule of next) {
+      const key =
+        rule.operator === 'is'
+          ? rule.key
+          : `not${rule.key.charAt(0).toUpperCase()}${rule.key.slice(1)}`;
+      updated[key as keyof AuditFilters] = rule.value;
     }
-    if (draft.from && draft.to && new Date(draft.from) >= new Date(draft.to)) {
-      setInvalid('The end of the time range must be after its start.');
-      return;
-    }
-    setInvalid('');
-    setFilters({
-      ...draft,
-      from: draft.from ? new Date(draft.from).toISOString() : '',
-      to: draft.to ? new Date(draft.to).toISOString() : '',
-    });
+    setFilters(updated);
     resetPage();
   }
   return (
@@ -141,110 +196,81 @@ function AuditContent() {
       title="Audit log"
       description="Review actor activity, security events and delivery operations across services."
       actions={
-        <Button
-          variant="outline"
-          disabled={query.isFetching}
-          onClick={resetPage}
-        >
-          <RefreshCw aria-hidden="true" />
-          Refresh
-        </Button>
-      }
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter activity</CardTitle>
-          <CardDescription>
-            Time filters use your local timezone. The end time is exclusive.
-            Historical records may not contain roles or IP addresses.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              apply();
+        <>
+          <FilterBuilder fields={fields} rules={rules} onChange={changeRules}>
+            <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+              {(['from', 'to'] as const).map((key) => (
+                <div key={key} className="space-y-2">
+                  <Label htmlFor={`audit-${key}`}>
+                    {key === 'from' ? 'From' : 'Before'} (local time)
+                  </Label>
+                  <Input
+                    id={`audit-${key}`}
+                    type="datetime-local"
+                    value={
+                      filters[key]
+                        ? new Date(
+                            new Date(filters[key]).getTime() -
+                              new Date(filters[key]).getTimezoneOffset() *
+                                60000,
+                          )
+                            .toISOString()
+                            .slice(0, 16)
+                        : ''
+                    }
+                    onChange={(event) => {
+                      const remaining = rules.filter(
+                        (rule) => rule.key !== key,
+                      );
+                      changeRules(
+                        event.target.value
+                          ? [
+                              ...remaining,
+                              {
+                                key,
+                                operator: 'is',
+                                value: new Date(
+                                  event.target.value,
+                                ).toISOString(),
+                              },
+                            ]
+                          : remaining,
+                      );
+                    }}
+                  />
+                </div>
+              ))}
+              {(filters.from || filters.to) && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    changeRules(
+                      rules.filter(
+                        (rule) => rule.key !== 'from' && rule.key !== 'to',
+                      ),
+                    );
+                  }}
+                >
+                  Clear time range
+                </Button>
+              )}
+            </div>
+          </FilterBuilder>
+          <Button
+            variant="outline"
+            disabled={query.isFetching}
+            onClick={() => {
+              resetPage();
+              if (actorIds.length) void actors.refetch();
             }}
           >
-            {selects.map(({ key, label, values }) => (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={`audit-${key}`}>{label}</Label>
-                <NativeSelect
-                  id={`audit-${key}`}
-                  value={draft[key]}
-                  onChange={(event) => update(key, event.target.value)}
-                >
-                  <NativeSelectOption value="">All</NativeSelectOption>
-                  {values.map((value) => (
-                    <NativeSelectOption key={value} value={value}>
-                      {value === 'InProgress'
-                        ? 'No completion recorded'
-                        : value}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-            ))}
-            {(['from', 'to'] as const).map((key) => (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={`audit-${key}`}>
-                  {key === 'from' ? 'From' : 'Before'} (local time)
-                </Label>
-                <Input
-                  id={`audit-${key}`}
-                  type="datetime-local"
-                  value={draft[key]}
-                  onChange={(event) => update(key, event.target.value)}
-                />
-              </div>
-            ))}
-            {(
-              [
-                { key: 'actorId', label: 'Actor ID' },
-                { key: 'ip', label: 'IP address' },
-                { key: 'action', label: 'Action contains' },
-                { key: 'resourceId', label: 'Resource ID' },
-                { key: 'correlationId', label: 'Correlation ID' },
-              ] as const
-            ).map(({ key, label }) => (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={`audit-${key}`}>{label}</Label>
-                <Input
-                  id={`audit-${key}`}
-                  value={draft[key]}
-                  maxLength={160}
-                  onChange={(event) => update(key, event.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-            ))}
-            <div className="flex flex-wrap items-end gap-2 sm:col-span-2 xl:col-span-4">
-              <Button type="submit" disabled={query.isFetching}>
-                <Search aria-hidden="true" />
-                Apply filters
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setDraft(emptyFilters);
-                  setFilters(emptyFilters);
-                  setInvalid('');
-                  resetPage();
-                }}
-              >
-                Clear filters
-              </Button>
-            </div>
-          </form>
-          {invalid && (
-            <p role="alert" className="mt-4 text-sm text-destructive">
-              {invalid}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            <RefreshCw aria-hidden="true" />
+            Refresh
+          </Button>
+        </>
+      }
+    >
+      <FilterLabels fields={fields} rules={rules} onChange={changeRules} />
       <Card>
         <CardHeader>
           <CardTitle>Activity records</CardTitle>
@@ -303,8 +329,8 @@ function AuditContent() {
                           {item.timestamp.replace('T', ' ').replace('Z', '')}
                         </TableCell>
                         <TableCell className="align-top">
-                          <span className="block max-w-56 break-all font-mono text-xs">
-                            {item.actorId ?? item.actorType}
+                          <span className="block max-w-56 break-words text-sm font-medium">
+                            {label(item)}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {item.roles.length
@@ -426,18 +452,20 @@ function AuditContent() {
           </DialogHeader>
           {selected && (
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
-              {Object.entries(selected).map(([key, value]) => (
-                <div key={key} className="min-w-0">
-                  <dt className="font-medium">{key}</dt>
-                  <dd className="mt-1 break-all text-muted-foreground">
-                    {value === null
-                      ? 'Not recorded'
-                      : Array.isArray(value)
-                        ? value.join(', ') || 'Not recorded'
-                        : String(value)}
-                  </dd>
-                </div>
-              ))}
+              {Object.entries({ actor: label(selected), ...selected }).map(
+                ([key, value]) => (
+                  <div key={key} className="min-w-0">
+                    <dt className="font-medium">{key}</dt>
+                    <dd className="mt-1 break-all text-muted-foreground">
+                      {value === null
+                        ? 'Not recorded'
+                        : Array.isArray(value)
+                          ? value.join(', ') || 'Not recorded'
+                          : String(value)}
+                    </dd>
+                  </div>
+                ),
+              )}
             </dl>
           )}
         </DialogContent>
