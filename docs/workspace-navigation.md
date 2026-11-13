@@ -4,8 +4,10 @@
 
 See [role workspace review](role-workspace-review.md) for the current route and
 API matrix, approved access rules and remaining backend gaps. Operational tracking
-at /dispatch/parcels and zone summary at /dispatch/zones are available to Dispatcher
-and Admin. Receipts and proof in the operations view require Admin. Private URLs
+at /dispatch/parcels, the unassigned queue at /dispatch/unassigned, and zone summary
+at /dispatch/zones are available to Dispatcher and Admin. See
+[Dispatcher integration](dispatcher-integration.md) for queue behavior and remaining
+assignment/filter contracts. Receipts and proof in the operations view require Admin. Private URLs
 show /401 for signed-out visitors and /403 for accounts without a required role.
 Customer-only pages remain role-specific, and onboarding accepts any authenticated
 applicant. Non-Customer dashboards display their authorized workspace links.
@@ -65,9 +67,9 @@ User management defaults to Customers, with other role tabs and an All users vie
 
 Customer booking, tracking, history and receipts and Courier assignment/history/detail
 routes remain role-specific. Merchant registration is shared; webhooks require Merchant
-and approved ownership. Dispatch has real tracking/history and zone-summary pages.
+and approved ownership. Dispatch has real tracking/history, unassigned-queue and zone-summary pages.
 
-Unassigned-workflow/assignment, workload and Merchant overview/order screens
+Assignment/reassignment, workload and Merchant overview/order screens
 remain disabled with accessible Soon explanations. Backend dev now includes scoped
 Merchant order intake and owner reads; its web workspace is still unimplemented.
 Assignment, workload and business-statistics endpoints remain gaps. See the current
