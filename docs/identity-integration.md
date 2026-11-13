@@ -64,9 +64,33 @@ remains responsible for atomic rotation and family revocation.
 
 ## Google integration
 
+Google script loading and the same-origin CSRF/nonce bootstrap are separate
+dependencies. Bootstrap errors retain their safe Identity error messages: an
+`audit_unavailable`/503 response reports temporary account-service unavailability,
+and `csrf_rejected` reports browser verification failure. Script downloads or
+timeouts report Google loading failure. Unexpected bootstrap JSON is rejected
+before sending credentials, and unknown server failures never expose raw bodies.
+Retry Google sign-in fetches a new bootstrap before enabling the provider control;
+failed initialization does not exchange a Google token or replay a mutation.
+
+For a local bootstrap returning `audit_unavailable`, check Identity `/ready` and
+the owning database migrations. The audit recorder must be available before
+authentication proceeds; Identity migration `004_actor_activity_audit` creates
+the required append-only table and grants runtime access. Use the infrastructure
+runner's explicit Identity migration command with migration credentials. Do not
+disable auditing or weaken CSRF checks to recover sign-in.
+
 Set public `VITE_GOOGLE_WEB_CLIENT_ID` to the Google Web OAuth client ID and
 configure its exact authorized JavaScript origin. Match that audience in
 Identity's allowlist. No Google client secret belongs in a Vite variable.
+
+The shared development runner forwards `VITE_GOOGLE_WEB_CLIENT_ID` to both the
+frontend and Identity's web audience list, unless `IDENTITY_GOOGLE_WEB_CLIENT_ID`
+explicitly overrides the server audience. Restart a running host stack after
+changing environment values. A missing/invalid server audience or a Google
+verification outage returns `google_unavailable`/503; invalid signatures, claims
+or nonce bindings continue to be rejected. Service outages do not automatically
+replay a Google login; a new user attempt obtains a fresh nonce.
 
 The official Google Identity Services script renders the provider sign-in
 control directly in the form, without an application dialog. Its supported
