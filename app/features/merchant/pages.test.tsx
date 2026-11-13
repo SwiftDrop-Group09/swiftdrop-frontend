@@ -111,6 +111,7 @@ function setupMount(
     [
       { path: '/merchant', element: <MerchantPortalPage /> },
       { path: '/admin/merchants', element: <AdminMerchantsPage /> },
+      { path: '/403', element: <h1>Access denied</h1> },
     ],
     { initialEntries: [initialPath] },
   );
@@ -359,9 +360,7 @@ describe('Admin Merchant Approvals Screens', () => {
     setupMount('/admin/merchants', customer);
 
     expect(
-      await screen.findByText(
-        /You do not have permission to view this administration page/i,
-      ),
+      await screen.findByRole('heading', { name: 'Access denied' }),
     ).toBeInTheDocument();
   });
 

@@ -203,24 +203,33 @@ function AccountSidebar() {
 // dashboard-01's sidebar/inset composition, with all demo content removed.
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const adminPage = {
-    '/admin/users': 'Users',
-    '/admin/audit': 'Audit log',
-    '/admin/merchants': 'Merchant approvals',
-    '/admin/zones': 'Delivery zones',
-    '/admin/pricing': 'Pricing tiers',
-    '/admin/reports': 'Delivery reports',
-    '/dispatch/zones': 'Zone summary',
-    '/customer/book': 'Book a delivery',
-    '/customer/tracking': 'Track a parcel',
-    '/customer/history': 'Delivery history',
-    '/customer/receipts': 'Receipts',
-    '/courier': 'Assigned deliveries',
-    '/courier/history': 'Delivery history',
-    '/merchant': 'Business and API keys',
-    '/merchant/webhooks': 'Webhooks',
-    '/profile': 'My profile',
-  }[pathname];
+  const adminPage =
+    {
+      '/admin/users': 'Users',
+      '/admin/audit': 'Audit log',
+      '/admin/merchants': 'Merchant approvals',
+      '/admin/zones': 'Delivery zones',
+      '/admin/pricing': 'Pricing tiers',
+      '/admin/reports': 'Delivery reports',
+      '/dispatch/zones': 'Zone summary',
+      '/dispatch/parcels': 'Parcel tracking & history',
+      '/401': 'Sign in required',
+      '/403': 'Access denied',
+      '/customer/book': 'Book a delivery',
+      '/customer/tracking': 'Track a parcel',
+      '/customer/history': 'Delivery history',
+      '/customer/receipts': 'Receipts',
+      '/courier': 'Assigned deliveries',
+      '/courier/history': 'Delivery history',
+      '/merchant': 'Business and API keys',
+      '/merchant/webhooks': 'Webhooks',
+      '/profile': 'My profile',
+    }[pathname] ??
+    (/^\/(customer|dispatch)\/parcels\/[^/]+(?:\/receipt)?\/?$/.test(pathname)
+      ? pathname.endsWith('/receipt')
+        ? 'Parcel receipt'
+        : 'Parcel tracking'
+      : undefined);
   const sectionName = pathname.startsWith('/admin/')
     ? 'Administration'
     : pathname.startsWith('/dispatch/')

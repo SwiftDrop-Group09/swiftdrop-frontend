@@ -89,7 +89,7 @@ export function WebhookScreens() {
   // 1. Fetch Merchant status to ensure approved
   const { data: business, isLoading: businessLoading } = useQuery({
     queryKey: ['merchant', 'me', user?.id],
-    enabled: !restoring && !!user,
+    enabled: !restoring && !!user?.roles.includes('Merchant'),
     queryFn: () => merchantApi.getMyMerchant(),
   });
 
@@ -101,7 +101,8 @@ export function WebhookScreens() {
   } = useQuery({
     queryKey: ['merchant', 'webhooks', user?.id],
     queryFn: () => webhookApi.listWebhooks(1, 50),
-    enabled: business?.status === 'Approved',
+    enabled:
+      !!user?.roles.includes('Merchant') && business?.status === 'Approved',
   });
 
   // 3. Fetch Attempts for Selected Webhook
@@ -114,7 +115,10 @@ export function WebhookScreens() {
       'attempts',
     ],
     queryFn: () => webhookApi.listAttempts(selectedWebhook!.id, 1, 50),
-    enabled: !!selectedWebhook,
+    enabled:
+      !!user?.roles.includes('Merchant') &&
+      business?.status === 'Approved' &&
+      !!selectedWebhook,
   });
 
   // 4. Create Webhook Mutation
@@ -273,7 +277,7 @@ export function WebhookScreens() {
   const isApproved = business?.status === 'Approved';
 
   return (
-    <Protected>
+    <Protected roles={['Merchant']}>
       <IdentityShell>
         <WorkspacePage
           title={<>Delivery Status Webhooks</>}

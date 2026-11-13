@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router';
+import { AccessPage } from './access-page';
+import { Route, Routes, MemoryRouter } from 'react-router';
 import type { ReactNode } from 'react';
 import { CustomerDashboardWorkspace } from '~/features/customer-tracking/dashboard-page';
 import { OrderHistoryPage } from '~/features/customer-tracking/history-page';
@@ -45,7 +46,12 @@ function mount(role: Profile['roles'][number], path: string, page: ReactNode) {
   render(
     <QueryClientProvider client={queries}>
       <IdentityProvider session={session}>
-        <MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path={path} element={page} />
+            <Route path="/403" element={<AccessPage status={403} />} />
+          </Routes>
+        </MemoryRouter>
       </IdentityProvider>
     </QueryClientProvider>,
   );
@@ -73,9 +79,7 @@ describe('Role-aware workspaces', () => {
     'blocks an Admin-only account from Customer route $path before private reads',
     async ({ path, Page }) => {
       const reads = mount('Admin', path, <Page />);
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'requires a Customer account',
-      );
+      await screen.findByRole('heading', { name: 'Access denied' });
       expect(reads).not.toHaveBeenCalled();
     },
   );
@@ -87,9 +91,7 @@ describe('Role-aware workspaces', () => {
         await screen.findByText('No zone activity yet');
         await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
       } else {
-        expect(await screen.findByRole('alert')).toHaveTextContent(
-          'requires a Dispatcher or Admin account',
-        );
+        await screen.findByRole('heading', { name: 'Access denied' });
         expect(reads).not.toHaveBeenCalled();
       }
     },

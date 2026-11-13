@@ -10,6 +10,7 @@ import {
 } from 'react-router';
 import { AppProviders } from './providers';
 import { IdentityProvider } from './features/identity/session';
+import { RouteAccessBoundary } from './features/identity/route-access';
 import './styles/app.css';
 import { ThemeController } from './shared/theme';
 
@@ -44,7 +45,9 @@ export default function App() {
     <AppProviders>
       <ThemeController />
       <IdentityProvider>
-        <Outlet />
+        <RouteAccessBoundary>
+          <Outlet />
+        </RouteAccessBoundary>
       </IdentityProvider>
     </AppProviders>
   );

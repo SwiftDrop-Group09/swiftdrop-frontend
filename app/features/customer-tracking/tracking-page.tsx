@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
+import { useIdentity } from '~/features/identity/session';
 import {
   Alert,
   AlertDescription,
@@ -128,8 +129,20 @@ function TrackingHub() {
   );
 }
 
-function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
-  const { data: parcel, isLoading, isError } = useCustomerParcel(parcelId);
+export function ParcelLiveDetail({
+  parcelId,
+  operational = false,
+}: {
+  parcelId: string;
+  operational?: boolean;
+}) {
+  const { user } = useIdentity();
+  const canDownload = !operational || !!user?.roles.includes('Admin');
+  const {
+    data: parcel,
+    isLoading,
+    isError,
+  } = useCustomerParcel(parcelId, operational);
   const isTerminal =
     parcel?.status === 'Delivered' ||
     parcel?.status === 'Failed' ||
@@ -141,6 +154,7 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
   const { data: proof } = useParcelProof(
     parcelId,
     parcel?.status === 'Delivered',
+    operational,
   );
 
   if (isLoading) {
@@ -170,9 +184,9 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <Button variant="ghost" size="sm" className="-ml-2" asChild>
-            <Link to="/customer/history">
+            <Link to={operational ? '/dispatch/parcels' : '/customer/history'}>
               <ArrowLeft className="mr-1.5 size-4" />
-              Back to Order History
+              {operational ? 'Back to parcel history' : 'Back to Order History'}
             </Link>
           </Button>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -201,9 +215,11 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
             Booked {formatDateTime(parcel.createdAt)} · Version {parcel.version}
           </p>
         </div>
-        {parcel.status === 'Delivered' && (
+        {parcel.status === 'Delivered' && canDownload && (
           <Button asChild>
-            <Link to={`/customer/parcels/${parcel.id}/receipt`}>
+            <Link
+              to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
+            >
               <ReceiptText className="mr-2 size-4" />
               View & Download Receipt
             </Link>

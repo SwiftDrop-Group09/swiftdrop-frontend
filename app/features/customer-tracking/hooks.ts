@@ -11,11 +11,19 @@ import {
 } from './api';
 import type { CustomerParcelQuery, ParcelEventSnapshot } from './contracts';
 
-export function useCustomerParcels(query: CustomerParcelQuery) {
+export function useCustomerParcels(
+  query: CustomerParcelQuery,
+  operational = false,
+) {
   const { session, user, restoring } = useIdentity();
   return useQuery({
-    queryKey: ['customer-parcels', user?.id, query],
-    enabled: !restoring && !!user?.roles.includes('Customer'),
+    queryKey: ['customer-parcels', user?.id, operational, query],
+    enabled:
+      !restoring &&
+      !!user &&
+      (operational
+        ? user.roles.some((role) => role === 'Admin' || role === 'Dispatcher')
+        : user.roles.includes('Customer')),
     queryFn: ({ signal }) =>
       listCustomerParcels(
         session.authenticatedRequest,
@@ -26,12 +34,20 @@ export function useCustomerParcels(query: CustomerParcelQuery) {
   });
 }
 
-export function useCustomerParcel(parcelId: string | undefined) {
+export function useCustomerParcel(
+  parcelId: string | undefined,
+  operational = false,
+) {
   const { session, user, restoring } = useIdentity();
   return useQuery({
-    queryKey: ['customer-parcel', parcelId, user?.id],
+    queryKey: ['customer-parcel', parcelId, user?.id, operational],
     enabled:
-      !restoring && !!user?.roles.includes('Customer') && Boolean(parcelId),
+      !restoring &&
+      !!user &&
+      (operational
+        ? user.roles.some((role) => role === 'Admin' || role === 'Dispatcher')
+        : user.roles.includes('Customer')) &&
+      Boolean(parcelId),
     queryFn: ({ signal }) =>
       getCustomerParcel(
         session.authenticatedRequest,
@@ -53,12 +69,17 @@ export function usePublicTracking(trackingNumber: string | null) {
   });
 }
 
-export function useParcelReceipt(parcelId: string | undefined) {
+export function useParcelReceipt(
+  parcelId: string | undefined,
+  operational = false,
+) {
   const { session, user, restoring } = useIdentity();
   return useQuery({
-    queryKey: ['parcel-receipt', parcelId, user?.id],
+    queryKey: ['parcel-receipt', parcelId, user?.id, operational],
     enabled:
-      !restoring && !!user?.roles.includes('Customer') && Boolean(parcelId),
+      !restoring &&
+      !!user?.roles.includes(operational ? 'Admin' : 'Customer') &&
+      Boolean(parcelId),
     queryFn: ({ signal }) =>
       getParcelReceipt(
         session.authenticatedRequest,
@@ -70,13 +91,17 @@ export function useParcelReceipt(parcelId: string | undefined) {
   });
 }
 
-export function useParcelProof(parcelId: string | undefined, enabled = true) {
+export function useParcelProof(
+  parcelId: string | undefined,
+  enabled = true,
+  operational = false,
+) {
   const { session, user, restoring } = useIdentity();
   return useQuery({
-    queryKey: ['parcel-proof', parcelId, user?.id],
+    queryKey: ['parcel-proof', parcelId, user?.id, operational],
     enabled:
       !restoring &&
-      !!user?.roles.includes('Customer') &&
+      !!user?.roles.includes(operational ? 'Admin' : 'Customer') &&
       Boolean(parcelId) &&
       enabled,
     queryFn: ({ signal }) =>

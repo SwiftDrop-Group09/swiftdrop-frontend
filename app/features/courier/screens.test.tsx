@@ -38,6 +38,7 @@ function mount(path = '/courier') {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
+          <Route path="/403" element={<h1>Access denied</h1>} />
           <Route path="/courier" element={<CourierLayout />}>
             <Route index element={<Manifest />} />
             <Route path="history" element={<History />} />
@@ -231,12 +232,10 @@ it('history renders only terminal summaries without private detail links', async
   ).not.toBeInTheDocument();
   expect(screen.queryByText('Test Recipient')).not.toBeInTheDocument();
 });
-it('denies wrong-role accounts without calling Delivery', () => {
+it('denies wrong-role accounts without calling Delivery', async () => {
   mocks.identity.user.roles = ['Customer'];
   mount();
-  expect(screen.getByRole('alert')).toHaveTextContent(
-    'Courier account is required',
-  );
+  await screen.findByRole('heading', { name: 'Access denied' });
   expect(mocks.request).not.toHaveBeenCalled();
 });
 it('session/role changes remove private details and pending form inputs', async () => {
@@ -250,9 +249,7 @@ it('session/role changes remove private details and pending form inputs', async 
   });
   mocks.identity.user = { id: 'other-account', roles: ['Customer'] };
   view.rerenderIdentity();
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Courier account is required',
-  );
+  await screen.findByRole('heading', { name: 'Access denied' });
   expect(
     screen.queryByLabelText('Private delivery note'),
   ).not.toBeInTheDocument();

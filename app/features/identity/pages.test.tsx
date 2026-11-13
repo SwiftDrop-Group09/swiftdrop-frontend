@@ -8,6 +8,7 @@ import { IdentityApi } from './api';
 import { AuthPage } from './auth-page';
 import { ProfilePage } from './profile-page';
 import { DashboardPage } from './dashboard-page';
+import { AccessPage } from './access-page';
 import { AdminPage } from './admin-page';
 import { SessionEntry } from './session-entry';
 import { IdentityProvider, IdentitySession } from './session';
@@ -76,6 +77,8 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
       { path: '/', element: <SessionEntry /> },
       { path: '/signup', element: <SessionEntry register /> },
       { path: '/login', element: <AuthPage /> },
+      { path: '/401', element: <AccessPage status={401} /> },
+      { path: '/403', element: <AccessPage status={403} /> },
       { path: '/register', element: <AuthPage register /> },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/dashboard', element: <DashboardPage /> },
@@ -366,10 +369,10 @@ describe('Customer account screens', () => {
       ),
     ).toHaveLength(1);
   });
-  it('protects the dashboard and redirects a signed-out user to login', async () => {
+  it('protects the dashboard and shows a 401 page with a sign-in link', async () => {
     const { router } = mount('/dashboard');
-    await screen.findByRole('heading', { name: 'Welcome back' });
-    expect(router.state.location.pathname).toBe('/login');
+    await screen.findByRole('heading', { name: 'Sign in to continue' });
+    expect(router.state.location.pathname).toBe('/401');
     expect(
       screen.queryByLabelText('Dashboard workspace'),
     ).not.toBeInTheDocument();
@@ -548,7 +551,7 @@ describe('Customer account screens', () => {
   it('handles failed restoration with a sign-in route rather than a fake identity', async () => {
     mount('/profile');
     expect(
-      await screen.findByRole('heading', { name: 'Welcome back' }),
+      await screen.findByRole('heading', { name: 'Sign in to continue' }),
     ).toBeInTheDocument();
   });
   it('signs out and removes private cached data', async () => {
@@ -1176,19 +1179,15 @@ describe('Profile settings and sign-in connections', () => {
 });
 
 describe('Admin controls', () => {
-  it('denies Admin navigation and API access for a Customer', async () => {
-    const { fetcher } = mount('/admin/users', customer);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'do not have permission',
-    );
+  it('denies Admin navigation and user API access for a Customer', async () => {
+    const { fetcher, router } = mount('/admin/users', customer);
+    await screen.findByRole('heading', { name: 'Access denied' });
+    expect(router.state.location.pathname).toBe('/403');
     expect(
-      fetcher.mock.calls.some((value) =>
-        pathOf(value[0]).startsWith('/api/v1/users?'),
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).startsWith('/api/v1/users?'),
       ),
     ).toBe(false);
-    expect(
-      screen.queryByRole('link', { name: 'User administration' }),
-    ).not.toBeInTheDocument();
   });
   it('requires confirmation for roles, preserves state on last-Admin rejection', async () => {
     const { user, fetcher } = mount('/admin/users', admin, (path, init) =>

@@ -1,4 +1,5 @@
 import { WorkspacePage } from '~/shared/components/workspace-page';
+import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -38,7 +39,14 @@ const FILTER_TABS: readonly { label: string; value: FilterTab }[] = [
   { label: 'Failed', value: 'Failed' },
 ];
 
-function OrderHistoryContent() {
+export function OrderHistoryContent({
+  operational = false,
+}: {
+  operational?: boolean;
+}) {
+  const { user } = useIdentity();
+  const basePath = operational ? '/dispatch' : '/customer';
+  const canDownload = !operational || !!user?.roles.includes('Admin');
   const [filter, setFilter] = useState<FilterTab>('All');
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -48,12 +56,15 @@ function OrderHistoryContent() {
   const statusParam: ParcelStatus | undefined =
     filter === 'All' ? undefined : filter;
 
-  const { data, isLoading, isError } = useCustomerParcels({
-    status: statusParam,
-    search: appliedSearch || undefined,
-    page,
-    pageSize,
-  });
+  const { data, isLoading, isError } = useCustomerParcels(
+    {
+      status: statusParam,
+      search: appliedSearch || undefined,
+      page,
+      pageSize,
+    },
+    operational,
+  );
 
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -67,8 +78,12 @@ function OrderHistoryContent() {
 
   return (
     <WorkspacePage
-      title={<>Order History</>}
-      description="Browse your past and active parcel bookings, track live status, or download receipts."
+      title={operational ? 'Parcel tracking & history' : 'Order History'}
+      description={
+        operational
+          ? 'Search all parcels and follow delivery progress across the network.'
+          : 'Browse your past and active parcel bookings, track live status, or download receipts.'
+      }
     >
       <Card>
         <CardHeader className="space-y-4">
@@ -175,16 +190,16 @@ function OrderHistoryContent() {
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1.5">
                             <Button size="sm" variant="outline" asChild>
-                              <Link to={`/customer/parcels/${parcel.id}`}>
+                              <Link to={`${basePath}/parcels/${parcel.id}`}>
                                 <MapPin className="mr-1 size-3.5" />
                                 Track
                               </Link>
                             </Button>
-                            {parcel.status === 'Delivered' && (
+                            {canDownload && parcel.status === 'Delivered' && (
                               <>
                                 <Button size="sm" variant="secondary" asChild>
                                   <Link
-                                    to={`/customer/parcels/${parcel.id}/receipt`}
+                                    to={`${basePath}/parcels/${parcel.id}/receipt`}
                                   >
                                     <ReceiptText className="mr-1 size-3.5" />
                                     Receipt
@@ -192,7 +207,7 @@ function OrderHistoryContent() {
                                 </Button>
                                 <Button size="sm" variant="ghost" asChild>
                                   <Link
-                                    to={`/customer/parcels/${parcel.id}#pod`}
+                                    to={`${basePath}/parcels/${parcel.id}#pod`}
                                     title="View Proof of Delivery"
                                   >
                                     <ShieldCheck className="size-4 text-emerald-600" />
