@@ -613,6 +613,45 @@ function google() {
 }
 
 describe('Google SDK and explicit linking', () => {
+  it('reports a Google dependency outage without blaming credentials or replaying the login', async () => {
+    const initialize = google();
+    let available = false;
+    const { user, fetcher, session } = mount('/login', undefined, (path) => {
+      if (path.endsWith('/auth/google'))
+        return available
+          ? json(pair())
+          : json({ code: 'google_unavailable' }, 503);
+      return undefined;
+    });
+    await user.click(
+      await screen.findByRole('button', { name: 'Google provider sign in' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Google sign-in is unavailable. Please try again later.',
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent(
+      'Check your credentials',
+    );
+    expect(session.getSnapshot().user).toBeNull();
+    await waitFor(() => expect(initialize).toHaveBeenCalledTimes(2));
+    expect(
+      fetcher.mock.calls.filter(([input]) =>
+        pathOf(input).endsWith('/auth/google'),
+      ),
+    ).toHaveLength(1);
+    available = true;
+    await user.click(
+      await screen.findByRole('button', { name: 'Google provider sign in' }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Dashboard' }),
+    ).toBeInTheDocument();
+    expect(
+      fetcher.mock.calls.filter(([input]) =>
+        pathOf(input).endsWith('/auth/google'),
+      ),
+    ).toHaveLength(2);
+  });
   it.each([
     ['audit_unavailable', 503, 'Account services are temporarily unavailable.'],
     ['csrf_rejected', 403, 'Browser verification failed.'],
