@@ -85,3 +85,34 @@ horizontal overflow. API responses in those checks were isolated fixtures.
 The official Google SDK also rendered its real inline control at desktop,
 375px and 320px widths. This verified provider rendering and sizing, without
 performing Google consent or a real account/token exchange.
+
+## Single-role account contract
+
+Each account has exactly one role from Customer, Courier, Merchant, Dispatcher
+or Admin. The v1 `roles` field remains a singleton enum array for compatibility;
+empty/multiple/unknown roles are rejected before establishing a session. The
+role editor replaces one value through a dropdown; navigation must never union
+permissions across role assignments. Previously described combined-role examples
+are superseded by this contract. Multiple actor roles in historical audit records
+remain immutable snapshots, not current account permissions.
+
+## Workspace polish
+
+WorkspacePage deliberately omits page-title descriptions across all role screens;
+feature instructions remain inside content cards. Business registration appears
+in the Customer sidebar only. The /merchant web route permits Customer and
+Merchant; Courier/Dispatcher/Admin are denied before merchant queries mount.
+Merchant owners retain their API-key and webhook navigation.
+
+User management creation follows the active role tab (All users defaults to
+Customer). Admin account creation sends the selected enum role in the same
+transaction as credentials, account creation and audit; public registration
+still cannot choose privileged roles.
+
+Courier assignment cards show only server-owned assignments: recipient/contact,
+address, service date, status, package and exact server price. Workload totals
+come from totalCount; overdue/on-road counts explicitly refer to the current
+page. Terminal history cards do not expose recipient information or link to
+private detail. Detail pages retain status/version/price outside the removed
+subtitle and present a status timeline. Mutation/idempotency/retry, proof and
+signature validation remain in the existing workflow.

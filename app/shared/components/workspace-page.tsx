@@ -4,13 +4,12 @@ import { Separator } from '~/shared/components/ui/separator';
 /** Page composition only; interactive controls belong to shared shadcn/ui. */
 export function WorkspacePage({
   title,
-  description,
   eyebrow,
   actions,
   children,
 }: {
   title: ReactNode;
-  description: ReactNode;
+  description?: ReactNode;
   eyebrow?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
@@ -24,9 +23,6 @@ export function WorkspacePage({
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {title}
             </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {description}
-            </p>
           </div>
         </div>
         {actions && (
