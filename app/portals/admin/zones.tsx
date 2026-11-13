@@ -66,8 +66,8 @@ export default function AdminZonesRoute() {
   const createMutation = useMutation({
     mutationFn: (input: ZoneInput) => api.createZone(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-zones'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-zone-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-zones'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-zone-summary'] });
       setIsDialogOpen(false);
       resetForm();
       setSuccessMsg('Delivery zone created successfully.');
@@ -81,8 +81,8 @@ export default function AdminZonesRoute() {
   const updateMutation = useMutation({
     mutationFn: ({ id, input }: { id: string; input: ZoneInput }) => api.updateZone(id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-zones'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-zone-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-zones'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-zone-summary'] });
       setIsDialogOpen(false);
       setEditingZone(null);
       resetForm();
@@ -162,6 +162,30 @@ export default function AdminZonesRoute() {
 
           <AdminNav />
 
+          {zonesQuery.isError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load delivery zones</AlertTitle>
+              <AlertDescription>
+                {zonesQuery.error instanceof AdminDeliveryError
+                  ? zonesQuery.error.message
+                  : 'The delivery zones could not be retrieved. Check the connection and try again.'}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {summaryQuery.isError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load zone summary</AlertTitle>
+              <AlertDescription>
+                {summaryQuery.error instanceof AdminDeliveryError
+                  ? summaryQuery.error.message
+                  : 'The zone summary could not be retrieved. Check the connection and try again.'}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {errorMsg && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -221,6 +245,10 @@ export default function AdminZonesRoute() {
             <CardContent>
               {zonesQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Loading delivery zones...</p>
+              ) : zonesQuery.isError ? (
+                <p className="text-sm text-destructive py-4 text-center">
+                  Delivery zones are unavailable.
+                </p>
               ) : zonesQuery.data?.items.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No delivery zones configured yet.</p>
               ) : (

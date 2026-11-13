@@ -62,7 +62,7 @@ export type PricingTier = z.infer<typeof pricingTierSchema>;
 
 export const pricingTierInputSchema = z.object({
   zoneId: z.string().uuid('Please select a valid zone.'),
-  size: z.enum(parcelSizes, { errorMap: () => ({ message: 'Choose a valid parcel size.' }) }),
+  size: z.enum(parcelSizes, { error: 'Choose a valid parcel size.' }),
   pricingVersion: z.string().trim().min(1, 'Pricing version identifier is required.'),
   baseRate: z.number().min(0, 'Base rate must be non-negative.'),
   perKgRate: z.number().min(0, 'Per kg rate must be non-negative.'),

@@ -15,6 +15,11 @@ import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminNav } from '~/features/admin-delivery/admin-nav';
 import { createAdminDeliveryApi, AdminDeliveryError } from '~/features/admin-delivery/api';
 import {
+  getUtcDatePreset,
+  getUtcIsoRange,
+  maxDeliveryReportDays,
+} from '~/features/admin-delivery/report-date-range';
+import {
   Card,
   CardHeader,
   CardTitle,
@@ -35,38 +40,14 @@ import {
   TableRow,
 } from '~/shared/components/ui/table';
 
-function getUtcIsoRange(startStr: string, endStr: string): { fromUtc?: string; toUtc?: string; isValid: boolean } {
-  if (!startStr || !endStr || !/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)) {
-    return { isValid: false };
-  }
-  try {
-    const fromDate = new Date(`${startStr}T00:00:00Z`);
-    const endDate = new Date(`${endStr}T00:00:00Z`);
-    if (isNaN(fromDate.getTime()) || isNaN(endDate.getTime())) {
-      return { isValid: false };
-    }
-    // Add 1 day to end date to make it inclusive of the selected day
-    const toDate = new Date(endDate.getTime() + 24 * 60 * 60 * 1000);
-    return {
-      fromUtc: fromDate.toISOString(),
-      toUtc: toDate.toISOString(),
-      isValid: toDate > fromDate,
-    };
-  } catch {
-    return { isValid: false };
-  }
-}
-
 export default function AdminReportsRoute() {
   const { session } = useIdentity();
   const api = useMemo(() => createAdminDeliveryApi(session), [session]);
 
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-  const sevenDaysAgoStr = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const defaultRange = getUtcDatePreset(7);
 
-  const [startDate, setStartDate] = useState(sevenDaysAgoStr);
-  const [endDate, setEndDate] = useState(todayStr);
+  const [startDate, setStartDate] = useState(defaultRange.startDate);
+  const [endDate, setEndDate] = useState(defaultRange.endDate);
 
   const { fromUtc, toUtc, isValid } = useMemo(
     () => getUtcIsoRange(startDate, endDate),
@@ -75,15 +56,17 @@ export default function AdminReportsRoute() {
 
   const reportQuery = useQuery({
     queryKey: ['admin-delivery-report', fromUtc, toUtc],
-    queryFn: () => (fromUtc && toUtc ? api.getDeliveryReport(fromUtc, toUtc) : Promise.reject('Invalid dates')),
+    queryFn: () => {
+      if (!fromUtc || !toUtc) throw new Error('The report date range is invalid.');
+      return api.getDeliveryReport(fromUtc, toUtc);
+    },
     enabled: Boolean(isValid && fromUtc && toUtc),
   });
 
   function setPreset(days: number) {
-    const end = new Date().toISOString().split('T')[0];
-    const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    setStartDate(start);
-    setEndDate(end);
+    const range = getUtcDatePreset(days);
+    setStartDate(range.startDate);
+    setEndDate(range.endDate);
   }
 
   function exportCsv() {
@@ -137,7 +120,7 @@ export default function AdminReportsRoute() {
                 Report Date Window (UTC)
               </CardTitle>
               <CardDescription>
-                Select predefined presets or choose custom dates (maximum 366 days).
+                Select predefined presets or choose custom dates (maximum {maxDeliveryReportDays} days).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -189,7 +172,8 @@ export default function AdminReportsRoute() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Invalid Date Window</AlertTitle>
               <AlertDescription>
-                Please ensure both dates are valid and the end date is greater than or equal to the start date.
+                Choose valid dates, keep the end date on or after the start date, and select no more than{' '}
+                {maxDeliveryReportDays} calendar days.
               </AlertDescription>
             </Alert>
           )}

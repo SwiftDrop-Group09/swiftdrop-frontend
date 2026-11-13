@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Layers, Plus, CheckCircle2, AlertCircle, Filter, DollarSign } from 'lucide-react';
+import { Plus, CheckCircle2, AlertCircle, Filter, DollarSign } from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminNav } from '~/features/admin-delivery/admin-nav';
@@ -76,7 +76,7 @@ export default function AdminPricingRoute() {
   const createMutation = useMutation({
     mutationFn: (input: PricingTierInput) => api.createPricingTier(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-pricing'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-pricing'] });
       setIsDialogOpen(false);
       setSuccessMsg('Pricing tier created successfully.');
       setErrorMsg(null);
@@ -90,7 +90,7 @@ export default function AdminPricingRoute() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.updatePricingTierStatus(id, isActive),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-pricing'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin-pricing'] });
       setSuccessMsg('Pricing tier status updated.');
       setErrorMsg(null);
     },
@@ -101,9 +101,7 @@ export default function AdminPricingRoute() {
 
   function openCreate() {
     setErrorMsg(null);
-    if (zonesQuery.data?.items && zonesQuery.data.items.length > 0 && !formZoneId) {
-      setFormZoneId(zonesQuery.data.items[0].id);
-    }
+    setFormZoneId(zonesQuery.data?.items[0]?.id ?? '');
     setIsDialogOpen(true);
   }
 
@@ -146,13 +144,42 @@ export default function AdminPricingRoute() {
                 Configure tariff rates by delivery zone, size brackets, and per-kg incremental weights.
               </p>
             </div>
-            <Button onClick={openCreate} size="sm" className="gap-2">
+            <Button
+              onClick={openCreate}
+              size="sm"
+              className="gap-2"
+              disabled={zonesQuery.isLoading || !zonesQuery.data?.items.length}
+            >
               <Plus className="h-4 w-4" />
               Add Pricing Tier
             </Button>
           </div>
 
           <AdminNav />
+
+          {zonesQuery.isError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load delivery zones</AlertTitle>
+              <AlertDescription>
+                {zonesQuery.error instanceof AdminDeliveryError
+                  ? zonesQuery.error.message
+                  : 'Delivery zones are required for pricing configuration. Check the connection and try again.'}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {pricingQuery.isError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not load pricing tiers</AlertTitle>
+              <AlertDescription>
+                {pricingQuery.error instanceof AdminDeliveryError
+                  ? pricingQuery.error.message
+                  : 'Pricing tiers could not be retrieved. Check the connection and try again.'}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {errorMsg && (
             <Alert variant="destructive">
@@ -220,6 +247,10 @@ export default function AdminPricingRoute() {
             <CardContent>
               {pricingQuery.isLoading ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Loading pricing tiers...</p>
+              ) : pricingQuery.isError ? (
+                <p className="text-sm text-destructive py-4 text-center">
+                  Pricing tiers are unavailable.
+                </p>
               ) : pricingQuery.data?.items.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No pricing tiers match the selected criteria.</p>
               ) : (
