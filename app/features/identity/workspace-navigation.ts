@@ -84,6 +84,11 @@ const navigation: readonly NavigationGroup[] = [
     // Authorization explicitly permits Admin assignment/reassignment as well.
     roles: ['Dispatcher', 'Admin'],
     items: [
+      {
+        label: 'Parcel tracking & history',
+        icon: History,
+        to: '/dispatch/parcels',
+      },
       { label: 'Unassigned parcels', icon: ClipboardList },
       { label: 'Courier workload', icon: Users },
       { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },

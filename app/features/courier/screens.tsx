@@ -11,6 +11,7 @@ import {
 import { Link, Outlet, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIdentity } from '~/features/identity/session';
+import { AccessGate } from '../identity/route-access';
 import { IdentityShell } from '~/features/identity/components';
 import { displayMoney } from '~/shared/exact-json';
 import {
@@ -91,25 +92,8 @@ function Workspace({ api, scope }: { api: CourierApi; scope: string }) {
 }
 export function CourierLayout() {
   const { user, restoring, session } = useIdentity();
-  if (restoring)
-    return (
-      <IdentityShell>
-        <p role="status">Restoring your session…</p>
-      </IdentityShell>
-    );
-  if (!user)
-    return (
-      <IdentityShell>
-        <p>Sign in with a Courier account to view deliveries.</p>
-        <Link to="/login">Sign in</Link>
-      </IdentityShell>
-    );
-  if (!user.roles.includes('Courier'))
-    return (
-      <IdentityShell>
-        <Alert variant="destructive">A Courier account is required.</Alert>
-      </IdentityShell>
-    );
+  if (restoring || !user || !user.roles.includes('Courier'))
+    return <AccessGate roles={['Courier']}>{null}</AccessGate>;
   const scope = `${user.id}:${[...user.roles].sort().join(',')}`;
   return (
     <IdentityShell>

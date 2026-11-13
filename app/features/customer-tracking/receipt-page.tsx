@@ -109,8 +109,18 @@ function DeliveredReceiptsList() {
   );
 }
 
-function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
-  const { data: receipt, isLoading, error } = useParcelReceipt(parcelId);
+export function ParcelReceiptDetail({
+  parcelId,
+  operational = false,
+}: {
+  parcelId: string;
+  operational?: boolean;
+}) {
+  const {
+    data: receipt,
+    isLoading,
+    error,
+  } = useParcelReceipt(parcelId, operational);
 
   return (
     <WorkspacePage
@@ -118,7 +128,9 @@ function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
       description="View and download the receipt for your completed delivery."
     >
       <Button variant="ghost" size="sm" className="-ml-2 print:hidden" asChild>
-        <Link to={`/customer/parcels/${parcelId}`}>
+        <Link
+          to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcelId}`}
+        >
           <ArrowLeft className="mr-1.5 size-4" />
           Back to Parcel Tracking
         </Link>
