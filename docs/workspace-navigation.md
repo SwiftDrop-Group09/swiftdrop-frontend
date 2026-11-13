@@ -3,11 +3,12 @@
 ## Current role review
 
 See [role workspace review](role-workspace-review.md) for the current route and
-API audit. `/dispatch/zones` is implemented for Dispatcher and Admin; other
-Dispatcher operations and Merchant order/dashboard links remain disabled pending
-their backend contracts. Customer-only pages are guarded before private reads.
-Non-Customer dashboards display their authorized workspace links. The shared
-responsive shell and design rules are documented in `AGENTS.md`.
+API matrix, approved access rules and remaining backend gaps. Operational tracking
+at /dispatch/parcels and zone summary at /dispatch/zones are available to Dispatcher
+and Admin. Receipts and proof in the operations view require Admin. Private URLs
+show /401 for signed-out visitors and /403 for accounts without a required role.
+Customer-only pages remain role-specific, and onboarding accepts any authenticated
+applicant. Non-Customer dashboards display their authorized workspace links.
 
 The current user's name and email appear in the sidebar footer. Selecting this
 control opens a shadcn dropdown containing My profile and Sign out, available to
@@ -57,22 +58,21 @@ owning service when its screens are implemented.
 
 ## Current destinations
 
-The actual router currently implements `/dashboard`, `/profile` and
-`/admin/users` and Customer-only `/customer/book`, plus Courier-only `/courier`, `/courier/history` and assigned parcel details at `/courier/parcels/:id`. The audit item links to `/admin/users#identity-audit`, the existing
-Identity audit section; its explicit View audit log control loads the records.
-This is Identity auditing, not a completed cross-service audit projection.
+The current route matrix is maintained in [role workspace review](role-workspace-review.md).
+Administration includes users, audit, merchant approvals, zones, pricing and reports.
+Audit uses /admin/audit; the legacy user-management audit fragment redirects there.
+User management defaults to Customers, with other role tabs and an All users view.
 
-Every remaining documented item is a disabled shadcn sidebar button marked **Soon**
-with an accessible explanation. These items have no invented URL, API call, or
-placeholder success screen. Their feature branches are not merged by this
-navigation change. Enable an item only after registering its real route and
-implementing its authorization and ownership checks.
+Customer booking, tracking, history and receipts and Courier assignment/history/detail
+routes remain role-specific. Merchant registration is shared; webhooks require Merchant
+and approved ownership. Dispatch has real tracking/history and zone-summary pages.
 
-Desktop collapse, mobile drawer navigation/close, active links including the
-audit fragment, and shared sign-out remain part of the dashboard shell. Tests
-cover all five roles, combined roles, profile role changes, disabled destinations,
-and audit navigation. Server enforcement and live provider consent require
-separate integration checks.
+Unassigned-workflow/assignment, workload and Merchant overview/order screens
+remain disabled with accessible Soon explanations. Backend dev now includes scoped
+Merchant order intake and owner reads; its web workspace is still unimplemented.
+Assignment, workload and business-statistics endpoints remain gaps. See the current
+review before enabling a destination and preserve its API ownership contract. Desktop collapse, mobile drawer navigation, role changes, theme settings
+and sign-out remain part of the shared shell.
 
 ## Verification on 9 November 2026
 
