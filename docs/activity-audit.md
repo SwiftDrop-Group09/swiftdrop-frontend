@@ -27,3 +27,28 @@ request; it does not prove a failed operation.
 Deploy the backend migrations and routes described in the backend activity audit
 document before expecting live records. This feature does not merge, deploy or
 silently migrate a shared database.
+
+Actor names come from the Admin-only Identity directory for the visible page.
+They reflect current profiles, not historical name snapshots. Recorded actor
+UUIDs and roles remain unchanged in details. Missing accounts show Unknown or
+deleted account; lookup errors show Actor name unavailable without hiding logs.
+Refresh retries name resolution. Historical hash-derived PostgreSQL GUIDs are
+accepted without requiring an RFC UUID version; malformed GUIDs remain invalid.
+
+## Filter builder
+
+The shared `FilterBuilder` / `FilterLabels` components compose shadcn controls.
+Filters opens as an anchored, nonmodal popover beside Refresh. Choose Key, Is/Is not and Value, then Add filter.
+Visible labels support individual removal and Clear all filters. One rule per
+field is supported; adding that field again replaces its rule. Rules combine
+with AND. Enum values are complete; actor/action/IP/resource/correlation options
+come from the visible page (actor names resolve through Identity). Date bounds
+remain available inside the popup and are included when clearing all filters.
+Action comparisons retain substring semantics, labelled Action contains.
+Exclusions are applied by the owning service before counts/cursor pagination;
+service exclusion selects which services are queried. Unknown historical values
+are retained in labels even when no longer present on the current page.
+
+If users return 400 for valid role/search/status filters, restart the backend
+hosts after pulling: an older running Identity build rejects those parameters.
+The client does not silently drop filters or show misleading unfiltered results.

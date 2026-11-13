@@ -94,7 +94,7 @@ export function Pagination({
 
 type Editor =
   | { kind: 'account' | 'roles' | 'status'; profile: Profile }
-  | { kind: 'create' };
+  | { kind: 'create'; role: Profile['roles'][number] };
 type RoleFilter = Profile['roles'][number] | 'all';
 const roleViews: { value: RoleFilter; label: string }[] = [
   { value: 'Customer', label: 'Customers' },
@@ -169,11 +169,14 @@ function AdminContent() {
           ref={addButton}
           onClick={() => {
             lastAction.current = null;
-            setEditor({ kind: 'create' });
+            setEditor({
+              kind: 'create',
+              role: role === 'all' ? 'Customer' : role,
+            });
           }}
         >
           <Plus />
-          Add customer
+          {role === 'all' ? 'Add user' : `Add ${role.toLowerCase()}`}
         </Button>
       </div>
       <Tabs
@@ -282,7 +285,7 @@ function AdminContent() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>User</TableHead>
-                          <TableHead>Roles</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">
                             <span className="sr-only">Actions</span>
@@ -376,7 +379,7 @@ function AdminContent() {
                                       setEditor({ kind: 'roles', profile })
                                     }
                                   >
-                                    Manage roles
+                                    Manage role
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
@@ -434,7 +437,7 @@ function AdminContent() {
         </Card>
       </Tabs>
       {editor?.kind === 'create' && (
-        <AccountEditor saved={saved} close={close} />
+        <AccountEditor saved={saved} close={close} initialRole={editor.role} />
       )}
       {editor?.kind === 'account' && (
         <AccountEditor

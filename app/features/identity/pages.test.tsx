@@ -127,7 +127,7 @@ describe('Customer account screens', () => {
       path.endsWith('/auth/refresh') ? response : undefined,
     );
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking your session',
+      'Getting your workspace ready',
     );
     expect(router.state.location.pathname).toBe('/');
     expect(
@@ -212,7 +212,7 @@ describe('Customer account screens', () => {
   it('keeps unimplemented screens disabled instead of linking to missing routes', async () => {
     const { user, router } = mount('/dashboard', {
       ...customer,
-      roles: ['Customer', 'Dispatcher'],
+      roles: ['Dispatcher'],
     });
     await screen.findByRole('heading', { name: 'Dashboard' });
     const dispatchNav = within(
@@ -227,9 +227,6 @@ describe('Customer account screens', () => {
       await user.click(item);
       expect(router.state.location.pathname).toBe('/dashboard');
     }
-    const customerNav = within(
-      screen.getByRole('navigation', { name: 'Customer navigation' }),
-    );
     expect(
       dispatchNav.getByRole('link', { name: 'Unassigned parcels' }),
     ).toHaveAttribute('href', '/dispatch/unassigned');
@@ -237,41 +234,21 @@ describe('Customer account screens', () => {
       dispatchNav.getByRole('link', { name: 'Zone summary' }),
     ).toHaveAttribute('href', '/dispatch/zones');
     expect(
-      customerNav.getByRole('link', { name: 'Book a delivery' }),
-    ).toHaveAttribute('href', '/customer/book');
+      screen.queryByRole('navigation', { name: 'Customer navigation' }),
+    ).not.toBeInTheDocument();
     expect(
-      customerNav.getByRole('link', { name: 'Track a parcel' }),
-    ).toHaveAttribute('href', '/customer/tracking');
-    expect(
-      customerNav.getByRole('link', { name: 'Delivery history' }),
-    ).toHaveAttribute('href', '/customer/history');
-    expect(customerNav.getByRole('link', { name: 'Receipts' })).toHaveAttribute(
-      'href',
-      '/customer/receipts',
-    );
-    expect(
-      screen.getByRole('link', { name: 'Business registration' }),
-    ).toHaveAttribute('href', '/merchant');
+      screen.queryByRole('link', { name: 'Business registration' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('combines assigned roles without duplicating shared or dispatch navigation', async () => {
-    const { user } = mount('/dashboard', {
-      ...customer,
-      roles: ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'],
-    });
-    await screen.findByRole('heading', { name: 'Dashboard' });
-    expect(screen.getAllByRole('navigation')).toHaveLength(6);
-    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+  it('rejects ambiguous multi-role profiles before restoring private navigation', async () => {
+    mount('/dashboard', { ...customer, roles: ['Customer', 'Admin'] });
     expect(
-      screen.getAllByRole('menuitem', { name: 'My profile' }),
-    ).toHaveLength(1);
-    await user.keyboard('{Escape}');
+      await screen.findByRole('heading', { name: 'Sign in to continue' }),
+    ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('navigation', { name: 'Dispatch navigation' }),
-    ).toHaveLength(1);
-    expect(
-      screen.getAllByRole('link', { name: 'Business registration' }),
-    ).toHaveLength(1);
+      screen.queryByRole('navigation', { name: 'Administration navigation' }),
+    ).not.toBeInTheDocument();
   });
 
   it('updates navigation when the server profile changes roles', async () => {
@@ -308,9 +285,7 @@ describe('Customer account screens', () => {
     expect(
       screen.getByRole('link', { name: 'User administration' }),
     ).not.toHaveAttribute('aria-current');
-    expect(
-      screen.getByRole('button', { name: 'Apply filters' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
   });
 
   it('rejects mismatching confirmation before any registration request', async () => {
@@ -1280,16 +1255,13 @@ describe('Admin controls', () => {
     await user.click(
       await screen.findByRole('button', { name: `Actions for ${admin.email}` }),
     );
-    await user.click(screen.getByRole('menuitem', { name: 'Manage roles' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Manage role' }));
+    await user.selectOptions(screen.getByLabelText('Account role'), 'Customer');
     await user.click(
-      within(screen.getByRole('dialog')).getByRole('checkbox', {
-        name: 'Admin',
-      }),
+      screen.getByRole('button', { name: 'Review role change' }),
     );
-    await user.click(
-      screen.getByRole('button', { name: 'Review role changes' }),
-    );
-    const confirmation = within(screen.getByRole('alertdialog'));
+    const confirmation = within(await screen.findByRole('alertdialog'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
       confirmation.getByText(/You are changing your own account/),
     ).toBeInTheDocument();
@@ -1303,18 +1275,16 @@ describe('Admin controls', () => {
       'At least one active Admin must remain',
     );
     await user.click(confirmation.getByRole('button', { name: 'Cancel' }));
-    expect(
-      within(screen.getByRole('dialog')).getByRole('checkbox', {
-        name: 'Admin',
-      }),
-    ).not.toBeChecked();
+    await screen.findByRole('dialog');
+    expect(screen.getByLabelText('Account role')).toHaveValue('Customer');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(
       payload(
         fetcher.mock.calls.find((call) =>
           pathOf(call[0]).endsWith('/roles'),
         )![1],
       ),
-    ).toEqual({ roles: [] });
+    ).toEqual({ roles: ['Customer'] });
   });
   it('allows cancelling a reviewed edit and requires a fresh review after changing status', async () => {
     const { user, fetcher } = mount('/admin/users', admin);
@@ -1397,6 +1367,28 @@ describe('Admin controls', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+  it.each([
+    { tab: 'Couriers', role: 'Courier' },
+    { tab: 'Merchants', role: 'Merchant' },
+    { tab: 'Dispatchers', role: 'Dispatcher' },
+    { tab: 'Admins', role: 'Admin' },
+  ])(
+    'uses the selected $role tab when opening account creation',
+    async ({ tab, role }) => {
+      const { user } = mount('/admin/users', admin);
+      await user.click(await screen.findByRole('tab', { name: tab }));
+      await user.click(
+        screen.getByRole('button', { name: `Add ${role.toLowerCase()}` }),
+      );
+      expect(screen.getByRole('dialog')).toHaveAccessibleName(
+        `Add ${role.toLowerCase()}`,
+      );
+      expect(
+        screen.getByText(`Create an account with the ${role} role.`),
+      ).toBeInTheDocument();
+    },
+  );
+
   it('creates a Customer only after confirmation and clears password data on reopening', async () => {
     const created = {
       ...customer,
@@ -1443,6 +1435,7 @@ describe('Admin controls', () => {
       fullName: created.fullName,
       isActive: true,
       password,
+      role: 'Customer',
     });
     expect(
       JSON.stringify(

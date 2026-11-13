@@ -245,3 +245,36 @@ build. A Chromium regression against that build confirmed two Delivery 401s, a
 successful Identity refresh, a visible resource error and no dashboard-to-login
 redirect or page errors. Browser API responses were isolated fixtures. The
 backend and infra companion PRs add Delivery's real token verifier/configuration.
+
+### Startup and profile presentation
+
+Initial hydration and session restoration use a shared full-screen SwiftDrop
+loading view. `SessionReady` gates route rendering until verification completes;
+it does not restore cached roles or expose private pages before authentication.
+Signed-out users continue to the existing login/return-path behavior. No
+artificial loading delay or persisted account data is introduced. The loading
+indicator respects reduced-motion preferences and includes an accessible status.
+
+My profile uses responsive personal-detail and sign-in cards with a full-width
+workspace access section. Contact changes retain validation, reset/save feedback
+and account-scoped queries. Connected Google/password workflows are unchanged.
+
+Role and account-status review uses sequential modals. The editor finishes its
+close lifecycle before confirmation mounts. Cancelling closes confirmation
+before restoring the editor, preserving selected roles. No role/status mutation
+runs until Confirm change is explicitly selected; server rejection stays in the
+confirmation, and the editor choices remain available on cancel.
+
+## Single-role account contract
+
+Each account has exactly one role from Customer, Courier, Merchant, Dispatcher
+or Admin. The v1 `roles` field remains a singleton enum array for compatibility;
+empty/multiple/unknown roles are rejected before establishing a session. The
+role editor replaces one value through a dropdown; navigation must never union
+permissions across role assignments. Previously described combined-role examples
+are superseded by this contract. Multiple actor roles in historical audit records
+remain immutable snapshots, not current account permissions.
+
+Admin POST /api/v1/users accepts an optional role enum name (defaults to Customer)
+for tab-aware account creation. It is Admin-only and assigns exactly one role
+atomically. Public registration continues to assign Customer unconditionally.

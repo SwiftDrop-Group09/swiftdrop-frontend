@@ -36,8 +36,9 @@ making changes. The default integration branch is `dev`.
 ## Workspace design system
 
 - Compose authenticated page layouts with `WorkspacePage` from
-  `~/shared/components/workspace-page`. Use one page heading, a short description,
-  and its responsive actions slot. Keep domain-specific actions and validation in
+  `~/shared/components/workspace-page`. Use one page heading and its responsive actions slot. Do not render a subtitle
+  or description directly below workspace page titles. Keep operational guidance
+  in the relevant content card. Keep domain-specific actions and validation in
   the owning feature. Do not add role-name badges above page headings.
 - Fill the available width beside the sidebar: `w-full min-w-0`, without a fixed
   page-width cap. Readable text, dialogs, provider controls and printable documents
@@ -58,10 +59,10 @@ making changes. The default integration branch is `dev`.
   when a request failed. Never replay a mutation as a generic retry.
 - Enforce route roles before mounting private query components. Include the
   authenticated user in private query keys. Customer data must not be requested
-  for Courier, Merchant, Dispatcher or Admin-only dashboards. Combined-role users
-  receive the union of their authorized navigation; API ownership checks remain
-  authoritative. Onboarding is available to authenticated applicants before they
-  receive a Merchant role; merchant tools additionally require approved ownership.
+  for Courier, Merchant, Dispatcher or Admin-only dashboards. Each user has exactly one enum role; never union permissions or navigation
+  across role assignments. Keep the v1 `roles` array restricted to one value; API ownership checks remain
+  authoritative. Business registration navigation is Customer-only; the merchant portal
+  allows Customer applicants and Merchant owners, and blocks other roles before queries mount; merchant tools additionally require approved ownership.
 - Enable navigation only for implemented routes backed by real contracts. Record
   missing backend APIs in integration documentation; do not fabricate endpoint
   paths, statistics, assignments or merchant orders to complete a visual layout.

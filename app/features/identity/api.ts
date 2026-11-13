@@ -256,22 +256,48 @@ export class IdentityApi {
     if (filters.role) query.set('role', filters.role);
     if (filters.search) query.set('search', filters.search);
     if (filters.status) query.set('status', filters.status);
-    return pageSchema(profileSchema).parse(
-      await (
-        await this.send(`/v1/users?${query}`, 'GET', undefined, token)
-      ).json(),
-    );
+    try {
+      return pageSchema(profileSchema).parse(
+        await (
+          await this.send(`/v1/users?${query}`, 'GET', undefined, token)
+        ).json(),
+      );
+    } catch (error) {
+      if (
+        error instanceof IdentityError &&
+        error.status === 400 &&
+        ((filters.role &&
+          ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'].includes(
+            filters.role,
+          )) ||
+          filters.status ||
+          filters.search) &&
+        (filters.search?.length ?? 0) <= 200 &&
+        (!filters.status || ['active', 'inactive'].includes(filters.status))
+      )
+        throw new Error(
+          'The account service rejected supported filters. Restart the backend development services to load the updated user-list API.',
+          { cause: error },
+        );
+      throw error;
+    }
   }
   async createUser(
     token: string,
-    { email, fullName, isActive, password }: AdminInput & { password: string },
+    {
+      email,
+      fullName,
+      isActive,
+      password,
+      role = 'Customer',
+    }: AdminInput & { password: string; role?: Profile['roles'][number] },
   ) {
     return profileSchema.parse(
       await (
         await this.send(
           '/v1/users',
           'POST',
-          { email, fullName, isActive, password },
+          { email, fullName, isActive, password, role },
           token,
         )
       ).json(),
