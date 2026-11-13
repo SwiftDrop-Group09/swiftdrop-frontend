@@ -6,6 +6,7 @@ appearance settings. The portal delegates to the Dispatch feature. Controls and
 surfaces compose shared shadcn/ui components. The official shadcn CLI adds
 Calendar and Popover, with date-fns and react-day-picker recorded in the npm
 lockfile. Their imports reuse the project's shared class-name utility and Button.
+Delivery-zone selection uses the official shadcn Select added through the CLI.
 
 ## Queue behavior
 
@@ -15,6 +16,16 @@ The page uses the existing authenticated `GET /api/v1/parcels` read through
 tracking number or recipient. Booking dates are optional UTC days: From is
 inclusive; Through includes the selected day by sending the next midnight as
 the API's exclusive `to` bound. Reversed ranges are rejected before querying.
+
+Delivery zone is a draft filter applied with search and dates. All delivery zones
+omits `zoneId`; selecting a named zone sends its UUID and resets to page 1 on
+Apply filters. Clear filters restores all zones, clears dates/search and resets
+pagination. The existing user-scoped zone-summary query supplies options,
+including inactive zones and configured zones with zero parcels. The selector
+is disabled while initial options load or after an initial failure, while the
+other filters remain available. Empty catalogs, load failures and refresh
+failures have distinct feedback. Refresh updates both queries. Previously loaded
+options and the selection are retained after a catalog refresh failure.
 
 Both date filters use the user-supplied shadcn Date Picker composition of Button,
 Popover and Calendar, with formatted selected dates and a Pick a date placeholder.
@@ -38,12 +49,11 @@ state, and existing session handling clears private cached data.
 
 ## Requirements and remaining integration
 
-This implements the Created-only queue portion of FR-D01/TC-D01. FR-D01 remains
-incomplete until zone or defined priority filtering is supported. The parcel
-endpoint currently rejects both filter parameters, and its list response has no
-zone fields. A zone filter needs an authorized zone source and coordinated
-backend validation/query/response and client changes. Priority semantics remain
-undefined.
+The Created-only queue now supports the zone-filtering capability in FR-D01.
+It requires the corresponding Delivery `zoneId` read extension, documented in
+`swiftdrop-backend/docs/dispatcher-parcel-reads.md`. Delivery should be rolled out
+before this UI. Priority semantics remain undefined. Full FR-D01/TC-D01
+acceptance still requires the pending shared-environment and startup checks.
 
 FR-D02/TC-D02 assignment, FR-D03 workload and FR-D04 reassignment remain separate
 milestones. Their commands/read contracts must be implemented before enabling
@@ -98,3 +108,30 @@ were checked with America/Los_Angeles and Asia/Colombo browser timezones. Shared
 navigation, appearance, authorization and sign-in return checks also passed.
 `sh swiftdrop-infra/development/run.sh build web` built the updated image. Compose
 startup and live database acceptance retain the existing pending status above.
+
+## Verification — zone filtering, 14 November 2026
+
+The patch based on frontend `07d788fe92d6cd391db62bfa7478898169fd7225` passes
+`npm run check` with Node 24.16.0 and npm 11.13.0, including all 472 tests in
+26 files and the production build. The queue suite covers draft zone selection,
+combined filters, empty matches, page reset, catalog loading/failure/retry,
+retained options after refresh failure and account changes. The shared DOM test
+setup supplies jsdom's missing pointer-capture/scroll methods for Radix Select.
+
+Production Chrome 157.0.8103.38 checks with isolated API fixtures passed at
+1280px, 390px and 320px. They cover Select keyboard opening/typeahead/selection,
+focus return, long zone names within popup bounds, draft and combined filters,
+zero matches, catalog refresh recovery, Calendar/Popover selection, UTC date
+boundaries, mobile navigation and Light/Dark/Device appearance. Screenshots were
+visually inspected. Role denial before both private reads, Admin access and
+signed-out sign-in return also passed. These fixtures do not establish live
+database readiness.
+
+Backend Release checks pass all 1,874 tests with isolated PostgreSQL 18.6,
+including real HTTP and persistence coverage for the zone predicate, pagination,
+UUID validation and Customer ownership. The foundation dependency audit passed;
+its host probes stopped before launch because the existing host stack occupies
+the fixed test listeners. The infra runner built both `web` and `delivery-service`
+images successfully. Shared migrations remain deferred. The synced runner applies
+migrations on `up`, so Docker startup remains pending; the existing host stack also
+owns ports 5000 and 5173. No shared migrations or deployment were performed.

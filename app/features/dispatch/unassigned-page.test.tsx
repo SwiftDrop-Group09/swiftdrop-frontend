@@ -23,6 +23,20 @@ afterEach(() => {
 });
 
 const dispatcher: Profile = { ...customer, roles: ['Dispatcher'] };
+const deliveryZones = [
+  {
+    zoneId: '00000000-0000-4000-8000-000000000010',
+    name: 'Colombo',
+    total: 41,
+    statusCounts: { Created: 41 },
+  },
+  {
+    zoneId: '00000000-0000-4000-8000-000000000020',
+    name: 'Kandy',
+    total: 0,
+    statusCounts: {},
+  },
+];
 const parcels: CustomerParcelListItem[] = Array.from(
   { length: 41 },
   (_, index) => ({
@@ -60,9 +74,12 @@ function mount(
     init?: RequestInit,
   ) => Response | Promise<Response> = (params) => parcelPage(params),
   signedIn: Profile | null = dispatcher,
+  readZones: () => Response | Promise<Response> = () =>
+    json({ zones: deliveryZones }),
 ) {
   let account = signedIn;
   const reads = vi.fn(read);
+  const zoneReads = vi.fn(readZones);
   const fetcher = vi.fn<typeof fetch>((input, init) => {
     const url = new URL(
       typeof input === 'string'
@@ -84,6 +101,8 @@ function mount(
       );
     if (url.pathname === '/api/v1/parcels')
       return Promise.resolve(reads(url.searchParams, init));
+    if (url.pathname === '/api/v1/zones/summary')
+      return Promise.resolve(zoneReads());
     return Promise.resolve(json({ code: 'not_found' }, 404));
   });
   vi.stubGlobal('fetch', fetcher);
@@ -111,6 +130,7 @@ function mount(
   );
   return {
     reads,
+    zoneReads,
     queries,
     session,
     router,
@@ -123,6 +143,14 @@ function mount(
 
 async function loaded() {
   await screen.findByRole('link', { name: 'View details for TRK-1' });
+}
+
+async function chooseZone(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.click(screen.getByRole('combobox', { name: 'Delivery zone' }));
+  await user.click(screen.getByRole('option', { name }));
 }
 
 async function selectBookingDate(
@@ -197,12 +225,13 @@ describe('Dispatcher unassigned queue', () => {
   it.each(['Customer', 'Courier', 'Merchant', null] as const)(
     'blocks %s before private reads',
     async (role) => {
-      const { reads } = mount(
+      const { reads, zoneReads } = mount(
         (params) => parcelPage(params),
         role ? { ...customer, roles: [role] } : null,
       );
       await screen.findByRole('heading', { name: role ? '403' : '401' });
       expect(reads).not.toHaveBeenCalled();
+      expect(zoneReads).not.toHaveBeenCalled();
     },
   );
 
@@ -217,12 +246,14 @@ describe('Dispatcher unassigned queue', () => {
     );
     await selectBookingDate(user, 'Booked from (UTC)', 13);
     await selectBookingDate(user, 'Booked through (UTC)', 13);
+    await chooseZone(user, 'Colombo');
     expect(reads).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', { name: 'Apply filters' }));
     await screen.findByText('Page 1 of 3');
     const params = reads.mock.calls.at(-1)![0];
     expect(Object.fromEntries(params)).toEqual({
       status: 'Created',
+      zoneId: deliveryZones[0]!.zoneId,
       from: '2026-11-13T00:00:00.000Z',
       to: '2026-11-14T00:00:00.000Z',
       search: 'TRK-1',
@@ -247,6 +278,109 @@ describe('Dispatcher unassigned queue', () => {
     expect(screen.getByLabelText('Booked through (UTC)')).toHaveTextContent(
       'Pick a date',
     );
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toHaveTextContent('All delivery zones');
+  });
+
+  it('keeps zone changes in the draft, filters an empty zone, and returns to page one', async () => {
+    const { reads, user } = mount((params) =>
+      parcelPage(params, params.has('zoneId') ? 0 : 41),
+    );
+    await loaded();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('Page 2 of 3');
+    await chooseZone(user, 'Kandy');
+    expect(reads).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await screen.findByText('No parcels match these filters');
+    expect(reads.mock.calls.at(-1)![0].get('zoneId')).toBe(
+      deliveryZones[1]!.zoneId,
+    );
+    expect(reads.mock.calls.at(-1)![0].get('page')).toBe('1');
+  });
+
+  it('keeps the queue usable while zones load or fail, and retries the catalog independently', async () => {
+    let resolve!: (response: Response) => void;
+    let attempts = 0;
+    const { reads, user, zoneReads } = mount(undefined, dispatcher, () =>
+      ++attempts === 1
+        ? new Promise<Response>((done) => {
+            resolve = done;
+          })
+        : json({ zones: deliveryZones }),
+    );
+    await loaded();
+    expect(screen.getByText('Loading delivery zones…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toBeDisabled();
+    await act(async () => {
+      resolve(json({ code: 'delivery_unavailable' }, 503));
+      await Promise.resolve();
+    });
+    await screen.findByText('Unable to load delivery zones');
+    expect(
+      screen.getByRole('link', { name: 'View details for TRK-1' }),
+    ).toBeInTheDocument();
+    const notice = screen
+      .getByText('Unable to load delivery zones')
+      .closest('[role="alert"]')!;
+    await user.click(
+      within(notice as HTMLElement).getByRole('button', { name: 'Try again' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('combobox', { name: 'Delivery zone' }),
+      ).toBeEnabled(),
+    );
+    expect(zoneReads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a successful empty catalog separately from a failed catalog', async () => {
+    mount(undefined, dispatcher, () => json({ zones: [] }));
+    await loaded();
+    expect(screen.getByText('No delivery zones available')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Unable to load delivery zones'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toBeDisabled();
+  });
+
+  it('refreshes parcels and zones together and retains cached options and the applied selection after a catalog failure', async () => {
+    let attempts = 0;
+    const { reads, user, zoneReads } = mount(undefined, dispatcher, () =>
+      ++attempts === 2
+        ? json({ code: 'delivery_unavailable' }, 503)
+        : json({ zones: deliveryZones }),
+    );
+    await loaded();
+    await chooseZone(user, 'Colombo');
+    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole('button', { name: 'Refresh' }));
+    await screen.findByText('Unable to refresh delivery zones');
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toHaveTextContent('Colombo');
+    expect(zoneReads).toHaveBeenCalledTimes(2);
+    expect(reads).toHaveBeenCalledTimes(3);
+    expect(reads.mock.calls.at(-1)![0].get('zoneId')).toBe(
+      deliveryZones[0]!.zoneId,
+    );
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Unable to refresh delivery zones'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(reads).toHaveBeenCalledTimes(3);
   });
 
   it('rejects reversed dates inline without changing the requested filters', async () => {
@@ -340,10 +474,7 @@ describe('Dispatcher unassigned queue', () => {
     const { user } = mount((params) =>
       ++attempts === 1 ? pending : parcelPage(params),
     );
-    await screen.findByRole('status');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading unassigned parcels…',
-    );
+    await screen.findByText('Loading unassigned parcels…');
     expect(screen.queryByText('0 matching parcels')).not.toBeInTheDocument();
     await act(async () => {
       resolve(json({ code: 'delivery_unavailable' }, 503));
@@ -455,6 +586,7 @@ describe('Dispatcher unassigned queue', () => {
       },
     );
     await loaded();
+    await chooseZone(user, 'Colombo');
     await user.type(
       screen.getByLabelText('Tracking number or recipient'),
       'old-user-search{Enter}',
@@ -468,6 +600,9 @@ describe('Dispatcher unassigned queue', () => {
     expect(screen.getByLabelText('Tracking number or recipient')).toHaveValue(
       '',
     );
+    expect(
+      screen.getByRole('combobox', { name: 'Delivery zone' }),
+    ).toHaveTextContent('All delivery zones');
     await act(async () => {
       resolveOld(parcelPage(new URLSearchParams('page=1&pageSize=20')));
       await Promise.resolve();

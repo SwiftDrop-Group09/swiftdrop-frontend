@@ -1,7 +1,9 @@
 import { useRef, useState, type FormEvent, type Ref } from 'react';
 import { Link } from 'react-router';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, RefreshCw } from 'lucide-react';
+import { createAdminDeliveryApi } from '~/features/admin-delivery/api';
 import type { CustomerParcelQuery } from '~/features/customer-tracking/contracts';
 import { formatDateTime } from '~/features/customer-tracking/components';
 import { useCustomerParcels } from '~/features/customer-tracking/hooks';
@@ -25,6 +27,13 @@ import { Field, FieldError } from '~/shared/components/ui/field';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/shared/components/ui/select';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -40,7 +49,7 @@ import {
 } from '~/shared/components/ui/table';
 
 const PAGE_SIZE = 20;
-type Filters = Pick<CustomerParcelQuery, 'search' | 'from' | 'to'>;
+type Filters = Pick<CustomerParcelQuery, 'search' | 'from' | 'to' | 'zoneId'>;
 
 // The supplied shadcn Date Picker composition, controlled by the queue's draft filters.
 function BookingDatePicker({
@@ -91,7 +100,13 @@ function BookingDatePicker({
 }
 
 function UnassignedParcelsContent() {
+  const { user, session } = useIdentity();
+  const zones = useQuery({
+    queryKey: ['dispatch-zone-summary', user!.id],
+    queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
+  });
   const [search, setSearch] = useState('');
+  const [zoneId, setZoneId] = useState('all');
   const [fromDate, setFromDate] = useState<Date>();
   const [throughDate, setThroughDate] = useState<Date>();
   const [dateError, setDateError] = useState<string>();
@@ -109,7 +124,9 @@ function UnassignedParcelsContent() {
   const correctingPage = query.isSuccess && page > totalPages;
   // A concurrent assignment can remove the last row on the current page.
   if (correctingPage) setPage(totalPages);
-  const hasFilters = Boolean(filters.search || filters.from || filters.to);
+  const hasFilters = Boolean(
+    filters.search || filters.from || filters.to || filters.zoneId,
+  );
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -124,6 +141,7 @@ function UnassignedParcelsContent() {
       : undefined;
     end?.setUTCDate(end.getUTCDate() + 1);
     setFilters({
+      zoneId: zoneId === 'all' ? undefined : zoneId,
       search: search.trim() || undefined,
       from: fromDate
         ? new Date(`${format(fromDate, 'yyyy-MM-dd')}T00:00:00Z`).toISOString()
@@ -136,6 +154,7 @@ function UnassignedParcelsContent() {
 
   function clearFilters() {
     setSearch('');
+    setZoneId('all');
     setFromDate(undefined);
     setThroughDate(undefined);
     setDateError(undefined);
@@ -146,14 +165,14 @@ function UnassignedParcelsContent() {
   return (
     <WorkspacePage
       title="Unassigned parcels"
-      description="Review booked parcels awaiting courier assignment."
       actions={
         <Button
           type="button"
           variant="outline"
-          disabled={query.isFetching}
+          disabled={query.isFetching || zones.isFetching}
           onClick={() => {
             void query.refetch();
+            void zones.refetch();
           }}
         >
           <RefreshCw aria-hidden="true" />
@@ -165,13 +184,13 @@ function UnassignedParcelsContent() {
         <CardHeader>
           <CardTitle>Filter parcels</CardTitle>
           <CardDescription>
-            Search by tracking number or recipient. Booking dates use UTC.
+            Filter parcels awaiting courier assignment. Booking dates use UTC.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={applyFilters} className="space-y-4">
-            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <Field className="min-w-0 md:col-span-2 xl:col-span-1">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Field className="min-w-0">
                 <Label htmlFor="unassigned-search">
                   Tracking number or recipient
                 </Label>
@@ -182,6 +201,49 @@ function UnassignedParcelsContent() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
+              </Field>
+              <Field className="min-w-0">
+                <Label htmlFor="unassigned-zone">Delivery zone</Label>
+                <Select
+                  value={zoneId}
+                  onValueChange={setZoneId}
+                  disabled={!zones.data || zones.data.zones.length === 0}
+                >
+                  <SelectTrigger
+                    id="unassigned-zone"
+                    className="w-full min-w-0"
+                    aria-describedby={
+                      zones.isPending ? 'unassigned-zones-loading' : undefined
+                    }
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    align="start"
+                    className="max-w-[calc(100vw-2rem)]"
+                  >
+                    <SelectItem value="all">All delivery zones</SelectItem>
+                    {zones.data?.zones.map((zone) => (
+                      <SelectItem
+                        key={zone.zoneId}
+                        value={zone.zoneId}
+                        className="whitespace-normal break-all"
+                      >
+                        {zone.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {zones.isPending && (
+                  <p
+                    id="unassigned-zones-loading"
+                    role="status"
+                    className="text-sm text-muted-foreground"
+                  >
+                    Loading delivery zones…
+                  </p>
+                )}
               </Field>
               <Field className="min-w-0" data-invalid={Boolean(dateError)}>
                 <Label id="unassigned-from-label" htmlFor="unassigned-from">
@@ -216,6 +278,31 @@ function UnassignedParcelsContent() {
                 />
               </Field>
             </div>
+            {zones.isError && (
+              <WorkspaceNotice
+                destructive
+                title={
+                  zones.data
+                    ? 'Unable to refresh delivery zones'
+                    : 'Unable to load delivery zones'
+                }
+                description={
+                  zones.data
+                    ? 'Previously loaded zones and your selection are retained. Try again to refresh them.'
+                    : 'Try again to load zone options. You can still use the other filters.'
+                }
+                retry={() => {
+                  void zones.refetch();
+                }}
+                pending={zones.isFetching}
+              />
+            )}
+            {zones.isSuccess && zones.data.zones.length === 0 && (
+              <WorkspaceNotice
+                title="No delivery zones available"
+                description="You can still search the queue using the other filters."
+              />
+            )}
             {dateError && (
               <FieldError id="unassigned-date-error">{dateError}</FieldError>
             )}
