@@ -613,6 +613,42 @@ function google() {
 }
 
 describe('Google SDK and explicit linking', () => {
+  it.each([
+    ['audit_unavailable', 503, 'Account services are temporarily unavailable.'],
+    ['csrf_rejected', 403, 'Browser verification failed.'],
+  ])(
+    'preserves the %s bootstrap error and renews the nonce on retry',
+    async (code, status, message) => {
+      const initialize = google();
+      let available = false;
+      const { user, fetcher } = mount('/login', undefined, (path) => {
+        if (path.endsWith('/auth/csrf') && !available)
+          return json({ code, detail: 'private backend details' }, status);
+        return undefined;
+      });
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(screen.getByRole('alert')).not.toHaveTextContent(
+        'Google sign-in could not load',
+      );
+      expect(screen.getByRole('alert')).not.toHaveTextContent(
+        'private backend details',
+      );
+      expect(initialize).not.toHaveBeenCalled();
+      available = true;
+      await user.click(
+        screen.getByRole('button', { name: 'Retry Google sign-in' }),
+      );
+      await screen.findByRole('button', { name: 'Google provider sign in' });
+      expect(initialize).toHaveBeenCalledTimes(1);
+      expect(initialize.mock.calls[0]![0].nonce).toBe(csrf.googleNonce);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(
+        fetcher.mock.calls.some(([input]) =>
+          pathOf(input).endsWith('/auth/google'),
+        ),
+      ).toBe(false);
+    },
+  );
   it('renders the provider inline without an application dialog or token exchange', async () => {
     const initialize = google();
     const { fetcher } = mount('/login');
