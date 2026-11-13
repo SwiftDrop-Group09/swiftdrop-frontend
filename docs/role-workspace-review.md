@@ -56,3 +56,13 @@ Backend PRs #23 and #24 added Merchant API-key authentication, scoped order inta
 - The 13-project foundation dependency audit passes locally. Backend CI runs service startup, gateway forwarding and fail-closed authentication probes on a clean runner; the active local development stack occupies the smoke-test ports.
 - Production-browser checks use isolated API fixtures. They verify Customer-first tabs and server pagination, role-filter page reset, last-Admin rejection, nested dialog Escape behavior and row-focus restoration, 390px page/dialog bounds, Dispatcher tracking without proof/receipt requests, Admin proof/receipt access, wrong-role direct URLs before private reads, and 401 sign-in returning to the protected destination.
 - Desktop and mobile screenshots were inspected. Browser fixture checks do not claim a live Google-consent or production-database workflow.
+
+## Single-role account contract
+
+Each account has exactly one role from Customer, Courier, Merchant, Dispatcher
+or Admin. The v1 `roles` field remains a singleton enum array for compatibility;
+empty/multiple/unknown roles are rejected before establishing a session. The
+role editor replaces one value through a dropdown; navigation must never union
+permissions across role assignments. Previously described combined-role examples
+are superseded by this contract. Multiple actor roles in historical audit records
+remain immutable snapshots, not current account permissions.

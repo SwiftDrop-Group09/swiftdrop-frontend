@@ -1,3 +1,7 @@
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '~/shared/components/ui/native-select';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,12 +50,14 @@ function ConfirmChange({
   pending,
   error,
   confirm,
+  afterClose,
 }: {
   value: Confirmation | null;
   close: () => void;
   pending: boolean;
   error: unknown;
   confirm: () => void;
+  afterClose?: () => void;
 }) {
   return (
     <AlertDialog
@@ -61,6 +67,14 @@ function ConfirmChange({
       }}
     >
       <AlertDialogContent
+        onCloseAutoFocus={
+          afterClose
+            ? (event) => {
+                event.preventDefault();
+                afterClose();
+              }
+            : undefined
+        }
         onEscapeKeyDown={(event) => {
           if (pending) event.preventDefault();
         }}
@@ -103,9 +117,13 @@ const roleDescriptions: Record<Profile['roles'][number], string> = {
 
 export function AccountEditor({
   profile,
+  initialRole = 'Customer',
   saved,
   close,
-}: EditorProps & { profile?: Profile }) {
+}: EditorProps & {
+  profile?: Profile;
+  initialRole?: Profile['roles'][number];
+}) {
   const { session, user } = useIdentity();
   const [reveal, setReveal] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
@@ -128,10 +146,10 @@ export function AccountEditor({
     setConfirmation({
       title: profile
         ? `Save changes for ${profile.fullName}?`
-        : 'Create customer account?',
+        : `Create ${initialRole.toLowerCase()} account?`,
       description: profile
         ? 'The account details will be updated. Changes to your own account status will refresh your session.'
-        : 'New accounts start with the Customer role. Share the initial password privately before continuing. Assign additional roles after creation.',
+        : `This account will have the ${initialRole} role. Share the initial password privately. Each account has one role.`,
       execute: async () => {
         try {
           const result = await session.authorized((token) =>
@@ -146,6 +164,7 @@ export function AccountEditor({
                   fullName,
                   isActive,
                   password: form.getValues('password'),
+                  role: initialRole,
                 }),
           );
           if (result.id === user?.id) {
@@ -162,7 +181,7 @@ export function AccountEditor({
             result,
             profile
               ? 'Account details saved.'
-              : 'Customer account created. Use Manage roles to assign additional access.',
+              : `${initialRole} account created.`,
           );
         } finally {
           form.resetField('password');
@@ -187,11 +206,13 @@ export function AccountEditor({
         }}
       >
         <DialogHeader>
-          <DialogTitle>{profile ? 'Edit account' : 'Add customer'}</DialogTitle>
+          <DialogTitle>
+            {profile ? 'Edit account' : `Add ${initialRole.toLowerCase()}`}
+          </DialogTitle>
           <DialogDescription>
             {profile
               ? `Update ${profile.email}.`
-              : 'Create a customer account. Assign other roles separately after creation.'}
+              : `Create an account with the ${initialRole} role.`}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -324,6 +345,9 @@ export function AccessEditor({
   close,
 }: EditorProps & { profile: Profile; kind: 'roles' | 'status' }) {
   const { session, user } = useIdentity();
+  const [stage, setStage] = useState<
+    'edit' | 'leaving' | 'confirm' | 'returning'
+  >('edit');
   const [selectedRoles, setSelectedRoles] = useState(profile.roles);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const mutation = useMutation({
@@ -355,120 +379,133 @@ export function AccessEditor({
     saved(
       result,
       kind === 'roles'
-        ? 'Roles updated.'
+        ? 'Role updated.'
         : `Account ${result.isActive ? 'reactivated' : 'deactivated'}.`,
     );
   };
   const review = () => {
     mutation.reset();
+    setStage('leaving');
     setConfirmation({
       title:
         kind === 'roles'
-          ? `Change roles for ${profile.fullName}?`
+          ? `Change role for ${profile.fullName}?`
           : `${profile.isActive ? 'Deactivate' : 'Reactivate'} ${profile.fullName}?`,
-      description: `${kind === 'roles' ? `Selected roles: ${selectedRoles.join(', ') || 'None'}. Access changes apply when sessions refresh.` : profile.isActive ? 'This user will lose access and their sessions will be revoked.' : 'This user will be able to sign in again.'}${self ? ' You are changing your own account. You may lose access to this page.' : ''} The last active Admin cannot be removed.`,
+      description: `${kind === 'roles' ? `Selected role: ${selectedRoles.join(', ') || 'None'}. Access changes apply when sessions refresh.` : profile.isActive ? 'This user will lose access and their sessions will be revoked.' : 'This user will be able to sign in again.'}${self ? ' You are changing your own account. You may lose access to this page.' : ''} The last active Admin cannot be removed.`,
       execute: save,
     });
   };
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !mutation.isPending) close();
-      }}
-    >
-      <DialogContent
-        className="max-h-[90svh] w-[calc(100%-2rem)] overflow-y-auto"
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        onEscapeKeyDown={(event) => {
-          if (mutation.isPending) event.preventDefault();
+    <>
+      <Dialog
+        open={stage === 'edit'}
+        onOpenChange={(open) => {
+          if (!open && !mutation.isPending) close();
         }}
       >
-        <DialogHeader>
-          <DialogTitle>
-            {kind === 'roles' ? 'Manage roles' : 'Account status'}
-          </DialogTitle>
-          <DialogDescription>
-            {profile.fullName} · {profile.email}
-          </DialogDescription>
-        </DialogHeader>
-        {kind === 'roles' ? (
-          <fieldset className="space-y-3" disabled={mutation.isPending}>
-            <legend className="sr-only">Account roles</legend>
-            {roles.map((role) => (
-              <Label
-                key={role}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border p-3"
+        <DialogContent
+          className="max-h-[90svh] w-[calc(100%-2rem)] overflow-y-auto"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            setStage((current) =>
+              current === 'leaving' ? 'confirm' : current,
+            );
+          }}
+          onEscapeKeyDown={(event) => {
+            if (mutation.isPending) event.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {kind === 'roles' ? 'Manage role' : 'Account status'}
+            </DialogTitle>
+            <DialogDescription>
+              {profile.fullName} · {profile.email}
+            </DialogDescription>
+          </DialogHeader>
+          {kind === 'roles' ? (
+            <div className="space-y-3">
+              <Label htmlFor="account-role">Account role</Label>
+              <NativeSelect
+                id="account-role"
+                value={selectedRoles[0] ?? ''}
+                disabled={mutation.isPending}
+                onChange={(event) =>
+                  setSelectedRoles([
+                    event.target.value as Profile['roles'][number],
+                  ])
+                }
               >
-                <Checkbox
-                  aria-label={role}
-                  checked={selectedRoles.includes(role)}
-                  onCheckedChange={(checked) =>
-                    setSelectedRoles((current) =>
-                      checked === true
-                        ? [...current, role]
-                        : current.filter((value) => value !== role),
-                    )
-                  }
-                />
-                <span className="grid gap-1">
-                  <span>{role}</span>
-                  <span className="text-xs font-normal leading-relaxed text-muted-foreground">
-                    {roleDescriptions[role]}
-                  </span>
-                </span>
-              </Label>
-            ))}
-          </fieldset>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            This account is currently{' '}
-            <strong>{profile.isActive ? 'active' : 'inactive'}</strong>.{' '}
-            {profile.isActive
-              ? 'Deactivation prevents sign-in and ends existing sessions.'
-              : 'Reactivation restores sign-in access with the existing roles.'}
-          </p>
-        )}
-        <DialogFooter>
-          <Button
-            variant="outline"
-            disabled={mutation.isPending}
-            onClick={close}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant={
-              kind === 'status' && profile.isActive ? 'destructive' : 'default'
-            }
-            disabled={
-              mutation.isPending ||
-              (kind === 'roles' &&
-                [...selectedRoles].sort().join() ===
-                  [...profile.roles].sort().join())
-            }
-            onClick={review}
-          >
-            {kind === 'roles'
-              ? 'Review role changes'
-              : profile.isActive
-                ? 'Deactivate account'
-                : 'Reactivate account'}
-          </Button>
-        </DialogFooter>
-        <ConfirmChange
-          value={confirmation}
-          pending={mutation.isPending}
-          error={mutation.error}
-          close={() => {
-            setConfirmation(null);
-            mutation.reset();
-          }}
-          confirm={() => {
-            if (confirmation) mutation.mutate(confirmation.execute);
-          }}
-        />
-      </DialogContent>
-    </Dialog>
+                {roles.map((role) => (
+                  <NativeSelectOption key={role} value={role}>
+                    {role}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <p className="text-sm text-muted-foreground">
+                {roleDescriptions[selectedRoles[0] ?? 'Customer']}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Each account has one role. Changing it replaces the previous
+                role.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              This account is currently{' '}
+              <strong>{profile.isActive ? 'active' : 'inactive'}</strong>.{' '}
+              {profile.isActive
+                ? 'Deactivation prevents sign-in and ends existing sessions.'
+                : 'Reactivation restores sign-in access with the existing roles.'}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={close}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={
+                kind === 'status' && profile.isActive
+                  ? 'destructive'
+                  : 'default'
+              }
+              disabled={
+                mutation.isPending ||
+                (kind === 'roles' &&
+                  [...selectedRoles].sort().join() ===
+                    [...profile.roles].sort().join())
+              }
+              onClick={review}
+            >
+              {kind === 'roles'
+                ? 'Review role change'
+                : profile.isActive
+                  ? 'Deactivate account'
+                  : 'Reactivate account'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ConfirmChange
+        value={stage === 'confirm' ? confirmation : null}
+        afterClose={() =>
+          setStage((current) => (current === 'returning' ? 'edit' : current))
+        }
+        pending={mutation.isPending}
+        error={mutation.error}
+        close={() => {
+          setConfirmation(null);
+          setStage('returning');
+          mutation.reset();
+        }}
+        confirm={() => {
+          if (confirmation) mutation.mutate(confirmation.execute);
+        }}
+      />
+    </>
   );
 }

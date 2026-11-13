@@ -1,3 +1,4 @@
+import { AppLoading } from './shared/components/app-loading';
 import type { ReactNode } from 'react';
 import {
   isRouteErrorResponse,
@@ -9,7 +10,7 @@ import {
   useRouteError,
 } from 'react-router';
 import { AppProviders } from './providers';
-import { IdentityProvider } from './features/identity/session';
+import { IdentityProvider, SessionReady } from './features/identity/session';
 import { RouteAccessBoundary } from './features/identity/route-access';
 import './styles/app.css';
 import { ThemeController } from './shared/theme';
@@ -37,7 +38,7 @@ export function Layout({ children }: { children: ReactNode }) {
 export const meta = () => [{ title: 'SwiftDrop' }];
 
 export function HydrateFallback() {
-  return <p role="status">Loading…</p>;
+  return <AppLoading />;
 }
 
 export default function App() {
@@ -45,9 +46,11 @@ export default function App() {
     <AppProviders>
       <ThemeController />
       <IdentityProvider>
-        <RouteAccessBoundary>
-          <Outlet />
-        </RouteAccessBoundary>
+        <SessionReady>
+          <RouteAccessBoundary>
+            <Outlet />
+          </RouteAccessBoundary>
+        </SessionReady>
       </IdentityProvider>
     </AppProviders>
   );

@@ -1,3 +1,4 @@
+import { AppLoading } from '~/shared/components/app-loading';
 import type { ReactNode } from 'react';
 import { matchPath, Navigate, useLocation } from 'react-router';
 import type { Profile } from './contracts';
@@ -8,7 +9,8 @@ export const routePermissions: readonly {
   path: string;
   roles?: readonly Role[];
 }[] = [
-  ...['/dashboard', '/profile', '/merchant'].map((path) => ({ path })),
+  ...['/dashboard', '/profile'].map((path) => ({ path })),
+  { path: '/merchant', roles: ['Customer', 'Merchant'] },
   { path: '/merchant/webhooks', roles: ['Merchant'] },
   ...['users', 'audit', 'merchants', 'zones', 'pricing', 'reports'].map(
     (page) => ({ path: `/admin/${page}`, roles: ['Admin'] as const }),
@@ -56,12 +58,7 @@ export function AccessGate({
 }) {
   const { user, restoring } = useIdentity();
   const location = useLocation();
-  if (restoring)
-    return (
-      <p role="status" className="p-6">
-        Restoring your session…
-      </p>
-    );
+  if (restoring) return <AppLoading />;
   if (!user)
     return (
       <Navigate
