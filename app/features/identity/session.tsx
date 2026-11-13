@@ -1,3 +1,5 @@
+import { profileSchema } from './contracts';
+import { AppLoading } from '~/shared/components/app-loading';
 import {
   createContext,
   useContext,
@@ -40,6 +42,10 @@ export class IdentitySession {
     this.listeners.forEach((listener) => listener());
   }
   private accept(pair: TokenPair, generation: number) {
+    if (!profileSchema.safeParse(pair.user).success) {
+      this.clear();
+      throw new IdentityError('invalid_response');
+    }
     if (this.generation !== generation)
       throw new IdentityError('session_changed');
     if (
@@ -117,7 +123,7 @@ export class IdentitySession {
     }
   }
   updateUser(user: Profile) {
-    if (!user.isActive) {
+    if (!user.isActive || !profileSchema.safeParse(user).success) {
       this.clear();
       return;
     }
@@ -253,4 +259,9 @@ export function useIdentity() {
     session.getSnapshot,
   );
   return { ...snapshot, session };
+}
+
+export function SessionReady({ children }: { children: ReactNode }) {
+  const { restoring } = useIdentity();
+  return restoring ? <AppLoading /> : children;
 }

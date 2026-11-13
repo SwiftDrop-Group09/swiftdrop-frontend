@@ -106,7 +106,7 @@ function ProfileForm({ user }: { user: Profile }) {
         }}
       >
         <CardContent className="space-y-5">
-          <FieldGroup>
+          <FieldGroup className="grid gap-5 sm:grid-cols-2">
             <Field data-invalid={!!form.formState.errors.fullName}>
               <FieldLabel htmlFor="profile-name">Full name</FieldLabel>
               <Input
@@ -137,7 +137,10 @@ function ProfileForm({ user }: { user: Profile }) {
                 This is your account email and cannot be changed here.
               </FieldDescription>
             </Field>
-            <Field data-invalid={!!form.formState.errors.phoneNumber}>
+            <Field
+              className="sm:col-span-2"
+              data-invalid={!!form.formState.errors.phoneNumber}
+            >
               <FieldLabel htmlFor="profile-phone">
                 Phone number{' '}
                 <span className="font-normal text-muted-foreground">
@@ -162,7 +165,10 @@ function ProfileForm({ user }: { user: Profile }) {
                 errors={[form.formState.errors.phoneNumber]}
               />
             </Field>
-            <Field data-invalid={!!form.formState.errors.address}>
+            <Field
+              className="sm:col-span-2"
+              data-invalid={!!form.formState.errors.address}
+            >
               <FieldLabel htmlFor="profile-address">
                 Address{' '}
                 <span className="font-normal text-muted-foreground">
@@ -197,13 +203,13 @@ function ProfileForm({ user }: { user: Profile }) {
             </Alert>
           )}
         </CardContent>
-        <CardFooter className="flex flex-wrap justify-between gap-3 border-t pt-5">
-          <p className="text-xs text-muted-foreground">
+        <CardFooter className="flex flex-col items-stretch gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p aria-live="polite" className="text-xs text-muted-foreground">
             {form.formState.isDirty
               ? 'You have unsaved changes.'
               : 'Your details are up to date.'}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button
               type="button"
               variant="ghost"
@@ -254,17 +260,17 @@ function ProfileContent() {
   return (
     <WorkspacePage
       title={<>My profile</>}
-      description="Your details, account access and connected sign-in methods."
+      description="Keep your contact details current and manage how you sign in."
     >
       <Card>
-        <CardContent className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
-          <Avatar className="size-16 rounded-2xl" aria-hidden="true">
-            <AvatarFallback className="rounded-2xl bg-primary text-xl font-semibold text-primary-foreground">
+        <CardContent className="flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:p-6">
+          <Avatar className="size-14 shrink-0 sm:size-16" aria-hidden="true">
+            <AvatarFallback className="bg-muted text-xl font-semibold text-foreground">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="wrap-break-word text-xl font-semibold tracking-tight">
+            <p className="break-words text-xl font-semibold tracking-tight">
               {account.fullName}
             </p>
             <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
@@ -305,48 +311,52 @@ function ProfileContent() {
           </Button>
         </div>
       ) : (
-        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <ProfileForm key={profile.data.id} user={profile.data} />
-          <div className="min-w-0 space-y-6">
-            <ProfileConnections key={profile.data.id} account={profile.data} />
-            <Card aria-labelledby="access-heading">
-              <CardHeader>
-                <h2 id="access-heading" className="text-lg font-semibold">
-                  Your access
-                </h2>
-                <CardDescription>
-                  Roles assigned to your account.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {profile.data.roles.map((role) => (
-                  <div className="flex gap-3" key={role}>
-                    <UserRound
-                      className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{role}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {roleDetails[role]}
-                      </p>
-                    </div>
+          <ProfileConnections key={profile.data.id} account={profile.data} />
+          <Card
+            className="min-w-0 xl:col-span-2"
+            aria-labelledby="access-heading"
+          >
+            <CardHeader>
+              <h2 id="access-heading" className="text-lg font-semibold">
+                Your access
+              </h2>
+              <CardDescription>
+                Your assigned workspaces and what you can do in each.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {profile.data.roles.map((role) => (
+                <div
+                  className="flex min-w-0 gap-3 rounded-lg border p-4"
+                  key={role}
+                >
+                  <UserRound
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{role}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {roleDetails[role]}
+                    </p>
                   </div>
-                ))}
-                {!profile.data.roles.length && (
-                  <p className="text-sm text-muted-foreground">
-                    No workspace roles are assigned. Contact your administrator
-                    if you need access.
-                  </p>
-                )}
-                {profile.data.roles.includes('Admin') && (
-                  <Button asChild variant="outline">
-                    <Link to="/admin/users">Manage users and roles</Link>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+              ))}
+              {!profile.data.roles.length && (
+                <p className="text-sm text-muted-foreground">
+                  No workspace roles are assigned. Contact your administrator if
+                  you need access.
+                </p>
+              )}
+              {profile.data.roles.includes('Admin') && (
+                <Button asChild variant="outline">
+                  <Link to="/admin/users">Manage users and roles</Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </WorkspacePage>
