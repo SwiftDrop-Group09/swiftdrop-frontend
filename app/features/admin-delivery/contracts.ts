@@ -43,7 +43,7 @@ export const zoneSummaryResponseSchema = z.object({
 
 export type ZoneSummaryResponse = z.infer<typeof zoneSummaryResponseSchema>;
 
-export const parcelSizes = ['Small', 'Medium', 'Large', 'ExtraLarge'] as const;
+export const parcelSizes = ['Small', 'Medium', 'Large'] as const;
 export type ParcelSize = (typeof parcelSizes)[number];
 
 export const pricingTierSchema = z.object({
@@ -56,14 +56,18 @@ export const pricingTierSchema = z.object({
   perKgRate: z.number().min(0),
   currency: z.literal('LKR'),
   isActive: z.boolean(),
+  version: z.number().int().positive(),
 });
 
 export type PricingTier = z.infer<typeof pricingTierSchema>;
 
 export const pricingTierInputSchema = z.object({
   zoneId: z.string().uuid('Please select a valid zone.'),
-  size: z.enum(parcelSizes, { error: 'Choose a valid parcel size.' }),
-  pricingVersion: z.string().trim().min(1, 'Pricing version identifier is required.'),
+  size: z.enum(parcelSizes),
+  pricingVersion: z
+    .string()
+    .trim()
+    .min(1, 'Pricing version identifier is required.'),
   baseRate: z.number().min(0, 'Base rate must be non-negative.'),
   perKgRate: z.number().min(0, 'Per kg rate must be non-negative.'),
   currency: z.literal('LKR').default('LKR'),
@@ -102,5 +106,6 @@ export const deliveryReportResponseSchema = z.object({
   days: z.array(dailyReportMetricSchema),
 });
 
-export type DeliveryReportResponse = z.infer<typeof deliveryReportResponseSchema>;
-
+export type DeliveryReportResponse = z.infer<
+  typeof deliveryReportResponseSchema
+>;

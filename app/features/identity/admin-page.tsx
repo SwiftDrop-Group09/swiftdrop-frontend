@@ -11,7 +11,6 @@ import { adminInputSchema, roles } from './contracts';
 import type { AdminInput, Profile } from './contracts';
 import { FieldError, IdentityShell, Protected, safeError } from './components';
 import { useIdentity } from './session';
-import { AdminNav } from '~/features/admin-delivery/admin-nav';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Card } from '~/shared/components/ui/card';
@@ -429,7 +428,6 @@ function AdminContent() {
   });
   return (
     <>
-      <AdminNav />
       <section>
         <Card className="min-w-0 space-y-5 p-6">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">

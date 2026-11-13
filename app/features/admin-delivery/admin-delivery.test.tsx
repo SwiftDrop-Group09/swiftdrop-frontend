@@ -6,38 +6,25 @@ import { AdminDeliveryError, createAdminDeliveryApi } from './api';
 import { getUtcDatePreset, getUtcIsoRange } from './report-date-range';
 import { IdentityApi } from '../identity/api';
 import { IdentitySession } from '../identity/session';
+import { describe, expect, it } from 'vitest';
+import { AdminDeliveryError } from './api';
 import {
   zoneInputSchema,
   pricingTierInputSchema,
   deliveryReportResponseSchema,
 } from './contracts';
 
-describe('AdminNav', () => {
-  it('renders all four admin sub-navigation links', () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/admin/zones',
-          element: <AdminNav />,
-        },
-      ],
-      { initialEntries: ['/admin/zones'] },
-    );
-
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByRole('link', { name: /user management/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /delivery zones/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /pricing configuration/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /delivery reports/i })).toBeInTheDocument();
-  });
-});
-
 describe('AdminDeliveryError', () => {
   it('resolves standard error codes correctly', () => {
-    expect(new AdminDeliveryError('forbidden').message).toContain('Administrator');
-    expect(new AdminDeliveryError('overlapping_postal_codes').message).toContain('overlap');
-    expect(new AdminDeliveryError('invalid_date_range').message).toContain('date range is invalid');
+    expect(new AdminDeliveryError('forbidden').message).toContain(
+      'Administrator',
+    );
+    expect(
+      new AdminDeliveryError('overlapping_postal_codes').message,
+    ).toContain('overlap');
+    expect(new AdminDeliveryError('invalid_date_range').message).toContain(
+      'date range is invalid',
+    );
   });
 
   it('prioritizes field errors when provided', () => {
