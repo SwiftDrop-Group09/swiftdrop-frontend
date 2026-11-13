@@ -6,7 +6,7 @@ import {
   signInMethodsSchema,
   tokenSchema,
 } from './contracts';
-import type { AdminInput, ProfileInput } from './contracts';
+import type { AdminInput, ProfileInput, Profile } from './contracts';
 
 export class IdentityError extends Error {
   constructor(
@@ -243,15 +243,22 @@ export class IdentityApi {
       ).json(),
     );
   }
-  async users(token: string, page: number) {
+  async users(
+    token: string,
+    page: number,
+    filters: {
+      role?: Profile['roles'][number];
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const query = new URLSearchParams({ page: String(page), pageSize: '20' });
+    if (filters.role) query.set('role', filters.role);
+    if (filters.search) query.set('search', filters.search);
+    if (filters.status) query.set('status', filters.status);
     return pageSchema(profileSchema).parse(
       await (
-        await this.send(
-          `/v1/users?page=${page}&pageSize=20`,
-          'GET',
-          undefined,
-          token,
-        )
+        await this.send(`/v1/users?${query}`, 'GET', undefined, token)
       ).json(),
     );
   }

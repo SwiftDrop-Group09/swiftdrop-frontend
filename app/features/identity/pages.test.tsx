@@ -47,15 +47,30 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
       return Promise.resolve(json({ hasPassword: true, googleLinked: false }));
     if (url.endsWith('/users/me'))
       return Promise.resolve(json(signedIn ?? customer));
-    if (url.startsWith('/api/v1/users?'))
+    if (url.startsWith('/api/v1/users?')) {
+      const query = new URL(url, 'http://localhost').searchParams;
+      const items = [admin, customer].filter(
+        (item) =>
+          (!query.get('role') ||
+            item.roles.includes(
+              query.get('role') as Profile['roles'][number],
+            )) &&
+          (!query.get('search') ||
+            (item.fullName + item.email)
+              .toLowerCase()
+              .includes(query.get('search')!.toLowerCase())) &&
+          (!query.get('status') ||
+            item.isActive === (query.get('status') === 'active')),
+      );
       return Promise.resolve(
         json({
-          items: [admin, customer],
-          totalCount: 2,
-          page: 1,
+          items,
+          totalCount: items.length,
+          page: Number(query.get('page')),
           pageSize: 20,
         }),
       );
+    }
     if (url.includes('/audit-logs'))
       return Promise.resolve(
         json({
@@ -95,9 +110,6 @@ function mount(path: string, signedIn?: Profile, override?: Route) {
     </QueryClientProvider>,
   );
   return { fetcher, api, session, queries, router, user: userEvent.setup() };
-}
-function section(heading: string) {
-  return screen.getByRole('heading', { name: heading }).closest('section')!;
 }
 beforeEach(() => vi.stubEnv('VITE_GOOGLE_WEB_CLIENT_ID', ''));
 afterEach(() => {
@@ -1189,96 +1201,200 @@ describe('Admin controls', () => {
       ),
     ).toBe(false);
   });
-  it('requires confirmation for roles, preserves state on last-Admin rejection', async () => {
+  it('opens Customers by default and requests each role from the server', async () => {
+    const { user, fetcher } = mount('/admin/users', admin);
+    await screen.findByRole('button', {
+      name: `Actions for ${customer.email}`,
+    });
+    expect(screen.getByRole('tab', { name: 'Customers' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.queryByRole('button', { name: `Actions for ${admin.email}` }),
+    ).not.toBeInTheDocument();
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).includes('role=Customer'),
+      ),
+    ).toBe(true);
+    await user.click(screen.getByRole('tab', { name: 'Admins' }));
+    await screen.findByRole('button', { name: `Actions for ${admin.email}` });
+    expect(
+      screen.queryByRole('button', { name: `Actions for ${customer.email}` }),
+    ).not.toBeInTheDocument();
+    expect(
+      fetcher.mock.calls.some((call) => pathOf(call[0]).includes('role=Admin')),
+    ).toBe(true);
+    await user.click(screen.getByRole('tab', { name: 'All users' }));
+    await screen.findByRole('button', {
+      name: `Actions for ${customer.email}`,
+    });
+    expect(
+      screen.getByRole('button', { name: `Actions for ${admin.email}` }),
+    ).toBeInTheDocument();
+  });
+  it('applies search and status to server queries and provides an empty-state reset', async () => {
+    const { user, fetcher } = mount('/admin/users', admin);
+    await screen.findByRole('button', {
+      name: `Actions for ${customer.email}`,
+    });
+    await user.type(
+      screen.getByLabelText('Search users'),
+      'nobody@example.test',
+    );
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await screen.findByText('No customers found');
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).includes('search=nobody%40example.test'),
+      ),
+    ).toBe(true);
+    await user.click(
+      screen.getAllByRole('button', { name: 'Clear filters' })[0]!,
+    );
+    await screen.findByRole('button', {
+      name: `Actions for ${customer.email}`,
+    });
+    await user.selectOptions(
+      screen.getByLabelText('Account status'),
+      'inactive',
+    );
+    await screen.findByText('No customers found');
+    expect(
+      fetcher.mock.calls.some((call) =>
+        pathOf(call[0]).includes('status=inactive'),
+      ),
+    ).toBe(true);
+  });
+  it('requires confirmation for roles and preserves edits on last-Admin rejection', async () => {
     const { user, fetcher } = mount('/admin/users', admin, (path, init) =>
       path.endsWith(`/${admin.id}/roles`) && init?.method === 'PUT'
         ? json({ code: 'last_active_admin' }, 409)
         : undefined,
     );
+    await user.click(await screen.findByRole('tab', { name: 'Admins' }));
     await user.click(
-      await screen.findByRole('button', { name: `Edit ${admin.email}` }),
+      await screen.findByRole('button', { name: `Actions for ${admin.email}` }),
     );
-    const editor = within(section(`Edit ${admin.fullName}`));
-    await user.click(editor.getByLabelText('Admin'));
+    await user.click(screen.getByRole('menuitem', { name: 'Manage roles' }));
     await user.click(
-      editor.getByRole('button', { name: 'Review role changes' }),
+      within(screen.getByRole('dialog')).getByRole('checkbox', {
+        name: 'Admin',
+      }),
     );
+    await user.click(
+      screen.getByRole('button', { name: 'Review role changes' }),
+    );
+    const confirmation = within(screen.getByRole('alertdialog'));
     expect(
-      fetcher.mock.calls.some((value) => pathOf(value[0]).endsWith('/roles')),
+      confirmation.getByText(/You are changing your own account/),
+    ).toBeInTheDocument();
+    expect(
+      fetcher.mock.calls.some((call) => pathOf(call[0]).endsWith('/roles')),
     ).toBe(false);
-    await user.click(editor.getByRole('button', { name: 'Confirm change' }));
-    expect(await editor.findByRole('alert')).toHaveTextContent(
+    await user.click(
+      confirmation.getByRole('button', { name: 'Confirm change' }),
+    );
+    expect(await confirmation.findByRole('alert')).toHaveTextContent(
       'At least one active Admin must remain',
     );
+    await user.click(confirmation.getByRole('button', { name: 'Cancel' }));
     expect(
-      screen.getByRole('link', { name: 'User administration' }),
-    ).toBeInTheDocument();
-    const call = fetcher.mock.calls.find((value) =>
-      pathOf(value[0]).endsWith('/roles'),
-    )!;
-    expect(payload(call[1])).toEqual({ roles: [] });
+      within(screen.getByRole('dialog')).getByRole('checkbox', {
+        name: 'Admin',
+      }),
+    ).not.toBeChecked();
+    expect(
+      payload(
+        fetcher.mock.calls.find((call) =>
+          pathOf(call[0]).endsWith('/roles'),
+        )![1],
+      ),
+    ).toEqual({ roles: [] });
   });
-  it('invalidates reviewed account details when the shadcn active checkbox changes', async () => {
+  it('allows cancelling a reviewed edit and requires a fresh review after changing status', async () => {
     const { user, fetcher } = mount('/admin/users', admin);
     await user.click(
-      await screen.findByRole('button', { name: `Edit ${customer.email}` }),
+      await screen.findByRole('button', {
+        name: `Actions for ${customer.email}`,
+      }),
     );
-    const editor = within(section(`Edit ${customer.fullName}`));
+    await user.click(screen.getByRole('menuitem', { name: 'Edit account' }));
+    await user.click(screen.getByRole('button', { name: 'Review changes' }));
     await user.click(
-      editor.getByRole('button', { name: 'Review account change' }),
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Cancel',
+      }),
     );
-    expect(
-      editor.getByRole('button', { name: 'Confirm change' }),
-    ).toBeInTheDocument();
-    const active = editor.getByRole('checkbox', { name: 'Account active' });
-    await user.click(active);
-    expect(active).not.toBeChecked();
-    expect(
-      editor.queryByRole('button', { name: 'Confirm change' }),
-    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Account active' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(fetcher.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(
       false,
     );
+    await user.click(screen.getByRole('button', { name: 'Review changes' }));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
   });
-  it('cancels deactivation without a mutation', async () => {
+  it('cancels deactivation without sending a mutation', async () => {
     const { user, fetcher } = mount('/admin/users', admin);
     await user.click(
-      await screen.findByRole('button', { name: `Edit ${customer.email}` }),
+      await screen.findByRole('button', {
+        name: `Actions for ${customer.email}`,
+      }),
     );
-    const editor = within(section(`Edit ${customer.fullName}`));
     await user.click(
-      editor.getByRole('button', { name: 'Deactivate account' }),
+      screen.getByRole('menuitem', { name: 'Deactivate account' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Deactivate account' }),
+    );
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Cancel',
+      }),
     );
     expect(
-      editor.getByText(/Existing access tokens may remain valid/),
-    ).toBeInTheDocument();
-    await user.click(editor.getByRole('button', { name: 'Cancel' }));
-    expect(
-      fetcher.mock.calls.some((value) => value[1]?.method === 'DELETE'),
+      fetcher.mock.calls.some((call) => call[1]?.method === 'DELETE'),
     ).toBe(false);
   });
-  it('updates the deactivated account after server confirmation', async () => {
-    const { user } = mount('/admin/users', admin, (path, init) =>
-      path.endsWith(`/${customer.id}`) && init?.method === 'DELETE'
-        ? new Response(null, { status: 204 })
-        : undefined,
+  it('refreshes the list after confirmed deactivation', async () => {
+    let inactive = false;
+    const { user } = mount('/admin/users', admin, (path, init) => {
+      if (path.endsWith(`/${customer.id}`) && init?.method === 'DELETE') {
+        inactive = true;
+        return new Response(null, { status: 204 });
+      }
+      if (path.startsWith('/api/v1/users?'))
+        return json({
+          items: [{ ...customer, isActive: !inactive }],
+          totalCount: 1,
+          page: 1,
+          pageSize: 20,
+        });
+    });
+    await user.click(
+      await screen.findByRole('button', {
+        name: `Actions for ${customer.email}`,
+      }),
     );
     await user.click(
-      await screen.findByRole('button', { name: `Edit ${customer.email}` }),
+      screen.getByRole('menuitem', { name: 'Deactivate account' }),
     );
-    const editor = within(section(`Edit ${customer.fullName}`));
     await user.click(
-      editor.getByRole('button', { name: 'Deactivate account' }),
+      screen.getByRole('button', { name: 'Deactivate account' }),
     );
-    await user.click(editor.getByRole('button', { name: 'Confirm change' }));
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Confirm change',
+      }),
+    );
+    await screen.findByText('Account deactivated.');
     expect(
-      await editor.findByText('Account change saved.'),
+      await screen.findByRole('cell', { name: 'Inactive' }),
     ).toBeInTheDocument();
-    expect(
-      editor.getByRole('button', { name: 'Deactivate account' }),
-    ).toBeDisabled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
-  it('generates and sends the approved create-only password only after confirmation', async () => {
+  it('creates a Customer only after confirmation and clears password data on reopening', async () => {
     const created = {
       ...customer,
       id: '00000000-0000-4000-8000-000000000003',
@@ -1293,28 +1409,31 @@ describe('Admin controls', () => {
           ? json(created, 201)
           : undefined,
     );
-    await screen.findByRole('heading', { name: 'Create user account' });
-    const form = within(section('Create user account'));
-    await user.type(form.getByLabelText('Email'), created.email);
-    await user.type(form.getByLabelText('Full name'), created.fullName);
-    await user.click(form.getByRole('button', { name: 'Generate password' }));
-    await user.click(form.getByRole('button', { name: 'Show password' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Add customer' }),
+    );
+    await user.type(screen.getByLabelText('Email'), created.email);
+    await user.type(screen.getByLabelText('Full name'), created.fullName);
+    await user.click(screen.getByRole('button', { name: 'Generate password' }));
     const password =
-      form.getByLabelText<HTMLInputElement>('Initial password').value;
+      screen.getByLabelText<HTMLInputElement>('Initial password').value;
     expect(password).toHaveLength(32);
-    await user.click(form.getByRole('button', { name: 'Review new account' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Review new account' }),
+    );
     expect(
       fetcher.mock.calls.some(
-        (value) => value[1]?.method === 'POST' && value[0] === '/api/v1/users',
+        (call) => call[1]?.method === 'POST' && call[0] === '/api/v1/users',
       ),
     ).toBe(false);
     await user.click(
-      form.getByRole('button', { name: 'Confirm create account' }),
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Confirm change',
+      }),
     );
-    expect(await form.findByText(/Account created/)).toBeInTheDocument();
-    expect(form.getByLabelText('Initial password')).toHaveValue('');
+    await screen.findByText(/Customer account created/);
     const call = fetcher.mock.calls.find(
-      (value) => value[1]?.method === 'POST' && value[0] === '/api/v1/users',
+      (call) => call[1]?.method === 'POST' && call[0] === '/api/v1/users',
     )!;
     expect(payload(call[1])).toEqual({
       email: created.email,
@@ -1330,13 +1449,12 @@ describe('Admin controls', () => {
           .map((value) => value.state.variables),
       ),
     ).not.toContain(password);
+    await user.click(screen.getByRole('button', { name: 'Add customer' }));
+    expect(screen.getByLabelText('Initial password')).toHaveValue('');
   });
   it('keeps audit records out of user management', async () => {
     const { fetcher } = mount('/admin/users', admin);
-    await screen.findByRole('heading', { name: 'User administration' });
-    expect(
-      screen.queryByRole('heading', { name: 'Identity audit log' }),
-    ).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'User management' });
     expect(screen.getByRole('link', { name: 'Audit log' })).toHaveAttribute(
       'href',
       '/admin/audit',
