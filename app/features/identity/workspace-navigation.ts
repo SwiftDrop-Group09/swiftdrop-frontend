@@ -110,7 +110,7 @@ const navigation: readonly NavigationGroup[] = [
       {
         label: 'Audit logs',
         icon: ScrollText,
-        to: '/admin/users#identity-audit',
+        to: '/admin/audit',
       },
     ],
   },

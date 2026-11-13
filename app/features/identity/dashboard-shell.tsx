@@ -205,6 +205,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const adminPage = {
     '/admin/users': 'Users',
+    '/admin/audit': 'Audit log',
     '/admin/merchants': 'Merchant approvals',
     '/admin/zones': 'Delivery zones',
     '/admin/pricing': 'Pricing tiers',

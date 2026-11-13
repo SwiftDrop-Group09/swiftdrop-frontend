@@ -10,6 +10,7 @@ export default [
   route('merchant', 'portals/merchant/index.tsx'),
   route('merchant/webhooks', 'portals/merchant/webhooks.tsx'),
   route('admin/users', 'portals/admin/users.tsx'),
+  route('admin/audit', 'portals/admin/audit.tsx'),
   route('admin/merchants', 'portals/admin/merchants.tsx'),
   route('admin/zones', 'portals/admin/zones.tsx'),
   route('admin/pricing', 'portals/admin/pricing.tsx'),

@@ -1,3 +1,4 @@
+import { Link, Navigate, useLocation } from 'react-router';
 import { Checkbox } from '~/shared/components/ui/checkbox';
 import { Badge } from '~/shared/components/ui/badge';
 import { Label } from '~/shared/components/ui/label';
@@ -437,19 +438,11 @@ function AdminContent() {
   const { session } = useIdentity();
   const queries = useQueryClient();
   const [page, setPage] = useState(1);
-  const [auditPage, setAuditPage] = useState(1);
   const [selected, setSelected] = useState<Profile | null>(null);
-  const [showAudit, setShowAudit] = useState(false);
   const users = useQuery({
     queryKey: ['identity', 'users', page],
     queryFn: () =>
       session.authorized((token) => session.api.users(token, page)),
-  });
-  const audit = useQuery({
-    queryKey: ['identity', 'audit', auditPage],
-    queryFn: () =>
-      session.authorized((token) => session.api.audit(token, auditPage)),
-    enabled: showAudit,
   });
   return (
     <>
@@ -530,7 +523,7 @@ function AdminContent() {
         created={(profile) => {
           setSelected(profile);
           void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
-          void queries.invalidateQueries({ queryKey: ['identity', 'audit'] });
+          void queries.invalidateQueries({ queryKey: ['system-audit'] });
         }}
       />
       {selected && (
@@ -540,73 +533,16 @@ function AdminContent() {
           updated={(profile) => {
             setSelected(profile);
             void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
-            void queries.invalidateQueries({ queryKey: ['identity', 'audit'] });
+            void queries.invalidateQueries({ queryKey: ['system-audit'] });
           }}
         />
       )}
-      <section id="identity-audit" tabIndex={-1}>
-        <Card className="min-w-0 space-y-5 p-4 sm:p-6">
-          <h2 className="text-lg font-semibold tracking-tight">
-            Identity audit log
-          </h2>
-          <Button onClick={() => setShowAudit((value) => !value)}>
-            {showAudit ? 'Hide audit log' : 'View audit log'}
-          </Button>
-          {showAudit &&
-            (audit.isPending ? (
-              <Alert role="status">Loading audit log…</Alert>
-            ) : audit.error ? (
-              <Alert variant="destructive">{safeError(audit.error)}</Alert>
-            ) : (
-              <>
-                <div className="min-w-0">
-                  <Table>
-                    <caption className="sr-only">
-                      Identity audit records · UTC timestamps
-                    </caption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Actor</TableHead>
-                        <TableHead>Resource</TableHead>
-                        <TableHead>Result</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {audit.data.items.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>{record.timestamp}</TableCell>
-                          <TableCell>{record.action}</TableCell>
-                          <TableCell className="break-all text-xs text-muted-foreground">
-                            {record.actorId ?? 'Anonymous'}
-                          </TableCell>
-                          <TableCell className="break-all text-xs text-muted-foreground">
-                            {record.resourceId ?? '—'}
-                          </TableCell>
-                          <TableCell>{record.resultCode}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {audit.data.items.length === 0 && (
-                  <p>No audit records on this page.</p>
-                )}
-                <Pagination
-                  page={auditPage}
-                  total={audit.data.totalCount}
-                  pending={audit.isFetching}
-                  change={setAuditPage}
-                />
-              </>
-            ))}
-        </Card>
-      </section>
     </>
   );
 }
 export function AdminPage() {
+  const { hash } = useLocation();
+  if (hash === '#identity-audit') return <Navigate to="/admin/audit" replace />;
   return (
     <IdentityShell>
       <Protected admin>
@@ -615,7 +551,7 @@ export function AdminPage() {
           description="Manage account status and roles. Every change is checked and audited by the server."
           actions={
             <Button asChild variant="outline">
-              <a href="#identity-audit">Identity audit log</a>
+              <Link to="/admin/audit">Audit log</Link>
             </Button>
           }
         >
