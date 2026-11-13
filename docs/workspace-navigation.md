@@ -45,9 +45,10 @@ The Courier assignment workflow owns status changes, proof upload and failure
 reporting; these are contextual actions on an assigned delivery, not separate
 global actions. Fee estimation belongs to booking before confirmation. Merchant
 order submission remains a scoped API integration, rather than a fabricated web
-order form. Business overview is reserved for actual owned-business statistics;
-the current empty dashboard does not pretend to show them. Delivery reports do
-not introduce revenue or payment features.
+order form; the Orders page is a read-only view of what those systems submitted.
+Business overview shows only server-computed statistics for the owned business
+(the merchant dashboard endpoint) and labels how fresh its parcel data is.
+Delivery reports do not introduce revenue or payment features.
 
 Dispatch navigation is visible to Dispatcher and Admin because authorization
 explicitly permits both to assign/reassign parcels and read operations data.

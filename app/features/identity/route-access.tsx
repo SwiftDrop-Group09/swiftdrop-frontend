@@ -9,7 +9,12 @@ export const routePermissions: readonly {
   roles?: readonly Role[];
 }[] = [
   ...['/dashboard', '/profile', '/merchant'].map((path) => ({ path })),
-  { path: '/merchant/webhooks', roles: ['Merchant'] },
+  ...[
+    '/merchant/webhooks',
+    '/merchant/overview',
+    '/merchant/orders',
+    '/merchant/orders/:id',
+  ].map((path) => ({ path, roles: ['Merchant'] as const })),
   ...['users', 'audit', 'merchants', 'zones', 'pricing', 'reports'].map(
     (page) => ({ path: `/admin/${page}`, roles: ['Admin'] as const }),
   ),
