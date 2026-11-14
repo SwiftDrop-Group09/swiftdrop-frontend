@@ -29,6 +29,7 @@ const cases: { path: string; allowed: Profile['roles'] }[] = [
   { path: '/courier/history', allowed: ['Courier'] },
   { path: '/courier/parcels/123', allowed: ['Courier'] },
   { path: '/dispatch/zones', allowed: ['Admin', 'Dispatcher'] },
+  { path: '/dispatch/workload', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels/123', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels/123/receipt', allowed: ['Admin'] },

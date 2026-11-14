@@ -218,7 +218,10 @@ describe('Customer account screens', () => {
     const dispatchNav = within(
       screen.getByRole('navigation', { name: 'Dispatch navigation' }),
     );
-    for (const label of ['Unassigned parcels', 'Courier workload']) {
+    expect(
+      screen.getByRole('link', { name: 'Courier workload' }),
+    ).toHaveAttribute('href', '/dispatch/workload');
+    for (const label of ['Unassigned parcels']) {
       const item = dispatchNav.getByRole('button', { name: label });
       expect(item).toBeDisabled();
       expect(item).toHaveAccessibleDescription(

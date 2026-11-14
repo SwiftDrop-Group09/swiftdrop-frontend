@@ -96,7 +96,7 @@ const navigation: readonly NavigationGroup[] = [
         to: '/dispatch/parcels',
       },
       { label: 'Unassigned parcels', icon: ClipboardList },
-      { label: 'Courier workload', icon: Users },
+      { label: 'Courier workload', icon: Users, to: '/dispatch/workload' },
       { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },
     ],
   },
