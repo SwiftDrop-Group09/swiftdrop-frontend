@@ -17,6 +17,7 @@ const id = (n: number) =>
 const dispatcher: Profile = { ...customer, roles: ['Dispatcher'] };
 const couriers = Array.from({ length: 21 }, (_, i) => ({
   courierId: id(i + 10),
+  courierCode: `COU-${String(i + 1).padStart(4, '0')}`,
   active: i !== 0,
   onDuty: i > 1,
   activeCount: i === 1 ? 0 : 21,
@@ -67,6 +68,7 @@ function mount(
       init?: RequestInit,
     ) => Response | Promise<Response>;
     zones?: () => Response | Promise<Response>;
+    directory?: () => Response | Promise<Response>;
   } = {},
 ) {
   let account = options.account === undefined ? dispatcher : options.account;
@@ -113,6 +115,21 @@ function mount(
           ? json(pair(account, account.id))
           : json({ code: 'invalid_credentials' }, 401),
       );
+    if (url.pathname === '/api/v1/users/courier-directory')
+      if (options.directory) return Promise.resolve(options.directory());
+    if (url.pathname === '/api/v1/users/courier-directory')
+      return Promise.resolve(
+        json(
+          couriers
+            .filter((c) =>
+              url.searchParams.get('ids')?.split(',').includes(c.courierId),
+            )
+            .map((c, index) => ({
+              id: c.courierId,
+              fullName: `Kasun Silva ${index + 1}`,
+            })),
+        ),
+      );
     if (url.pathname === '/api/v1/couriers/workload')
       return Promise.resolve(fleet(url.searchParams, init));
     if (url.pathname === '/api/v1/zones/summary')
@@ -136,6 +153,7 @@ function mount(
       { path: '/dispatch/workload', element: <CourierWorkloadPage /> },
       { path: '/dispatch/parcels/:id', element: <h1>Parcel details</h1> },
       { path: '/401', element: <h1>401</h1> },
+      { path: '/login', element: <h1>Login</h1> },
       { path: '/403', element: <h1>403</h1> },
     ],
     { initialEntries: ['/dispatch/workload'] },
@@ -163,7 +181,7 @@ function mount(
 
 async function loaded() {
   return screen.findByRole('button', {
-    name: `View active parcels for ${id(10)}`,
+    name: 'View active parcels for COU-0001',
   });
 }
 async function openAssignments(user: ReturnType<typeof userEvent.setup>) {
@@ -188,6 +206,9 @@ describe('Dispatcher workload', () => {
     expect(screen.queryByText('Available')).not.toBeInTheDocument();
     expect(view.fleet.mock.calls[0]![0].toString()).toBe('page=1&pageSize=20');
     expect(view.parcels).not.toHaveBeenCalled();
+    expect(await screen.findByText('Kasun Silva 1')).toBeInTheDocument();
+    expect(screen.getByText('COU-0001')).toBeInTheDocument();
+    expect(screen.queryByText(id(10))).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: 'Courier workload' })[0],
     ).toHaveAttribute('aria-current', 'page');
@@ -203,6 +224,14 @@ describe('Dispatcher workload', () => {
       expect(view.zones).not.toHaveBeenCalled();
     },
   );
+
+  it('retains readable courier codes when name resolution fails', async () => {
+    mount({ directory: () => json({}, 503) });
+    await loaded();
+    await screen.findByText('Courier names unavailable');
+    expect(screen.getByText('COU-0001')).toBeInTheDocument();
+    expect(screen.queryByText(id(10))).not.toBeInTheDocument();
+  });
 
   it('allows Admin through the existing operations policy', async () => {
     mount({ account: { ...customer, roles: ['Admin'] } });
@@ -227,7 +256,7 @@ describe('Dispatcher workload', () => {
     );
     await view.user.click(pagination.getByRole('button', { name: 'Next' }));
     await screen.findByRole('button', {
-      name: `View active parcels for ${id(30)}`,
+      name: 'View active parcels for COU-0021',
     });
     count = 1;
     await view.user.click(screen.getByRole('button', { name: 'Refresh' }));

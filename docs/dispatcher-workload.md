@@ -8,10 +8,14 @@ account/theme controls, shadcn table/buttons/badges and the existing shadcn Dial
 
 The authenticated `GET /api/v1/couriers/workload` returns all operational profiles,
 including inactive, off-duty and zero-workload couriers. The page shows actual
-courier IDs, active/duty status, zone names (IDs as fallback), outstanding counts
+courier names and stable `COU-0001`-style codes, active/duty status, zone names (IDs as fallback), outstanding counts
 and configured capacity. Counts span all Active assignments, including overdue
 and future service dates. Capacity is informational; no availability or parcel
-eligibility is claimed. Courier names need a separately authorized source.
+eligibility is claimed. Names come from the bounded, operations-only Identity
+`/api/v1/users/courier-directory` lookup for visible UUIDs. Codes remain visible
+when names are missing or the lookup fails, with an explicit retry notice.
+UUIDs stay in API references and query keys, not courier cells or dialog headings.
+See [query caching](query-caching.md) for freshness and invalidation rules.
 
 View active parcels opens a paginated dialog using the new operations-authorized
 `GET /api/v1/couriers/{courierId}/assignments`. It shows tracking number, current
