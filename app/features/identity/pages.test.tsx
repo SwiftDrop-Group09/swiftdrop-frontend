@@ -218,7 +218,7 @@ describe('Customer account screens', () => {
     const dispatchNav = within(
       screen.getByRole('navigation', { name: 'Dispatch navigation' }),
     );
-    for (const label of ['Unassigned parcels', 'Courier workload']) {
+    for (const label of ['Courier workload']) {
       const item = dispatchNav.getByRole('button', { name: label });
       expect(item).toBeDisabled();
       expect(item).toHaveAccessibleDescription(
@@ -227,6 +227,9 @@ describe('Customer account screens', () => {
       await user.click(item);
       expect(router.state.location.pathname).toBe('/dashboard');
     }
+    expect(
+      dispatchNav.getByRole('link', { name: 'Unassigned parcels' }),
+    ).toHaveAttribute('href', '/dispatch/unassigned');
     expect(
       dispatchNav.getByRole('link', { name: 'Zone summary' }),
     ).toHaveAttribute('href', '/dispatch/zones');

@@ -47,6 +47,7 @@ async function readError(
 export function buildParcelQueryString(query: CustomerParcelQuery): string {
   const params = new URLSearchParams();
   if (query.status) params.set('status', query.status);
+  if (query.zoneId) params.set('zoneId', query.zoneId);
   if (query.from) params.set('from', query.from);
   if (query.to) params.set('to', query.to);
   if (query.search?.trim()) params.set('search', query.search.trim());

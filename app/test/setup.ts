@@ -25,3 +25,9 @@ vi.stubGlobal('matchMedia', (query: string) => ({
 }));
 
 afterEach(cleanup);
+
+// jsdom has no pointer-capture or scrolling implementation for Radix Select.
+HTMLElement.prototype.hasPointerCapture = () => false;
+HTMLElement.prototype.setPointerCapture = () => {};
+HTMLElement.prototype.releasePointerCapture = () => {};
+HTMLElement.prototype.scrollIntoView = () => {};

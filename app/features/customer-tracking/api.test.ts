@@ -47,6 +47,19 @@ describe('customer-tracking api', () => {
     });
   });
 
+  it('serializes an optional delivery zone alongside the Created queue filter', () => {
+    const zoneId = '00000000-0000-4000-8000-000000000010';
+    const params = new URLSearchParams(
+      buildParcelQueryString({ status: 'Created', zoneId }).slice(1),
+    );
+    expect(Object.fromEntries(params)).toEqual({ status: 'Created', zoneId });
+    expect(
+      new URLSearchParams(
+        buildParcelQueryString({ status: 'Created' }).slice(1),
+      ).has('zoneId'),
+    ).toBe(false);
+  });
+
   it('surfaces ProblemDetails errors cleanly', async () => {
     const mockRequest = vi
       .fn()
