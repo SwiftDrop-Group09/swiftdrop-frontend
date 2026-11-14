@@ -70,3 +70,10 @@ verify the real route entry points with isolated API fixtures, including CSV
 download after daily pagination and versioned status confirmation. Delivery
 administration tests pass 31/31 against disposable local PostgreSQL; the solution
 build has no warnings or errors. No shared database data was changed.
+
+## Admin operations overview
+
+The Admin home screen now uses the [operations dashboard](admin-dashboard.md).
+Delivery reports and the dashboard share a compact date-range popover in their
+header actions, replacing the full-width date-filter card. The default is 30
+UTC days. Report CSV export and daily table pagination are retained.

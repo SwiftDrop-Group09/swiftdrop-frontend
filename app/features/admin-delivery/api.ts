@@ -180,8 +180,13 @@ export function createAdminDeliveryApi(session: IdentitySession) {
     getZoneSummary: (
       from?: string,
       to?: string,
+      signal?: AbortSignal,
     ): Promise<ZoneSummaryResponse> =>
-      request('/zones/summary' + dates(from, to), zoneSummaryResponseSchema),
+      request(
+        '/zones/summary' + dates(from, to),
+        zoneSummaryResponseSchema,
+        signal ? { signal } : undefined,
+      ),
 
     listPricingTiers: (
       page = 1,

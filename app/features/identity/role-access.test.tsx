@@ -64,7 +64,15 @@ describe('Role-aware workspaces', () => {
     async (role) => {
       const reads = mount(role, '/dashboard', <CustomerDashboardWorkspace />);
       await screen.findByRole('heading', { level: 1, name: 'Dashboard' });
-      expect(reads).not.toHaveBeenCalled();
+      if (role === 'Admin') {
+        expect(
+          reads.mock.calls.every(
+            ([path]) =>
+              !String(path).includes('/parcels/me') &&
+              !String(path).includes('/customer/'),
+          ),
+        ).toBe(true);
+      } else expect(reads).not.toHaveBeenCalled();
       expect(
         screen.queryByRole('link', { name: 'Book a Delivery' }),
       ).not.toBeInTheDocument();

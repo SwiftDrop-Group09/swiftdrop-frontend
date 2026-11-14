@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 import { AdminWorkspace } from '~/features/identity/admin-workspace';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { useIdentity } from '~/features/identity/session';
@@ -8,11 +9,6 @@ import {
   WorkspaceLoading,
   WorkspaceNotice,
 } from '~/shared/components/workspace-state';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '~/shared/components/ui/alert';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
 import {
@@ -22,8 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from '~/shared/components/ui/card';
-import { Input } from '~/shared/components/ui/input';
-import { Label } from '~/shared/components/ui/label';
 import {
   Table,
   TableBody,
@@ -33,12 +27,9 @@ import {
   TableRow,
 } from '~/shared/components/ui/table';
 import { AdminDeliveryError, createAdminDeliveryApi } from './api';
-import {
-  getUtcDatePreset,
-  getUtcIsoRange,
-  maxDeliveryReportDays,
-} from './report-date-range';
+import { getUtcDatePreset, getUtcIsoRange } from './report-date-range';
 import { deliveryReportCsv } from './report-export';
+import { ReportPeriod } from './report-period';
 
 const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 const displayDate = (value: string) =>
@@ -60,13 +51,17 @@ export default function AdminReportsPage() {
 function ReportContent() {
   const { session, user } = useIdentity();
   const api = useMemo(() => createAdminDeliveryApi(session), [session]);
-  const [applied, setApplied] = useState(() => getUtcDatePreset(7));
-  const [draft, setDraft] = useState(applied);
-  const [invalid, setInvalid] = useState(false);
+  const [params] = useSearchParams();
+  const [applied, setApplied] = useState(() => {
+    const startDate = params.get('from') ?? '',
+      endDate = params.get('through') ?? '';
+    return getUtcIsoRange(startDate, endDate).isValid
+      ? { startDate, endDate }
+      : getUtcDatePreset(30);
+  });
+  const [dirty, setDirty] = useState(false);
   const [page, setPage] = useState(1);
   const range = getUtcIsoRange(applied.startDate, applied.endDate);
-  const dirty =
-    draft.startDate !== applied.startDate || draft.endDate !== applied.endDate;
   const report = useQuery({
     queryKey: ['admin-delivery-report', user!.id, range.fromUtc, range.toUtc],
     queryFn: ({ signal }) =>
@@ -75,13 +70,6 @@ function ReportContent() {
     retry: false,
   });
   const data = !report.isError && !report.isPending ? report.data : undefined;
-  function preset(days: number) {
-    const next = getUtcDatePreset(days);
-    setDraft(next);
-    setApplied(next);
-    setInvalid(false);
-    setPage(1);
-  }
   function exportCsv() {
     if (!data || dirty || report.isFetching) return;
     const blob = new Blob([deliveryReportCsv(data)], {
@@ -137,6 +125,14 @@ function ReportContent() {
       title="Delivery reports"
       actions={
         <>
+          <ReportPeriod
+            value={applied}
+            onDraftChange={setDirty}
+            onChange={(next) => {
+              setApplied(next);
+              setPage(1);
+            }}
+          />
           <Button
             variant="outline"
             disabled={report.isFetching || dirty}
@@ -156,114 +152,6 @@ function ReportContent() {
         </>
       }
     >
-      <Card className="min-w-0">
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarDays
-              aria-hidden="true"
-              className="size-4 text-muted-foreground"
-            />
-            Reporting period
-          </CardTitle>
-          <Badge variant="outline">UTC</Badge>
-        </CardHeader>
-        <CardContent className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-          <div className="flex flex-wrap gap-2" aria-label="Date presets">
-            {[
-              { days: 1, label: 'Today' },
-              { days: 7, label: 'Last 7 days' },
-              { days: 30, label: 'Last 30 days' },
-            ].map((item) => {
-              const dates = getUtcDatePreset(item.days);
-              const selected =
-                !dirty &&
-                applied.startDate === dates.startDate &&
-                applied.endDate === dates.endDate;
-              return (
-                <Button
-                  key={item.days}
-                  variant={selected ? 'secondary' : 'outline'}
-                  size="sm"
-                  aria-pressed={selected}
-                  onClick={() => preset(item.days)}
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
-          </div>
-          <form
-            className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const valid = getUtcIsoRange(
-                draft.startDate,
-                draft.endDate,
-              ).isValid;
-              setInvalid(!valid);
-              if (valid) {
-                setApplied(draft);
-                setPage(1);
-              }
-            }}
-          >
-            <div className="min-w-0 space-y-2">
-              <Label htmlFor="report-from">From (UTC)</Label>
-              <Input
-                id="report-from"
-                type="date"
-                value={draft.startDate}
-                aria-invalid={invalid}
-                onChange={(event) => {
-                  setDraft((current) => ({
-                    ...current,
-                    startDate: event.target.value,
-                  }));
-                  setInvalid(false);
-                }}
-              />
-            </div>
-            <div className="min-w-0 space-y-2">
-              <Label htmlFor="report-through">Through (UTC)</Label>
-              <Input
-                id="report-through"
-                type="date"
-                value={draft.endDate}
-                aria-invalid={invalid}
-                onChange={(event) => {
-                  setDraft((current) => ({
-                    ...current,
-                    endDate: event.target.value,
-                  }));
-                  setInvalid(false);
-                }}
-              />
-            </div>
-            <Button type="submit">Apply dates</Button>
-          </form>
-          <p className="text-xs text-muted-foreground">
-            Includes both selected UTC dates. Maximum {maxDeliveryReportDays}{' '}
-            days. Cancelled outcomes are reported separately from success and
-            failure rates.
-          </p>
-          {invalid && (
-            <Alert variant="destructive">
-              <AlertTitle>Invalid reporting period</AlertTitle>
-              <AlertDescription>
-                Choose valid dates, keep the end date on or after the start
-                date, and select no more than {maxDeliveryReportDays} calendar
-                days.
-              </AlertDescription>
-            </Alert>
-          )}
-          {dirty && (
-            <p role="status" className="text-sm text-muted-foreground">
-              Unapplied date changes. Apply dates to update the report and
-              enable export.
-            </p>
-          )}
-        </CardContent>
-      </Card>
       <p className="text-sm text-muted-foreground">
         {report.isFetching ? 'Loading' : 'Showing'}{' '}
         {displayDate(applied.startDate)} through {displayDate(applied.endDate)}{' '}

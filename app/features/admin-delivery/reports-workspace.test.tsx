@@ -96,6 +96,7 @@ describe('Delivery reports workspace', () => {
       screen.queryByRole('navigation', { name: 'Admin Navigation' }),
     ).not.toBeInTheDocument();
     const count = mocks.request.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: 'Reporting period' }));
     await user.clear(screen.getByLabelText('From (UTC)'));
     await user.type(screen.getByLabelText('From (UTC)'), '2026-11-01');
     await user.clear(screen.getByLabelText('Through (UTC)'));
@@ -119,6 +120,7 @@ describe('Delivery reports workspace', () => {
     const user = mount();
     await screen.findByText('Daily breakdown');
     const count = mocks.request.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: 'Reporting period' }));
     await user.clear(screen.getByLabelText('From (UTC)'));
     await user.type(screen.getByLabelText('From (UTC)'), '2026-11-20');
     await user.clear(screen.getByLabelText('Through (UTC)'));
@@ -135,6 +137,7 @@ describe('Delivery reports workspace', () => {
   it('paginates complete daily results without another network request and preserves rate denominators', async () => {
     const user = mount();
     await screen.findByText('Daily breakdown');
+    await user.click(screen.getByRole('button', { name: 'Reporting period' }));
     await user.click(screen.getByRole('button', { name: 'Last 30 days' }));
     await screen.findByText('30 days');
     expect(screen.getByText('90')).toBeInTheDocument();

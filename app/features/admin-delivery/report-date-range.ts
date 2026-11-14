@@ -42,3 +42,14 @@ export function getUtcDatePreset(days: number, now = new Date()) {
     endDate: end.toISOString().slice(0, 10),
   };
 }
+
+export function getPreviousReportRange(startDate: string, endDate: string) {
+  const current = getUtcIsoRange(startDate, endDate);
+  if (!current.isValid || !current.fromUtc || !current.toUtc) return null;
+  const from = new Date(current.fromUtc).getTime();
+  const duration = new Date(current.toUtc).getTime() - from;
+  return {
+    fromUtc: new Date(from - duration).toISOString(),
+    toUtc: current.fromUtc,
+  };
+}
