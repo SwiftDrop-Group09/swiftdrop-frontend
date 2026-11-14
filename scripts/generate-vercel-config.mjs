@@ -37,4 +37,3 @@ fs.writeFileSync('vercel.json', JSON.stringify(config, null, 2) + '\n');
 console.log(
   `[Vercel Config] Generated vercel.json with target: ${backendTarget || '(static only)'}`,
 );
-
