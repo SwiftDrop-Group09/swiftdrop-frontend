@@ -17,6 +17,12 @@ making changes. The default integration branch is `dev`.
 - Use Tailwind utility classes for layout, spacing and responsive composition.
   Use semantic shadcn tokens such as `bg-background`, `text-foreground`,
   `text-muted-foreground` and `border-input` instead of hardcoded colors.
+- Use shadcn `primary` utilities for brand accents and the logo; keep failures on
+  `destructive` and charts on `chart-*`. All red shades derive from the single
+  `:root --brand-primary` value in `app/styles/app.css`; this base exists only to
+  derive light/dark shadcn tokens without duplicating an editable color. Do not
+  add red/rose palette classes or independent red literals. The favicon is
+  generated from this same value by Vite; do not add a hand-colored static copy.
 
 ## No custom CSS
 

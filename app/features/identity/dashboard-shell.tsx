@@ -208,7 +208,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       '/401': 'Sign in required',
       '/403': 'Access denied',
       '/customer/book': 'Book a delivery',
-      '/customer/tracking': 'Track a parcel',
+      '/customer/tracking': 'Track a delivery',
       '/customer/history': 'Delivery history',
       '/customer/receipts': 'Receipts',
       '/courier': 'Assigned deliveries',
@@ -220,7 +220,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (/^\/(customer|dispatch)\/parcels\/[^/]+(?:\/receipt)?\/?$/.test(pathname)
       ? pathname.endsWith('/receipt')
         ? 'Parcel receipt'
-        : 'Parcel tracking'
+        : pathname.startsWith('/customer/')
+          ? 'Delivery details'
+          : 'Parcel tracking'
       : undefined);
   const sectionName = pathname.startsWith('/admin/')
     ? 'Administration'
