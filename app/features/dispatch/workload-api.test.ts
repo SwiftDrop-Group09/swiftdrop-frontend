@@ -5,12 +5,37 @@ import {
   DispatchReadError,
   listCourierWorkload,
   listDispatchAssignments,
+  readCourierDirectory,
 } from './workload-api';
 
 const courierId = '00000000-0000-4000-8000-000000000010';
 const page = { items: [], page: 1, pageSize: 20, totalCount: 0 };
 
 describe('Dispatch workload transport', () => {
+  it('resolves only requested courier names and rejects unrelated directory entries', async () => {
+    const request = vi
+      .fn<AuthenticatedRequest>()
+      .mockResolvedValueOnce(
+        json([{ id: courierId, fullName: 'Kasun Silva' }]),
+      );
+    expect(await readCourierDirectory(request, '/api', [courierId])).toEqual({
+      [courierId]: 'Kasun Silva',
+    });
+    expect(request.mock.calls[0]![0]).toContain(
+      '/users/courier-directory?ids=',
+    );
+    request.mockResolvedValueOnce(
+      json([
+        {
+          id: '00000000-0000-4000-8000-000000000020',
+          fullName: 'Unrelated actor',
+        },
+      ]),
+    );
+    await expect(
+      readCourierDirectory(request, '/api', [courierId]),
+    ).rejects.toMatchObject({ code: 'invalid_response' });
+  });
   it('passes authenticated reads, pagination, no-store and cancellation through to transport', async () => {
     const request = vi
       .fn<AuthenticatedRequest>()

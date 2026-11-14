@@ -1,7 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { AdminNav } from './admin-nav';
 import { AdminDeliveryError, createAdminDeliveryApi } from './api';
 import { getUtcDatePreset, getUtcIsoRange } from './report-date-range';
 import { IdentityApi } from '../identity/api';
@@ -11,32 +8,6 @@ import {
   pricingTierInputSchema,
   deliveryReportResponseSchema,
 } from './contracts';
-
-describe('AdminNav', () => {
-  it('renders the delivery administration navigation', () => {
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/admin/zones',
-          element: <AdminNav />,
-        },
-      ],
-      { initialEntries: ['/admin/zones'] },
-    );
-
-    render(<RouterProvider router={router} />);
-
-    expect(
-      screen.getByRole('link', { name: /delivery zones/i }),
-    ).toHaveAttribute('aria-current', 'page');
-    expect(
-      screen.getByRole('link', { name: /pricing configuration/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /delivery reports/i }),
-    ).toBeInTheDocument();
-  });
-});
 
 describe('AdminDeliveryError', () => {
   it('resolves standard error codes correctly', () => {

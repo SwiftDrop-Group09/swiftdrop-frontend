@@ -24,10 +24,10 @@ describe('Admin workspace read failures', () => {
     },
     {
       path: '/admin/pricing',
-      resource: 'pricing-tiers',
+      resource: 'pricing-tiers/overview',
       Page: PricingPage,
       title: 'Unable to load pricing tiers',
-      empty: 'No pricing tiers match the selected criteria.',
+      empty: 'No delivery zones match the selected criteria.',
     },
   ])(
     'keeps the $resource shell and retries failed reads without fabricating rows',

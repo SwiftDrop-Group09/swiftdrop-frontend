@@ -63,12 +63,17 @@ Successful local or Google sign-in opens `/dashboard`. Registration confirms the
 password locally, creates the account, then signs in through the existing API.
 If that sign-in fails after account creation, the page offers a sign-in link
 without repeating registration. The dashboard adapts `dashboard-01` with only
-its responsive sidebar, header and empty main workspace. Profile and authorized
-Admin pages share that shell; demonstration charts and data are omitted.
+its responsive sidebar, header and main workspace. Profile and authorized pages
+share that shell; the Admin dashboard charts and KPI cards use real service reads.
 Role menus follow the SRS and authorization rules for Customer, Courier, Merchant,
 Dispatcher and Admin. See [workspace navigation](docs/workspace-navigation.md)
 for the requirement mapping and current destinations. Screens not yet implemented
 appear as disabled items marked Soon.
+
+See [query caching and freshness](docs/query-caching.md) for shared in-memory
+cache policies, mutation invalidation and full-refresh behavior. Intentional
+sign-out goes directly to Login; genuinely unauthenticated protected URLs retain
+their 401/sign-in flow.
 
 Opening `/` waits for session restoration, then redirects to `/dashboard` for an
 authenticated session or `/login` for a signed-out visitor. Create account opens

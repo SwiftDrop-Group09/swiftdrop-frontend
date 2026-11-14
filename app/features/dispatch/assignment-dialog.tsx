@@ -113,7 +113,7 @@ export function AssignmentDialog({
         'dispatch-workload',
         'dispatch-assignments',
         'dispatch-assignment-options',
-        'dispatch-zone-summary',
+        'delivery-zone-summary',
       ].map((key) => queries.invalidateQueries({ queryKey: [key, user!.id] })),
     ]);
   }

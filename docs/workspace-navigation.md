@@ -5,12 +5,14 @@
 See [role workspace review](role-workspace-review.md) for the current route and
 API matrix, approved access rules and remaining backend gaps. Operational tracking
 at /dispatch/parcels, the unassigned queue at /dispatch/unassigned, and zone summary
-at /dispatch/zones are available to Dispatcher and Admin. See
+at /dispatch/zones and courier workload at /dispatch/workload are available to Dispatcher and Admin. See
 [Dispatcher integration](dispatcher-integration.md) for queue behavior and remaining
-assignment/filter contracts. Receipts and proof in the operations view require Admin. Private URLs
+assignment contracts and [workload integration](dispatcher-workload.md) for the
+implemented fleet and active-assignment reads. Receipts and proof in the operations view require Admin. Private URLs
 show /401 for signed-out visitors and /403 for accounts without a required role.
-Customer-only pages remain role-specific, and onboarding accepts any authenticated
-applicant. Non-Customer dashboards display their authorized workspace links.
+Customer-only pages remain role-specific, and onboarding accepts Customer
+applicants. Non-Customer dashboards display their authorized workspace links;
+Admin has the delivery-performance and operations dashboard.
 
 The current user's name and email appear in the sidebar footer. Selecting this
 control opens a shadcn dropdown containing My profile and Sign out, available to
@@ -66,13 +68,15 @@ Audit uses /admin/audit; the legacy user-management audit fragment redirects the
 User management defaults to Customers, with other role tabs and an All users view.
 
 Customer booking, tracking, history and receipts and Courier assignment/history/detail
-routes remain role-specific. Merchant registration is shared; webhooks require Merchant
-and approved ownership. Dispatch has real tracking/history, unassigned-queue and zone-summary pages.
+routes remain role-specific. Merchant registration is Customer-only; webhooks require Merchant
+and approved ownership. Dispatch has real tracking/history, unassigned-queue,
+courier-workload and zone-summary pages.
 
-Assignment/reassignment, workload and Merchant overview/order screens
+Initial assignment is available from the unassigned queue through its confirmed
+service-date/courier dialog. Reassignment and Merchant overview/order screens
 remain disabled with accessible Soon explanations. Backend dev now includes scoped
 Merchant order intake and owner reads; its web workspace is still unimplemented.
-Assignment, workload and business-statistics endpoints remain gaps. See the current
+Reassignment and business-statistics integration remain gaps. See the current
 review before enabling a destination and preserve its API ownership contract. Desktop collapse, mobile drawer navigation, role changes, theme settings
 and sign-out remain part of the shared shell.
 

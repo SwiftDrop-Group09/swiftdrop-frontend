@@ -1,4 +1,6 @@
 import { Link } from 'react-router';
+import { lazy, Suspense } from 'react';
+import { WorkspaceLoading } from '~/shared/components/workspace-state';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Button } from '~/shared/components/ui/button';
 import {
@@ -11,8 +13,25 @@ import {
 import { useIdentity } from './session';
 import { getWorkspaceNavigation } from './workspace-navigation';
 
+const AdminDashboard = lazy(
+  () => import('~/features/admin-dashboard/admin-dashboard'),
+);
+
 export function RoleHome() {
   const { user } = useIdentity();
+  if (user?.roles.length === 1 && user.roles[0] === 'Admin') {
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading admin dashboard..." />
+          </WorkspacePage>
+        }
+      >
+        <AdminDashboard />
+      </Suspense>
+    );
+  }
   const groups = getWorkspaceNavigation(user!.roles).filter(
     (group) => group.id !== 'workspace',
   );

@@ -12,6 +12,7 @@ export const workloadPageSchema = z.object({
   items: z.array(
     z.object({
       courierId: z.uuid(),
+      courierCode: z.string().regex(/^COU-[0-9]{4,}$/),
       active: z.boolean(),
       onDuty: z.boolean(),
       activeCount: count,
@@ -94,6 +95,26 @@ export function listCourierWorkload(
     workloadPageSchema,
     signal,
   );
+}
+
+export async function readCourierDirectory(
+  request: AuthenticatedRequest,
+  apiBase: string,
+  ids: string[],
+  signal?: AbortSignal,
+) {
+  const entries = await read(
+    request,
+    `${apiBase}/v1/users/courier-directory?${new URLSearchParams({ ids: ids.join(',') })}`,
+    z.array(z.object({ id: z.guid(), fullName: z.string().min(1) })),
+    signal,
+  );
+  if (
+    entries.some((entry) => !ids.includes(entry.id)) ||
+    new Set(entries.map((entry) => entry.id)).size !== entries.length
+  )
+    throw new DispatchReadError(200, 'invalid_response');
+  return Object.fromEntries(entries.map((entry) => [entry.id, entry.fullName]));
 }
 
 export async function listDispatchAssignments(

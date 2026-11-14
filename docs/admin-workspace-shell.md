@@ -4,13 +4,14 @@ Branch: `feat/admin-workspace-shell`.
 
 Users, merchant approvals, delivery zones, pricing tiers and delivery reports
 share the same page composition. `WorkspacePage` provides a reusable title,
-description, responsive action area, separator and content region. Admin pages
+responsive action area, separator and content region. Titles use 20px on mobile
+and 24px from the small breakpoint; no subtitle is rendered beneath them. Admin pages
 use `AdminWorkspace` to compose it. These components arrange shared shadcn
 controls; they do not create a competing UI primitive system.
 
 The workspace fills the available width beside the sidebar, without a page-width
-cap. Content and tables can use the full desktop workspace. Descriptions retain
-a readable line length. Actions stack on small screens, tables scroll inside
+cap. Content and tables can use the full desktop workspace. Operational guidance
+belongs inside its content card. Actions stack on small screens, tables scroll inside
 their cards and the existing mobile sidebar/account menu remains available.
 
 The sticky shell header uses shadcn Breadcrumb with the current admin screen.
@@ -33,4 +34,4 @@ an explicit retry action instead of appearing as an empty table. A retry only
 refetches data; it does not replay configuration mutations.
 
 No custom CSS or inline feature styling is added. This change is frontend-only
-and remains uncommitted until requested.
+and uses the shared theme tokens.
