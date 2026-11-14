@@ -6,13 +6,38 @@ import { AdminDeliveryError, createAdminDeliveryApi } from './api';
 import { getUtcDatePreset, getUtcIsoRange } from './report-date-range';
 import { IdentityApi } from '../identity/api';
 import { IdentitySession } from '../identity/session';
-import { describe, expect, it } from 'vitest';
-import { AdminDeliveryError } from './api';
 import {
   zoneInputSchema,
   pricingTierInputSchema,
   deliveryReportResponseSchema,
 } from './contracts';
+
+describe('AdminNav', () => {
+  it('renders the delivery administration navigation', () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/admin/zones',
+          element: <AdminNav />,
+        },
+      ],
+      { initialEntries: ['/admin/zones'] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByRole('link', { name: /delivery zones/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      screen.getByRole('link', { name: /pricing configuration/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /delivery reports/i }),
+    ).toBeInTheDocument();
+  });
+});
 
 describe('AdminDeliveryError', () => {
   it('resolves standard error codes correctly', () => {
@@ -106,9 +131,9 @@ describe('Admin delivery API', () => {
       new TypeError('Failed to fetch'),
     );
 
-    await expect(createAdminDeliveryApi(session).listZones()).rejects.toThrow(
-      'Failed to fetch',
-    );
+    await expect(createAdminDeliveryApi(session).listZones()).rejects.toMatchObject({
+      code: 'delivery_unavailable',
+    });
   });
 
   it('preserves backend validation errors for configuration requests', async () => {

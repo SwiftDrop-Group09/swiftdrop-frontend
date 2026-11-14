@@ -87,8 +87,15 @@ export default function AdminPricingRoute() {
   });
 
   const toggleStatusMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      api.updatePricingTierStatus(id, isActive),
+    mutationFn: ({
+      id,
+      isActive,
+      expectedVersion,
+    }: {
+      id: string;
+      isActive: boolean;
+      expectedVersion: number;
+    }) => api.updatePricingTierStatus(id, isActive, expectedVersion),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin-pricing'] });
       setSuccessMsg('Pricing tier status updated.');
@@ -298,6 +305,7 @@ export default function AdminPricingRoute() {
                               toggleStatusMutation.mutate({
                                 id: tier.id,
                                 isActive: !tier.isActive,
+                                expectedVersion: tier.version,
                               })
                             }
                           >
