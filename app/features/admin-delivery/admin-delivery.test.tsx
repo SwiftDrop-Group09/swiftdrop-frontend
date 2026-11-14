@@ -1,10 +1,42 @@
-import { describe, expect, it } from 'vitest';
-import { AdminDeliveryError } from './api';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { AdminNav } from './admin-nav';
+import { AdminDeliveryError, createAdminDeliveryApi } from './api';
+import { getUtcDatePreset, getUtcIsoRange } from './report-date-range';
+import { IdentityApi } from '../identity/api';
+import { IdentitySession } from '../identity/session';
 import {
   zoneInputSchema,
   pricingTierInputSchema,
   deliveryReportResponseSchema,
 } from './contracts';
+
+describe('AdminNav', () => {
+  it('renders the delivery administration navigation', () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/admin/zones',
+          element: <AdminNav />,
+        },
+      ],
+      { initialEntries: ['/admin/zones'] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    expect(
+      screen.getByRole('link', { name: /delivery zones/i }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      screen.getByRole('link', { name: /pricing configuration/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /delivery reports/i }),
+    ).toBeInTheDocument();
+  });
+});
 
 describe('AdminDeliveryError', () => {
   it('resolves standard error codes correctly', () => {
@@ -88,5 +120,73 @@ describe('Contracts & Validation Schemas', () => {
 
     const valid = deliveryReportResponseSchema.safeParse(reportData);
     expect(valid.success).toBe(true);
+  });
+});
+
+describe('Admin delivery API', () => {
+  it('surfaces network failures instead of returning demo data', async () => {
+    const session = new IdentitySession(new IdentityApi());
+    vi.spyOn(session, 'authenticatedRequest').mockRejectedValue(
+      new TypeError('Failed to fetch'),
+    );
+
+    await expect(
+      createAdminDeliveryApi(session).listZones(),
+    ).rejects.toMatchObject({
+      code: 'delivery_unavailable',
+    });
+  });
+
+  it('preserves backend validation errors for configuration requests', async () => {
+    const session = new IdentitySession(new IdentityApi());
+    vi.spyOn(session, 'authenticatedRequest').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: 'validation',
+          errors: { name: ['Zone name is required.'] },
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/problem+json' },
+        },
+      ),
+    );
+
+    await expect(
+      createAdminDeliveryApi(session).createZone({
+        name: '',
+        servicePostalCodes: [],
+        isActive: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'validation',
+      status: 400,
+      errors: { name: ['Zone name is required.'] },
+    });
+  });
+});
+
+describe('Delivery report date ranges', () => {
+  it('uses the requested number of inclusive UTC calendar days', () => {
+    expect(getUtcDatePreset(1, new Date('2026-11-12T12:00:00Z'))).toEqual({
+      startDate: '2026-11-12',
+      endDate: '2026-11-12',
+    });
+    expect(getUtcDatePreset(7, new Date('2026-11-12T12:00:00Z'))).toEqual({
+      startDate: '2026-11-06',
+      endDate: '2026-11-12',
+    });
+
+    expect(getUtcIsoRange('2024-01-01', '2024-01-07')).toEqual({
+      fromUtc: '2024-01-01T00:00:00.000Z',
+      toUtc: '2024-01-08T00:00:00.000Z',
+      isValid: true,
+    });
+  });
+
+  it('rejects invalid calendar dates, reversed ranges, and ranges over 366 days', () => {
+    expect(getUtcIsoRange('2024-02-31', '2024-03-01').isValid).toBe(false);
+    expect(getUtcIsoRange('2024-03-02', '2024-03-01').isValid).toBe(false);
+    expect(getUtcIsoRange('2024-01-01', '2025-01-01').isValid).toBe(false);
   });
 });
