@@ -33,6 +33,12 @@ const cases: { path: string; allowed: Profile['roles'] }[] = [
   { path: '/dispatch/parcels/123', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels/123/receipt', allowed: ['Admin'] },
   { path: '/merchant/webhooks', allowed: ['Merchant'] },
+  { path: '/merchant/overview', allowed: ['Merchant'] },
+  { path: '/merchant/orders', allowed: ['Merchant'] },
+  {
+    path: '/merchant/orders/11111111-1111-4111-8111-111111111111',
+    allowed: ['Merchant'],
+  },
   {
     path: '/profile',
     allowed: ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'],
