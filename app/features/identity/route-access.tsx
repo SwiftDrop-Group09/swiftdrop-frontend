@@ -15,10 +15,12 @@ export const routePermissions: readonly {
   ...['users', 'audit', 'merchants', 'zones', 'pricing', 'reports'].map(
     (page) => ({ path: `/admin/${page}`, roles: ['Admin'] as const }),
   ),
-  ...['zones', 'parcels', 'parcels/:id'].map((page) => ({
-    path: `/dispatch/${page}`,
-    roles: ['Dispatcher', 'Admin'] as const,
-  })),
+  ...['zones', 'unassigned', 'parcels', 'parcels/:id', 'workload'].map(
+    (page) => ({
+      path: `/dispatch/${page}`,
+      roles: ['Dispatcher', 'Admin'] as const,
+    }),
+  ),
   { path: '/dispatch/parcels/:id/receipt', roles: ['Admin'] },
   ...['/courier', '/courier/history', '/courier/parcels/:id'].map((path) => ({
     path,

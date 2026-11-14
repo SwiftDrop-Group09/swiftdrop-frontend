@@ -29,6 +29,8 @@ const cases: { path: string; allowed: Profile['roles'] }[] = [
   { path: '/courier/history', allowed: ['Courier'] },
   { path: '/courier/parcels/123', allowed: ['Courier'] },
   { path: '/dispatch/zones', allowed: ['Admin', 'Dispatcher'] },
+  { path: '/dispatch/workload', allowed: ['Admin', 'Dispatcher'] },
+  { path: '/dispatch/unassigned', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels/123', allowed: ['Admin', 'Dispatcher'] },
   { path: '/dispatch/parcels/123/receipt', allowed: ['Admin'] },
@@ -118,6 +120,8 @@ describe('Direct URL access policy', () => {
     expect(safeReturnTo(value)).toBe('/dashboard');
   });
   it('retains a protected destination, query and fragment after sign-in', () => {
+    expect(safeReturnTo('/dispatch/unassigned')).toBe('/dispatch/unassigned');
+    expect(safeReturnTo('/dispatch/workload')).toBe('/dispatch/workload');
     expect(safeReturnTo('/customer/history?search=TRK#parcel')).toBe(
       '/customer/history?search=TRK#parcel',
     );

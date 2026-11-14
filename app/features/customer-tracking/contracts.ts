@@ -68,6 +68,7 @@ export type CustomerParcelPage = {
 };
 
 export type CustomerParcelQuery = {
+  zoneId?: string;
   status?: ParcelStatus;
   from?: string;
   to?: string;
