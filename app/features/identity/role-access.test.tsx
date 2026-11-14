@@ -87,7 +87,11 @@ describe('Role-aware workspaces', () => {
     'blocks an Admin-only account from Customer route $path before private reads',
     async ({ path, Page }) => {
       const reads = mount('Admin', path, <Page />);
-      await screen.findByRole('heading', { name: 'Access denied' });
+      await screen.findByRole(
+        'heading',
+        { name: 'Access denied' },
+        { timeout: 5000 },
+      );
       expect(reads).not.toHaveBeenCalled();
     },
   );

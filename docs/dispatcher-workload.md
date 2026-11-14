@@ -29,7 +29,8 @@ The Delivery backend handoff is `swiftdrop-backend/docs/dispatcher-workload.md`.
 Roll out those reads before this UI. The response's `active` flag and per-courier
 projection were selected for this milestone and require the central proposed
 REST/route catalog's owning contract review. No response/endpoint is fabricated
-by the frontend. Assignment and reassignment writes remain later milestones.
+by the frontend. Initial assignment is now implemented from the queue; see
+[assignment integration](dispatcher-assignment.md). Reassignment remains pending.
 
 ## Data and access states
 

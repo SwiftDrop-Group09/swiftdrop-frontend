@@ -57,9 +57,9 @@ acceptance still requires the pending shared-environment and startup checks.
 
 FR-D03 workload monitoring is now integrated at `/dispatch/workload`; see
 [workload integration](dispatcher-workload.md) for the fleet and active-assignment
-read contracts. FR-D02/TC-D02 assignment and FR-D04 reassignment commands remain
-separate milestones. This page has no placeholder
-assignment dialog. Existing operations detail and Admin-only receipt/proof rules
+read contracts. Initial FR-D02/TC-D02 assignment is now implemented through the
+confirmed dialog; see [assignment integration](dispatcher-assignment.md).
+FR-D04 reassignment remains a separate milestone. Existing operations detail and Admin-only receipt/proof rules
 are preserved. Customer reads remain unchanged and owner-scoped by the backend.
 
 Earlier queue verification deferred shared database migrations. The workspace previously recorded

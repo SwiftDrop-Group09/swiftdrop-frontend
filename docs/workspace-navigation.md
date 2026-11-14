@@ -72,10 +72,11 @@ routes remain role-specific. Merchant registration is Customer-only; webhooks re
 and approved ownership. Dispatch has real tracking/history, unassigned-queue,
 courier-workload and zone-summary pages.
 
-Assignment/reassignment and Merchant overview/order screens
+Initial assignment is available from the unassigned queue through its confirmed
+service-date/courier dialog. Reassignment and Merchant overview/order screens
 remain disabled with accessible Soon explanations. Backend dev now includes scoped
 Merchant order intake and owner reads; its web workspace is still unimplemented.
-Assignment commands and business-statistics integration remain gaps. See the current
+Reassignment and business-statistics integration remain gaps. See the current
 review before enabling a destination and preserve its API ownership contract. Desktop collapse, mobile drawer navigation, role changes, theme settings
 and sign-out remain part of the shared shell.
 

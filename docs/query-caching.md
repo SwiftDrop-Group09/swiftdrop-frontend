@@ -16,7 +16,11 @@ Admin and Dispatcher zone summaries share a user-scoped key, avoiding duplicate
 reads between dashboards, workload, the queue and zone summaries. Zone/pricing
 mutations invalidate dependent catalogs and booking lookups. Account edits
 invalidate courier and audit name lookups. Existing parcel SSE version checks
-continue to invalidate details when a newer version arrives.
+continue to invalidate details when a newer version arrives. The integrated
+Customer tracking view also polls active parcel details every four seconds and
+stops for terminal outcomes; that live view deliberately overrides normal
+navigation freshness. Assignment saves invalidate the shared zone summary,
+queue, parcel details, options and fleet workload.
 
 Unchanged JSON retains structural sharing, reducing UI updates. Policies follow
 [TanStack Query's freshness model](https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults).
