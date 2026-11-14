@@ -1,4 +1,25 @@
 import {
+  ArrowLeft,
+  CalendarDays,
+  Clock3,
+  MapPin,
+  Package,
+  RefreshCw,
+  Truck,
+} from 'lucide-react';
+import {
+  AssignmentCard,
+  HistoryCard,
+  StatusTimeline,
+  DeliveryStatus,
+} from './presentation';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { FieldSet, FieldLegend } from '~/shared/components/ui/field';
+import {
   createContext,
   useContext,
   useEffect,
@@ -9,6 +30,7 @@ import {
 import { Link, Outlet, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIdentity } from '~/features/identity/session';
+import { AccessGate } from '../identity/route-access';
 import { IdentityShell } from '~/features/identity/components';
 import { displayMoney } from '~/shared/exact-json';
 import {
@@ -27,7 +49,6 @@ import { CourierWorkflow } from './workflow';
 import { Button } from '~/shared/components/ui/button';
 import { Card } from '~/shared/components/ui/card';
 import { Alert } from '~/shared/components/ui/alert';
-import { Badge } from '~/shared/components/ui/badge';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import { Textarea } from '~/shared/components/ui/textarea';
@@ -72,7 +93,7 @@ function Workspace({ api, scope }: { api: CourierApi; scope: string }) {
   }, [state.pending]);
   return (
     <Context.Provider value={{ api, scope, workflow }}>
-      <div className="mx-auto w-full max-w-6xl space-y-6 wrap-anywhere">
+      <div className="w-full min-w-0 space-y-6 wrap-anywhere">
         {state.notice && <p role="status">{state.notice}</p>}
         {state.pending && <Pending />}
         {state.blocked ? (
@@ -89,25 +110,8 @@ function Workspace({ api, scope }: { api: CourierApi; scope: string }) {
 }
 export function CourierLayout() {
   const { user, restoring, session } = useIdentity();
-  if (restoring)
-    return (
-      <IdentityShell>
-        <p role="status">Restoring your session…</p>
-      </IdentityShell>
-    );
-  if (!user)
-    return (
-      <IdentityShell>
-        <p>Sign in with a Courier account to view deliveries.</p>
-        <Link to="/login">Sign in</Link>
-      </IdentityShell>
-    );
-  if (!user.roles.includes('Courier'))
-    return (
-      <IdentityShell>
-        <Alert variant="destructive">A Courier account is required.</Alert>
-      </IdentityShell>
-    );
+  if (restoring || !user || !user.roles.includes('Courier'))
+    return <AccessGate roles={['Courier']}>{null}</AccessGate>;
   const scope = `${user.id}:${[...user.roles].sort().join(',')}`;
   return (
     <IdentityShell>
@@ -143,7 +147,7 @@ function Pending() {
           });
         }}
       >
-        {state.busy ? 'Waiting for confirmation…' : 'Retry original request'}
+        {state.busy ? 'Waiting for confirmation...' : 'Retry original request'}
       </Button>
     </Alert>
   );
@@ -185,7 +189,7 @@ function Pager({
         Previous
       </Button>
       <span>
-        Page {page} · {total} deliveries
+        Page {page} / {total} deliveries
       </span>
       <Button disabled={page * 20 >= total} onClick={() => set(page + 1)}>
         Next
@@ -208,15 +212,26 @@ export function Manifest() {
     queryFn: () => api.manifest(date, overdue, page),
   });
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        Assigned deliveries
-      </h1>
-      <p>
-        With no selected date, Delivery uses today in the operations time zone
-        (Asia/Colombo).
-      </p>
-      <Card className="flex flex-wrap items-end gap-4 p-5">
+    <WorkspacePage
+      title={<>Assigned deliveries</>}
+      actions={
+        <Button
+          variant="outline"
+          disabled={q.isFetching}
+          onClick={() => void q.refetch()}
+        >
+          <RefreshCw aria-hidden="true" />
+          Refresh
+        </Button>
+      }
+      description={
+        <>
+          With no selected date, Delivery uses today in the operations time zone
+          (Asia/Colombo).
+        </>
+      }
+    >
+      <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:p-6">
         <Label className="grid gap-2">
           Service date
           <Input
@@ -236,7 +251,7 @@ export function Manifest() {
         >
           Today
         </Button>
-        <Label className="grid gap-2">
+        <Label className="flex items-center gap-2 pb-2">
           <Checkbox
             checked={overdue}
             onCheckedChange={(checked) => {
@@ -246,16 +261,58 @@ export function Manifest() {
           />{' '}
           Include overdue
         </Label>
-        <Button onClick={() => void q.refetch()}>Refresh</Button>
+        <p className="text-xs text-muted-foreground sm:ml-auto">
+          Service days follow Asia/Colombo time.
+        </p>
       </Card>
       {q.isPending ? (
-        <p role="status">Loading assigned deliveries…</p>
+        <WorkspaceLoading label="Loading assigned deliveries…" />
       ) : q.isError ? (
         <Failure error={q.error} retry={() => void q.refetch()} />
       ) : (
         <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                label: 'Matching assignments',
+                value: q.data.totalCount,
+                Icon: Package,
+              },
+              {
+                label: 'Overdue on this page',
+                value: q.data.items.filter((item) => item.isOverdue).length,
+                Icon: Clock3,
+              },
+              {
+                label: 'On the road on this page',
+                value: q.data.items.filter((item) =>
+                  ['InTransit', 'OutForDelivery'].includes(item.status),
+                ).length,
+                Icon: Truck,
+              },
+            ].map(({ label, value, Icon }) => (
+              <Card
+                key={label}
+                className="flex items-center justify-between gap-4 p-4 sm:p-5"
+              >
+                <div>
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums">
+                    {value}
+                  </p>
+                </div>
+                <Icon
+                  className="size-5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </Card>
+            ))}
+          </div>
           {!q.data.items.length && (
-            <p>No assigned deliveries match this day.</p>
+            <WorkspaceNotice
+              title="No assigned deliveries match this day."
+              description="Choose another service date or include overdue deliveries."
+            />
           )}
           <ul
             data-testid="courier-parcels"
@@ -263,31 +320,14 @@ export function Manifest() {
           >
             {q.data.items.map((d) => (
               <li key={d.id} className="min-w-0">
-                <Card className="h-full gap-3 p-5">
-                  <Button
-                    asChild
-                    variant="link"
-                    className="h-auto justify-start whitespace-normal wrap-anywhere p-0"
-                  >
-                    <Link to={`/courier/parcels/${d.id}`}>
-                      {d.trackingNumber}
-                    </Link>
-                  </Button>
-                  <Badge variant="secondary">{d.status}</Badge>
-                  {d.isOverdue && <Badge variant="outline">Overdue</Badge>}
-                  <p>
-                    {d.recipient.name} · {d.deliveryAddress.city}
-                  </p>
-                  <p>Service date: {d.serviceDate}</p>
-                  <Price d={d} />
-                </Card>
+                <AssignmentCard delivery={d} />
               </li>
             ))}
           </ul>
           <Pager page={page} total={q.data.totalCount} set={setPage} />
         </>
       )}
-    </>
+    </WorkspacePage>
   );
 }
 export function History() {
@@ -298,22 +338,36 @@ export function History() {
     queryFn: () => api.history(page),
   });
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        Delivery history
-      </h1>
-      <p>
-        Your completed and failed deliveries. Private recipient details are
-        available only during an active assignment.
-      </p>
+    <WorkspacePage
+      title={<>Delivery history</>}
+      actions={
+        <Button
+          variant="outline"
+          disabled={q.isFetching}
+          onClick={() => void q.refetch()}
+        >
+          <RefreshCw aria-hidden="true" />
+          Refresh
+        </Button>
+      }
+      description={
+        <>
+          Your completed and failed deliveries. Private recipient details are
+          available only during an active assignment.
+        </>
+      }
+    >
       {q.isPending ? (
-        <p role="status">Loading history…</p>
+        <WorkspaceLoading label="Loading history..." />
       ) : q.isError ? (
         <Failure error={q.error} retry={() => void q.refetch()} />
       ) : (
         <>
           {!q.data.items.length && (
-            <p>No completed or failed deliveries yet.</p>
+            <WorkspaceNotice
+              title="No completed or failed deliveries yet."
+              description="Your finished assignments will appear here."
+            />
           )}
           <ul
             data-testid="courier-parcels"
@@ -321,23 +375,14 @@ export function History() {
           >
             {q.data.items.map((d) => (
               <li key={d.id} className="min-w-0">
-                <Card className="h-full gap-3 p-5">
-                  <strong>{d.trackingNumber}</strong>
-                  <Badge variant="secondary">{d.status}</Badge>
-                  <Price d={d} />
-                  <p>Created: {new Date(d.createdAt).toLocaleString()}</p>
-                  <small>
-                    Version {d.version} · Pricing{' '}
-                    {d.priceSnapshot.pricingVersion}
-                  </small>
-                </Card>
+                <HistoryCard delivery={d} />
               </li>
             ))}
           </ul>
           <Pager page={page} total={q.data.totalCount} set={setPage} />
         </>
       )}
-    </>
+    </WorkspacePage>
   );
 }
 export function ParcelDetails() {
@@ -353,36 +398,76 @@ export function ParcelDetails() {
     ['Delivered', 'Failed'].includes(state.receipt.status)
   )
     return (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-          {state.receipt.status} confirmed
-        </h1>
-        <p>{state.receipt.trackingNumber}</p>
+      <WorkspacePage
+        title={<> {state.receipt.status} confirmed</>}
+        description={<>{state.receipt.trackingNumber}</>}
+      >
         <Link to="/courier">Back to assigned deliveries</Link>
-      </>
+      </WorkspacePage>
     );
-  if (q.isPending) return <p role="status">Loading parcel…</p>;
+  if (q.isPending) return <WorkspaceLoading label="Loading parcel..." />;
   if (q.isError)
     return <Failure error={q.error} retry={() => void q.refetch()} />;
   const d = q.data;
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-        {d.trackingNumber}
-      </h1>
-      <p>
-        {d.status} · Version {d.version} · <Price d={d} />
-      </p>
-      <Button disabled={!!state.pending} onClick={() => void q.refetch()}>
-        Refresh parcel
-      </Button>
+    <WorkspacePage
+      title={<> {d.trackingNumber} </>}
+      description={
+        <>
+          {' '}
+          {d.status} / Version {d.version} / <Price d={d} />{' '}
+        </>
+      }
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button asChild variant="ghost">
+          <Link to="/courier">
+            <ArrowLeft aria-hidden="true" />
+            Assigned deliveries
+          </Link>
+        </Button>
+        <Button
+          variant="outline"
+          disabled={!!state.pending || q.isFetching}
+          onClick={() => void q.refetch()}
+        >
+          <RefreshCw aria-hidden="true" />
+          Refresh parcel
+        </Button>
+      </div>
+      <Card className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center sm:p-6">
+        <div className="space-y-2">
+          <DeliveryStatus status={d.status} />
+          <p className="text-sm text-muted-foreground">
+            Version {d.version} | Pricing {d.priceSnapshot.pricingVersion}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Delivery fee</p>
+          <p className="text-xl font-semibold">
+            <Price d={d} />
+          </p>
+        </div>
+      </Card>
       <Card className="grid gap-6 p-6 sm:grid-cols-2">
         <div>
-          <h2 className="text-lg font-semibold">Pickup</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+            <Package
+              className="size-5 text-muted-foreground"
+              aria-hidden="true"
+            />
+            Pickup
+          </h2>
           <Address value={d.pickupAddress} />
         </div>
         <div>
-          <h2 className="text-lg font-semibold">Delivery</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+            <MapPin
+              className="size-5 text-muted-foreground"
+              aria-hidden="true"
+            />
+            Delivery
+          </h2>
           <Address value={d.deliveryAddress} />
           <p>
             {d.recipient.name}
@@ -392,32 +477,23 @@ export function ParcelDetails() {
         </div>
       </Card>
       <p>
-        Package: {d.packageDetails.size} · {d.packageDetails.weightKg} kg
+        Package: {d.packageDetails.size} / {d.packageDetails.weightKg} kg
       </p>
       {d.assignment && (
-        <p>
-          Assignment: {d.assignment.status} · Service date{' '}
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="size-4" aria-hidden="true" />
+          Assignment: {d.assignment.status} / Service date{' '}
           {d.assignment.serviceDate}
         </p>
       )}
       <Actions key={`${id}:${d.version}`} d={d} />
-      <h2 className="text-lg font-semibold">Status history</h2>
-      <ol>
-        {d.history.map((h, i) => (
-          <li key={i}>
-            {h.fromStatus ? `${h.fromStatus} → ` : ''}
-            {h.toStatus} · {new Date(h.timestamp).toLocaleString()}
-            {h.changeReason && <p>Reason: {h.changeReason}</p>}
-            {h.deliveryNote && <p>{h.deliveryNote}</p>}
-          </li>
-        ))}
-      </ol>
-    </>
+      <StatusTimeline history={d.history} />
+    </WorkspacePage>
   );
 }
 function Address({ value }: { value: Detail['deliveryAddress'] }) {
   return (
-    <address>
+    <address className="text-sm not-italic leading-6 text-muted-foreground">
       {value.street}
       <br />
       {value.city} {value.postalCode}
@@ -460,11 +536,11 @@ export function Actions({ d }: { d: Detail }) {
     <Card className="space-y-4 p-6">
       <h2 className="text-lg font-semibold">Delivery actions</h2>
       {error && <Alert variant="destructive">{error}</Alert>}
-      <fieldset
+      <FieldSet
         className="space-y-4 disabled:opacity-60"
         disabled={!!state.pending || state.busy || refreshing}
       >
-        <legend>Update delivery</legend>
+        <FieldLegend>Update delivery</FieldLegend>
         <Label className="grid gap-2">
           {d.status === 'OutForDelivery'
             ? 'Private failure note (optional)'
@@ -497,6 +573,7 @@ export function Actions({ d }: { d: Detail }) {
           </NativeSelect>
         </Label>
         <Button
+          variant="destructive"
           onClick={() =>
             void submit(() =>
               statusAttempt(
@@ -557,7 +634,7 @@ export function Actions({ d }: { d: Detail }) {
             </Button>
           </>
         )}
-      </fieldset>
+      </FieldSet>
     </Card>
   );
 }

@@ -6,17 +6,17 @@ import {
   signInMethodsSchema,
   tokenSchema,
 } from './contracts';
-import type { AdminInput, ProfileInput } from './contracts';
+import type { AdminInput, ProfileInput, Profile } from './contracts';
 
 export class IdentityError extends Error {
   constructor(
     readonly code: string,
     readonly status = 0,
   ) {
-    super(messageFor(code));
+    super(messageFor(code, status));
   }
 }
-export function messageFor(code: string) {
+export function messageFor(code: string, status = 0) {
   switch (code) {
     case 'invalid_credentials':
       return 'Sign-in failed or your session expired. Check your credentials and try again.';
@@ -47,10 +47,28 @@ export function messageFor(code: string) {
       return 'Check the supplied information and try again.';
     case 'google_unavailable':
       return 'Google sign-in is unavailable. Please try again later.';
+    case 'google_sdk_unavailable':
+      return 'Google sign-in could not load. Check your connection or browser privacy settings, then try again.';
+    case 'audit_unavailable':
+    case 'identity_unavailable':
+    case 'service_unavailable':
+      return 'Account services are temporarily unavailable. Please try again later.';
+    case 'network_error':
+      return 'Unable to reach SwiftDrop. Check your connection and try again.';
+    case 'request_timeout':
+      return 'The request timed out. Please try again.';
+    case 'invalid_response':
+      return 'SwiftDrop returned an unexpected response. Please try again later.';
     case 'logout_unconfirmed':
       return 'Signed out on this page. Server logout could not be confirmed; close shared browser windows and try again when connected.';
     default:
-      return 'The request could not be completed. Check your connection before trying again.';
+      if (status === 429)
+        return 'Too many attempts. Please wait before trying again.';
+      if (status === 408 || status === 504)
+        return 'The request timed out. Please try again.';
+      if (status >= 500)
+        return 'Account services are temporarily unavailable. Please try again later.';
+      return 'The request could not be completed. Please try again.';
   }
 }
 export async function responseFailure(response: Response) {
@@ -90,14 +108,18 @@ export class IdentityApi {
     if (freshNonce && this.bootstrapFlight) return this.bootstrapFlight;
     this.bootstrapFlight ??= this.send('/v1/auth/csrf')
       .then(async (response) => {
-        const value = z
-          .object({
-            csrfToken: z.string().min(1),
-            googleNonce: z.string().min(1),
-          })
-          .parse(await response.json());
-        this.csrfToken = value.csrfToken;
-        return value;
+        try {
+          const value = z
+            .object({
+              csrfToken: z.string().min(1),
+              googleNonce: z.string().min(1),
+            })
+            .parse(await response.json());
+          this.csrfToken = value.csrfToken;
+          return value;
+        } catch {
+          throw new IdentityError('invalid_response');
+        }
       })
       .finally(() => {
         this.bootstrapFlight = null;
@@ -129,8 +151,12 @@ export class IdentityApi {
         },
         ...(serialized !== undefined ? { body: serialized } : {}),
       });
-    } catch {
-      throw new IdentityError('network_error');
+    } catch (cause) {
+      throw new IdentityError(
+        cause instanceof DOMException && cause.name === 'TimeoutError'
+          ? 'request_timeout'
+          : 'network_error',
+      );
     }
     if (!response.ok) throw await responseFailure(response);
     return response;
@@ -217,28 +243,61 @@ export class IdentityApi {
       ).json(),
     );
   }
-  async users(token: string, page: number) {
-    return pageSchema(profileSchema).parse(
-      await (
-        await this.send(
-          `/v1/users?page=${page}&pageSize=20`,
-          'GET',
-          undefined,
-          token,
-        )
-      ).json(),
-    );
+  async users(
+    token: string,
+    page: number,
+    filters: {
+      role?: Profile['roles'][number];
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const query = new URLSearchParams({ page: String(page), pageSize: '20' });
+    if (filters.role) query.set('role', filters.role);
+    if (filters.search) query.set('search', filters.search);
+    if (filters.status) query.set('status', filters.status);
+    try {
+      return pageSchema(profileSchema).parse(
+        await (
+          await this.send(`/v1/users?${query}`, 'GET', undefined, token)
+        ).json(),
+      );
+    } catch (error) {
+      if (
+        error instanceof IdentityError &&
+        error.status === 400 &&
+        ((filters.role &&
+          ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'].includes(
+            filters.role,
+          )) ||
+          filters.status ||
+          filters.search) &&
+        (filters.search?.length ?? 0) <= 200 &&
+        (!filters.status || ['active', 'inactive'].includes(filters.status))
+      )
+        throw new Error(
+          'The account service rejected supported filters. Restart the backend development services to load the updated user-list API.',
+          { cause: error },
+        );
+      throw error;
+    }
   }
   async createUser(
     token: string,
-    { email, fullName, isActive, password }: AdminInput & { password: string },
+    {
+      email,
+      fullName,
+      isActive,
+      password,
+      role = 'Customer',
+    }: AdminInput & { password: string; role?: Profile['roles'][number] },
   ) {
     return profileSchema.parse(
       await (
         await this.send(
           '/v1/users',
           'POST',
-          { email, fullName, isActive, password },
+          { email, fullName, isActive, password, role },
           token,
         )
       ).json(),

@@ -14,7 +14,6 @@ import {
   SlidersHorizontal,
   Store,
   Truck,
-  UserRound,
   Users,
   Webhook,
   type LucideIcon,
@@ -27,6 +26,7 @@ type NavigationItem = {
   icon: LucideIcon;
   // Only implemented screens have a destination. Planned items remain disabled.
   to?: string;
+  roles?: readonly Role[];
 };
 type NavigationGroup = {
   id: string;
@@ -43,9 +43,13 @@ const navigation: readonly NavigationGroup[] = [
     label: 'Workspace',
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-      { label: 'My profile', icon: UserRound, to: '/profile' },
-      // Onboarding accepts any authenticated applicant, before a Merchant role.
-      { label: 'Business registration', icon: Store, to: '/merchant' },
+      // Customers apply before receiving a Merchant role.
+      {
+        label: 'Business registration',
+        icon: Store,
+        to: '/merchant',
+        roles: ['Customer'],
+      },
     ],
   },
   {
@@ -86,9 +90,14 @@ const navigation: readonly NavigationGroup[] = [
     // Authorization explicitly permits Admin assignment/reassignment as well.
     roles: ['Dispatcher', 'Admin'],
     items: [
+      {
+        label: 'Parcel tracking & history',
+        icon: History,
+        to: '/dispatch/parcels',
+      },
       { label: 'Unassigned parcels', icon: ClipboardList },
       { label: 'Courier workload', icon: Users },
-      { label: 'Zone summary', icon: Map },
+      { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },
     ],
   },
   {
@@ -112,15 +121,24 @@ const navigation: readonly NavigationGroup[] = [
       {
         label: 'Audit logs',
         icon: ScrollText,
-        to: '/admin/users#identity-audit',
+        to: '/admin/audit',
       },
     ],
   },
 ];
 
 export function getWorkspaceNavigation(assignedRoles: readonly Role[]) {
-  return navigation.filter(
-    (group) =>
-      !group.roles || group.roles.some((role) => assignedRoles.includes(role)),
-  );
+  if (assignedRoles.length !== 1) return [];
+  return navigation
+    .filter(
+      (group) =>
+        !group.roles ||
+        group.roles.some((role) => assignedRoles.includes(role)),
+    )
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.roles || item.roles.includes(assignedRoles[0]!),
+      ),
+    }));
 }

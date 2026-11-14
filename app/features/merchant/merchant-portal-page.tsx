@@ -1,3 +1,5 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useForm } from 'react-hook-form';
@@ -26,6 +28,7 @@ import { IdentityShell, Protected } from '../identity/components';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
+import { Checkbox } from '~/shared/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -123,7 +126,7 @@ function RegisterMerchantCard({
   };
 
   return (
-    <Card className="max-w-xl mx-auto shadow-sm">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Store className="h-6 w-6 text-primary" />
@@ -142,7 +145,7 @@ function RegisterMerchantCard({
           void handleSubmit(onSubmit)(e);
         }}
       >
-        <CardContent className="space-y-4">
+        <CardContent className="grid gap-4 sm:grid-cols-2">
           {formError && (
             <Alert variant="destructive">
               <AlertTitle>Registration Error</AlertTitle>
@@ -305,7 +308,7 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
   };
 
   return (
-    <Card className="mt-6 shadow-sm">
+    <Card className="mt-6 ">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -336,14 +339,14 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
             Loading API keys…
           </p>
         ) : keys.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center">
+          <Card className="rounded-lg border border-dashed p-6 text-center">
             <p className="text-sm text-muted-foreground">
               No API keys generated yet. Click "Generate Key" to create your
               first integration key.
             </p>
-          </div>
+          </Card>
         ) : (
-          <div className="rounded-md border">
+          <Card className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -403,7 +406,7 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         )}
       </CardContent>
 
@@ -428,13 +431,12 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
               <div className="space-y-2">
                 {apiKeyScopes.map((scope) => (
                   <div key={scope} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       id={`scope-${scope}`}
                       value={scope}
                       checked={selectedScopes.includes(scope)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
+                      onCheckedChange={(checked) => {
+                        if (checked === true) {
                           setSelectedScopes((prev) => [...prev, scope]);
                           setScopeError(null);
                         } else {
@@ -449,14 +451,13 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
                           }
                         }
                       }}
-                      className="rounded border-input text-primary focus:ring-primary h-4 w-4 cursor-pointer"
                     />
-                    <label
+                    <Label
                       htmlFor={`scope-${scope}`}
                       className="font-mono text-xs cursor-pointer"
                     >
                       {scope}
-                    </label>
+                    </Label>
                   </div>
                 ))}
               </div>
@@ -586,6 +587,7 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
 // ── Main Merchant Portal Component ──────────────────────────────────────────
 
 export function MerchantPortalPage() {
+  const { user, restoring } = useIdentity();
   const api = useMerchantApi();
   const queryClient = useQueryClient();
 
@@ -594,39 +596,40 @@ export function MerchantPortalPage() {
     isLoading,
     error,
   } = useQuery<BusinessResponse | null>({
-    queryKey: ['my-merchant-business'],
+    queryKey: ['my-merchant-business', user?.id],
+    enabled:
+      !restoring &&
+      !!user &&
+      user.roles.some((role) => role === 'Customer' || role === 'Merchant'),
     queryFn: () => api.getMyMerchant(),
   });
 
   return (
-    <Protected>
+    <Protected roles={['Customer', 'Merchant']}>
       <IdentityShell>
-        <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Merchant Portal
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Manage your business registration, approvals, and API keys.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {business?.status === 'Approved' && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link
-                    to="/merchant/webhooks"
-                    className="flex items-center gap-2"
-                  >
-                    <Webhook className="w-4 h-4 text-emerald-600" />
-                    Webhooks
-                  </Link>
-                </Button>
-              )}
-              {business && <StatusBadge status={business.status} />}
-            </div>
-          </div>
-
+        <WorkspacePage
+          title={<>Merchant Portal</>}
+          description="Manage your business registration, approvals, and API keys."
+          actions={
+            <>
+              {' '}
+              <div className="flex items-center gap-3">
+                {business?.status === 'Approved' && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link
+                      to="/merchant/webhooks"
+                      className="flex items-center gap-2"
+                    >
+                      <Webhook className="w-4 h-4 text-emerald-600" />
+                      Webhooks
+                    </Link>
+                  </Button>
+                )}
+                {business && <StatusBadge status={business.status} />}
+              </div>{' '}
+            </>
+          }
+        >
           {isLoading ? (
             <p className="text-sm text-muted-foreground">
               Loading merchant profile…
@@ -643,7 +646,10 @@ export function MerchantPortalPage() {
           ) : !business ? (
             <RegisterMerchantCard
               onRegistered={(newBiz) => {
-                queryClient.setQueryData(['my-merchant-business'], newBiz);
+                queryClient.setQueryData(
+                  ['my-merchant-business', user?.id],
+                  newBiz,
+                );
               }}
             />
           ) : (
@@ -689,20 +695,17 @@ export function MerchantPortalPage() {
               )}
 
               {business.status === 'Approved' && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-emerald-300 bg-emerald-50 text-emerald-900 rounded-lg">
+                <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border border-border bg-muted text-foreground rounded-lg">
                   <div>
                     <h3 className="font-semibold text-base">
                       Account Approved & Active
                     </h3>
-                    <p className="text-sm text-emerald-800">
+                    <p className="text-sm text-muted-foreground">
                       Your business is fully approved. You can generate API keys
                       below or configure delivery status webhooks.
                     </p>
                   </div>
-                  <Button
-                    asChild
-                    className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
+                  <Button asChild className="shrink-0">
                     <Link
                       to="/merchant/webhooks"
                       className="flex items-center gap-2"
@@ -711,10 +714,10 @@ export function MerchantPortalPage() {
                       Configure Webhooks
                     </Link>
                   </Button>
-                </div>
+                </Card>
               )}
 
-              <Card className="shadow-sm">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Business Details</CardTitle>
                 </CardHeader>
@@ -765,7 +768,7 @@ export function MerchantPortalPage() {
               {business.status === 'Approved' ? (
                 <ApiKeyManager businessId={business.id} />
               ) : (
-                <Card className="shadow-sm border-dashed">
+                <Card className="border-dashed">
                   <CardHeader>
                     <CardTitle className="text-base text-muted-foreground">
                       API Key Management
@@ -782,7 +785,7 @@ export function MerchantPortalPage() {
               )}
             </div>
           )}
-        </div>
+        </WorkspacePage>
       </IdentityShell>
     </Protected>
   );

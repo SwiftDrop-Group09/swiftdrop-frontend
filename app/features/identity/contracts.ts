@@ -7,13 +7,18 @@ export const roles = [
   'Dispatcher',
   'Admin',
 ] as const;
+export const userRoleSchema = z.enum(roles);
+export type UserRole = z.infer<typeof userRoleSchema>;
+
 export const profileSchema = z.object({
   id: z.string().min(1),
   email: z.email(),
   fullName: z.string(),
   phoneNumber: z.string().nullable(),
   address: z.string().nullable(),
-  roles: z.array(z.enum(roles)),
+  roles: z
+    .array(userRoleSchema)
+    .length(1, 'An account must have exactly one role.'),
   isActive: z.boolean(),
 });
 export type Profile = z.infer<typeof profileSchema>;

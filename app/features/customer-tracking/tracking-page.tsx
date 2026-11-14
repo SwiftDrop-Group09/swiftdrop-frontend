@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
@@ -10,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
+import { useIdentity } from '~/features/identity/session';
 import {
   Alert,
   AlertDescription,
@@ -54,15 +56,10 @@ function TrackingHub() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Track a Parcel</h1>
-        <p className="text-sm text-muted-foreground">
-          Select one of your active bookings below or look up any tracking
-          number.
-        </p>
-      </div>
-
+    <WorkspacePage
+      title={<>Track a Parcel</>}
+      description="Select one of your active bookings below or look up any tracking number."
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Track by Tracking Number</CardTitle>
@@ -103,33 +100,49 @@ function TrackingHub() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {data.items.map((item) => (
-                <Link
+                <Card
                   key={item.id}
-                  to={`/customer/parcels/${item.id}`}
-                  className="flex items-center justify-between rounded-lg border p-3.5 transition-colors hover:bg-muted/40"
+                  className="transition-colors hover:bg-muted/40"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-mono text-sm font-semibold">
-                      {item.trackingNumber}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {item.pickupCity} → {item.deliveryCity} ·{' '}
-                      {item.recipientName}
-                    </p>
-                  </div>
-                  <StatusBadge status={item.status} />
-                </Link>
+                  <Link
+                    to={`/customer/parcels/${item.id}`}
+                    className="flex items-center justify-between gap-3 p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-mono text-sm font-semibold">
+                        {item.trackingNumber}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {item.pickupCity} → {item.deliveryCity} ·{' '}
+                        {item.recipientName}
+                      </p>
+                    </div>
+                    <StatusBadge status={item.status} />
+                  </Link>
+                </Card>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
-function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
-  const { data: parcel, isLoading, isError } = useCustomerParcel(parcelId);
+export function ParcelLiveDetail({
+  parcelId,
+  operational = false,
+}: {
+  parcelId: string;
+  operational?: boolean;
+}) {
+  const { user } = useIdentity();
+  const canDownload = !operational || !!user?.roles.includes('Admin');
+  const {
+    data: parcel,
+    isLoading,
+    isError,
+  } = useCustomerParcel(parcelId, operational);
   const isTerminal =
     parcel?.status === 'Delivered' ||
     parcel?.status === 'Failed' ||
@@ -141,6 +154,7 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
   const { data: proof } = useParcelProof(
     parcelId,
     parcel?.status === 'Delivered',
+    operational,
   );
 
   if (isLoading) {
@@ -170,9 +184,9 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <Button variant="ghost" size="sm" className="-ml-2" asChild>
-            <Link to="/customer/history">
+            <Link to={operational ? '/dispatch/parcels' : '/customer/history'}>
               <ArrowLeft className="mr-1.5 size-4" />
-              Back to Order History
+              {operational ? 'Back to parcel history' : 'Back to Order History'}
             </Link>
           </Button>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -201,9 +215,11 @@ function ParcelLiveDetail({ parcelId }: { parcelId: string }) {
             Booked {formatDateTime(parcel.createdAt)} · Version {parcel.version}
           </p>
         </div>
-        {parcel.status === 'Delivered' && (
+        {parcel.status === 'Delivered' && canDownload && (
           <Button asChild>
-            <Link to={`/customer/parcels/${parcel.id}/receipt`}>
+            <Link
+              to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
+            >
               <ReceiptText className="mr-2 size-4" />
               View & Download Receipt
             </Link>
@@ -322,7 +338,7 @@ export function CustomerTrackingPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         {id ? <ParcelLiveDetail parcelId={id} /> : <TrackingHub />}
       </Protected>
     </IdentityShell>

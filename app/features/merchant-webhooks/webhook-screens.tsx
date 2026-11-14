@@ -1,3 +1,5 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +35,7 @@ import { IdentityShell, Protected } from '../identity/components';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
+import { Checkbox } from '~/shared/components/ui/checkbox';
 import { Textarea } from '~/shared/components/ui/textarea';
 import {
   Card,
@@ -65,6 +68,7 @@ import {
 } from '~/shared/components/ui/dialog';
 
 export function WebhookScreens() {
+  const { user, restoring } = useIdentity();
   const queryClient = useQueryClient();
   const webhookApi = useWebhookApi();
   const merchantApi = useMerchantApi();
@@ -84,7 +88,8 @@ export function WebhookScreens() {
 
   // 1. Fetch Merchant status to ensure approved
   const { data: business, isLoading: businessLoading } = useQuery({
-    queryKey: ['merchant', 'me'],
+    queryKey: ['merchant', 'me', user?.id],
+    enabled: !restoring && !!user?.roles.includes('Merchant'),
     queryFn: () => merchantApi.getMyMerchant(),
   });
 
@@ -94,16 +99,26 @@ export function WebhookScreens() {
     isLoading: webhooksLoading,
     error: webhooksError,
   } = useQuery({
-    queryKey: ['merchant', 'webhooks'],
+    queryKey: ['merchant', 'webhooks', user?.id],
     queryFn: () => webhookApi.listWebhooks(1, 50),
-    enabled: business?.status === 'Approved',
+    enabled:
+      !!user?.roles.includes('Merchant') && business?.status === 'Approved',
   });
 
   // 3. Fetch Attempts for Selected Webhook
   const { data: attemptsData, isLoading: attemptsLoading } = useQuery({
-    queryKey: ['merchant', 'webhooks', selectedWebhook?.id, 'attempts'],
+    queryKey: [
+      'merchant',
+      'webhooks',
+      user?.id,
+      selectedWebhook?.id,
+      'attempts',
+    ],
     queryFn: () => webhookApi.listAttempts(selectedWebhook!.id, 1, 50),
-    enabled: !!selectedWebhook,
+    enabled:
+      !!user?.roles.includes('Merchant') &&
+      business?.status === 'Approved' &&
+      !!selectedWebhook,
   });
 
   // 4. Create Webhook Mutation
@@ -262,41 +277,35 @@ export function WebhookScreens() {
   const isApproved = business?.status === 'Approved';
 
   return (
-    <Protected>
+    <Protected roles={['Merchant']}>
       <IdentityShell>
-        <div className="space-y-6 max-w-6xl mx-auto py-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Link
-                  to="/merchant"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Merchant Portal & API Keys
+        <WorkspacePage
+          title={<>Delivery Status Webhooks</>}
+          description="Receive automatic real-time notifications whenever your delivery statuses update."
+          actions={
+            <>
+              <Button asChild variant="outline">
+                <Link to="/merchant">
+                  <ArrowLeft aria-hidden="true" />
+                  Business and API keys
                 </Link>
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Delivery Status Webhooks
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Receive automatic real-time notifications whenever your delivery
-                statuses update.
-              </p>
-            </div>
-            {isApproved && !selectedWebhook && (
-              <Button
-                onClick={() => {
-                  resetCreateForm();
-                  setApiError(null);
-                  setCreateDialogOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Register Webhook
-              </Button>
-            )}
-          </div>
+              </Button>{' '}
+              {isApproved && !selectedWebhook && (
+                <Button
+                  onClick={() => {
+                    resetCreateForm();
+                    setApiError(null);
+                    setCreateDialogOpen(true);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Register Webhook
+                </Button>
+              )}{' '}
+            </>
+          }
+        >
+          {/* Header */}
 
           {/* Status Alert if Not Approved */}
           {!businessLoading && !isApproved && (
@@ -641,30 +650,29 @@ export function WebhookScreens() {
 
                 <div className="space-y-2">
                   <Label>Delivery Events to Subscribe</Label>
-                  <div className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-48 overflow-y-auto">
+                  <Card className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-48 overflow-y-auto">
                     {webhookEvents.map((evt) => {
                       const isSelected = selectedEvents.includes(evt);
                       return (
-                        <label
+                        <Label
                           key={evt}
                           className="flex items-center space-x-2 text-xs cursor-pointer hover:bg-muted/50 p-1 rounded"
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
-                            onChange={(e) => {
+                            onCheckedChange={(checked) => {
                               setSelectedEvents((prev) =>
-                                e.target.checked
+                                checked === true
                                   ? [...prev, evt]
                                   : prev.filter((x) => x !== evt),
                               );
                             }}
                           />
                           <span className="font-mono">{evt}</span>
-                        </label>
+                        </Label>
                       );
                     })}
-                  </div>
+                  </Card>
                   {createErrors.events && (
                     <p className="text-xs text-destructive">
                       {createErrors.events}
@@ -709,7 +717,7 @@ export function WebhookScreens() {
 
               {oneTimeSecret && (
                 <div className="space-y-4 py-2">
-                  <div className="p-3 bg-muted rounded-md space-y-1">
+                  <Card className="p-3 bg-muted rounded-md space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-semibold text-muted-foreground uppercase">
                         Signing Secret Key
@@ -742,7 +750,7 @@ export function WebhookScreens() {
                         )}
                       </Button>
                     </div>
-                  </div>
+                  </Card>
 
                   <Alert>
                     <AlertDescription className="text-xs text-muted-foreground">
@@ -813,7 +821,7 @@ export function WebhookScreens() {
               )}
             </DialogContent>
           </Dialog>
-        </div>
+        </WorkspacePage>
       </IdentityShell>
     </Protected>
   );

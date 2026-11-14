@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Button } from '~/shared/components/ui/button';
 import { Card } from '~/shared/components/ui/card';
 import { Alert } from '~/shared/components/ui/alert';
@@ -8,6 +9,7 @@ import {
   Field as FormField,
   FieldDescription,
   FieldError,
+  FieldSet,
 } from '~/shared/components/ui/field';
 import {
   NativeSelect,
@@ -90,16 +92,10 @@ export function CustomerBookingPage({
   }, [actor, dependencies.attempts, queryClient]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Book a delivery
-        </h1>
-        <p className="max-w-xl text-sm text-muted-foreground">
-          Tell us where your parcel is going. Review your quote, then confirm
-          when you are ready.
-        </p>
-      </header>
+    <WorkspacePage
+      title={<>Book a delivery</>}
+      description="Tell us where your parcel is going. Review your quote, then confirm when you are ready."
+    >
       {!actor ? (
         <Card className="space-y-3 p-6" aria-labelledby="access-title">
           <h2 id="access-title" className="text-lg font-semibold">
@@ -114,7 +110,7 @@ export function CustomerBookingPage({
       ) : (
         <BookingFlow key={actor} actor={actor} environment={dependencies} />
       )}
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -386,7 +382,7 @@ function BookingFlow({
         noValidate
         className="space-y-5"
       >
-        <fieldset
+        <FieldSet
           disabled={!!attempt}
           className="space-y-5 disabled:opacity-70"
         >
@@ -442,7 +438,7 @@ function BookingFlow({
               </Label>
             </div>
           </Card>
-        </fieldset>
+        </FieldSet>
         {zones.isPending && (
           <p role="status" className="text-sm text-muted-foreground">
             Loading delivery areas…

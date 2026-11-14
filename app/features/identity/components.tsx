@@ -1,11 +1,13 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import { Button } from '~/shared/components/ui/button';
-import { Alert } from '~/shared/components/ui/alert';
 import { FieldError as ShadcnFieldError } from '~/shared/components/ui/field';
 import type { ReactNode } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link } from 'react-router';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
 import { DashboardShell } from './dashboard-shell';
+import { AccessGate } from './route-access';
+import type { Profile } from './contracts';
 
 export function safeError(error: unknown) {
   return error instanceof IdentityError
@@ -20,7 +22,7 @@ export function IdentityShell({ children }: { children: ReactNode }) {
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link className="text-xl font-semibold tracking-tight" to="/">
-            SwiftDrop
+            <BrandLogo />
           </Link>
           <nav
             className="flex flex-wrap items-center gap-1"
@@ -47,31 +49,15 @@ export function IdentityShell({ children }: { children: ReactNode }) {
 export function Protected({
   children,
   admin = false,
+  roles,
 }: {
   children: ReactNode;
   admin?: boolean;
+  roles?: readonly Profile['roles'][number][];
 }) {
-  const { user, restoring, error } = useIdentity();
-  if (restoring) return <p role="status">Restoring your session…</p>;
-  if (!user)
-    return error ? (
-      <>
-        <Alert variant="destructive">{error}</Alert>
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/login">Sign in</Link>
-        </Button>
-      </>
-    ) : (
-      <Navigate to="/login" replace />
-    );
-  if (admin && !user.roles.includes('Admin'))
-    return (
-      <Alert variant="destructive">
-        You do not have permission to view user administration.
-      </Alert>
-    );
-  return children;
+  return <AccessGate roles={admin ? ['Admin'] : roles}>{children}</AccessGate>;
 }
+
 export function FieldError({ message }: { message?: string }) {
   return message ? <ShadcnFieldError>{message}</ShadcnFieldError> : null;
 }

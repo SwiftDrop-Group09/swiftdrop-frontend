@@ -1,3 +1,4 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
@@ -31,14 +32,10 @@ function DeliveredReceiptsList() {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Delivery Receipts</h1>
-        <p className="text-sm text-muted-foreground">
-          Official itemized receipts are available for all completed deliveries.
-        </p>
-      </div>
-
+    <WorkspacePage
+      title={<>Delivery Receipts</>}
+      description="Official itemized receipts are available for all completed deliveries."
+    >
       <Card>
         <CardHeader>
           <CardTitle>Completed Deliveries</CardTitle>
@@ -60,7 +57,7 @@ function DeliveredReceiptsList() {
               </AlertDescription>
             </Alert>
           ) : !data?.items.length ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+            <Card className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
               <ReceiptText className="size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">
                 No receipts available yet
@@ -68,7 +65,7 @@ function DeliveredReceiptsList() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Receipts become available once a parcel is marked Delivered.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="divide-y">
               {data.items.map((parcel) => (
@@ -108,17 +105,32 @@ function DeliveredReceiptsList() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
-function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
-  const { data: receipt, isLoading, error } = useParcelReceipt(parcelId);
+export function ParcelReceiptDetail({
+  parcelId,
+  operational = false,
+}: {
+  parcelId: string;
+  operational?: boolean;
+}) {
+  const {
+    data: receipt,
+    isLoading,
+    error,
+  } = useParcelReceipt(parcelId, operational);
 
   return (
-    <div className="space-y-6">
+    <WorkspacePage
+      title="Delivery receipt"
+      description="View and download the receipt for your completed delivery."
+    >
       <Button variant="ghost" size="sm" className="-ml-2 print:hidden" asChild>
-        <Link to={`/customer/parcels/${parcelId}`}>
+        <Link
+          to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcelId}`}
+        >
           <ArrowLeft className="mr-1.5 size-4" />
           Back to Parcel Tracking
         </Link>
@@ -137,7 +149,7 @@ function ParcelReceiptDetail({ parcelId }: { parcelId: string }) {
       ) : (
         <ReceiptCard receipt={receipt} />
       )}
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -145,7 +157,7 @@ export function CustomerReceiptPage() {
   const { id } = useParams<{ id: string }>();
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         {id ? <ParcelReceiptDetail parcelId={id} /> : <DeliveredReceiptsList />}
       </Protected>
     </IdentityShell>

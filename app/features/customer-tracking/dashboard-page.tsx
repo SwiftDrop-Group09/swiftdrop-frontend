@@ -1,3 +1,5 @@
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { RoleHome } from '~/features/identity/role-home';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
@@ -55,26 +57,26 @@ function CustomerDashboardContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Welcome back
-            {user?.fullName ? `, ${user.fullName}` : ''}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Track live deliveries, review past orders, and download official
-            receipts.
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/customer/book">
-            <PackagePlus className="mr-2 size-4" />
-            Book a Delivery
-          </Link>
-        </Button>
-      </div>
-
+    <WorkspacePage
+      title={
+        <>
+          Welcome back
+          {user?.fullName ? `, ${user.fullName}` : ''}
+        </>
+      }
+      description="Track live deliveries, review past orders, and download official receipts."
+      actions={
+        <>
+          {' '}
+          <Button asChild>
+            <Link to="/customer/book">
+              <PackagePlus className="mr-2 size-4" />
+              Book a Delivery
+            </Link>
+          </Button>{' '}
+        </>
+      }
+    >
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Quick Parcel Lookup</CardTitle>
@@ -114,7 +116,9 @@ function CustomerDashboardContent() {
             <Truck className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.totalCount ?? 0}</div>
+            <div className="text-2xl font-bold">
+              {data ? data.totalCount : '—'}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -125,7 +129,7 @@ function CustomerDashboardContent() {
             <MapPin className="size-4 text-sky-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeCount}</div>
+            <div className="text-2xl font-bold">{data ? activeCount : '—'}</div>
           </CardContent>
         </Card>
         <Card>
@@ -136,7 +140,9 @@ function CustomerDashboardContent() {
             <PackageCheck className="size-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{deliveredCount}</div>
+            <div className="text-2xl font-bold">
+              {data ? deliveredCount : '—'}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -169,7 +175,7 @@ function CustomerDashboardContent() {
               </AlertDescription>
             </Alert>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
+            <Card className="flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-center">
               <History className="size-8 text-muted-foreground" />
               <p className="mt-2 text-sm font-medium">No deliveries yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -178,7 +184,7 @@ function CustomerDashboardContent() {
               <Button className="mt-4" size="sm" asChild>
                 <Link to="/customer/book">Book a Delivery</Link>
               </Button>
-            </div>
+            </Card>
           ) : (
             <div className="divide-y">
               {items.map((parcel) => (
@@ -227,15 +233,20 @@ function CustomerDashboardContent() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePage>
   );
 }
 
 export function CustomerDashboardWorkspace() {
+  const { user } = useIdentity();
   return (
     <IdentityShell>
       <Protected>
-        <CustomerDashboardContent />
+        {user?.roles.includes('Customer') ? (
+          <CustomerDashboardContent />
+        ) : (
+          <RoleHome />
+        )}
       </Protected>
     </IdentityShell>
   );

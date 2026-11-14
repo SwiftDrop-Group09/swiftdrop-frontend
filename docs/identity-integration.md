@@ -64,9 +64,33 @@ remains responsible for atomic rotation and family revocation.
 
 ## Google integration
 
+Google script loading and the same-origin CSRF/nonce bootstrap are separate
+dependencies. Bootstrap errors retain their safe Identity error messages: an
+`audit_unavailable`/503 response reports temporary account-service unavailability,
+and `csrf_rejected` reports browser verification failure. Script downloads or
+timeouts report Google loading failure. Unexpected bootstrap JSON is rejected
+before sending credentials, and unknown server failures never expose raw bodies.
+Retry Google sign-in fetches a new bootstrap before enabling the provider control;
+failed initialization does not exchange a Google token or replay a mutation.
+
+For a local bootstrap returning `audit_unavailable`, check Identity `/ready` and
+the owning database migrations. The audit recorder must be available before
+authentication proceeds; Identity migration `004_actor_activity_audit` creates
+the required append-only table and grants runtime access. Use the infrastructure
+runner's explicit Identity migration command with migration credentials. Do not
+disable auditing or weaken CSRF checks to recover sign-in.
+
 Set public `VITE_GOOGLE_WEB_CLIENT_ID` to the Google Web OAuth client ID and
 configure its exact authorized JavaScript origin. Match that audience in
 Identity's allowlist. No Google client secret belongs in a Vite variable.
+
+The shared development runner forwards `VITE_GOOGLE_WEB_CLIENT_ID` to both the
+frontend and Identity's web audience list, unless `IDENTITY_GOOGLE_WEB_CLIENT_ID`
+explicitly overrides the server audience. Restart a running host stack after
+changing environment values. A missing/invalid server audience or a Google
+verification outage returns `google_unavailable`/503; invalid signatures, claims
+or nonce bindings continue to be rejected. Service outages do not automatically
+replay a Google login; a new user attempt obtains a fresh nonce.
 
 The official Google Identity Services script renders the provider sign-in
 control directly in the form, without an application dialog. Its supported
@@ -221,3 +245,36 @@ build. A Chromium regression against that build confirmed two Delivery 401s, a
 successful Identity refresh, a visible resource error and no dashboard-to-login
 redirect or page errors. Browser API responses were isolated fixtures. The
 backend and infra companion PRs add Delivery's real token verifier/configuration.
+
+### Startup and profile presentation
+
+Initial hydration and session restoration use a shared full-screen SwiftDrop
+loading view. `SessionReady` gates route rendering until verification completes;
+it does not restore cached roles or expose private pages before authentication.
+Signed-out users continue to the existing login/return-path behavior. No
+artificial loading delay or persisted account data is introduced. The loading
+indicator respects reduced-motion preferences and includes an accessible status.
+
+My profile uses responsive personal-detail and sign-in cards with a full-width
+workspace access section. Contact changes retain validation, reset/save feedback
+and account-scoped queries. Connected Google/password workflows are unchanged.
+
+Role and account-status review uses sequential modals. The editor finishes its
+close lifecycle before confirmation mounts. Cancelling closes confirmation
+before restoring the editor, preserving selected roles. No role/status mutation
+runs until Confirm change is explicitly selected; server rejection stays in the
+confirmation, and the editor choices remain available on cancel.
+
+## Single-role account contract
+
+Each account has exactly one role from Customer, Courier, Merchant, Dispatcher
+or Admin. The v1 `roles` field remains a singleton enum array for compatibility;
+empty/multiple/unknown roles are rejected before establishing a session. The
+role editor replaces one value through a dropdown; navigation must never union
+permissions across role assignments. Previously described combined-role examples
+are superseded by this contract. Multiple actor roles in historical audit records
+remain immutable snapshots, not current account permissions.
+
+Admin POST /api/v1/users accepts an optional role enum name (defaults to Customer)
+for tab-aware account creation. It is Admin-only and assigns exactly one role
+atomically. Public registration continues to assign Customer unconditionally.

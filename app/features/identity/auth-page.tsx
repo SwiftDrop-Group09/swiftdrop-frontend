@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { registrationSchema, loginSchema } from './contracts';
+import { safeReturnTo } from './route-access';
 import { safeError } from './components';
 import { GoogleButton } from './google-button';
 import { useIdentity } from './session';
@@ -33,6 +34,9 @@ export function AuthPage({ register = false }: { register?: boolean }) {
   const { user, restoring, session } = useIdentity();
   const navigate = useNavigate();
   const location = useLocation();
+  const returnTo = safeReturnTo(
+    (location.state as { returnTo?: unknown } | null)?.returnTo,
+  );
   const logoutNotice = z
     .object({ logoutError: z.string() })
     .safeParse(location.state);
@@ -56,7 +60,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
       confirmPassword: '',
     },
   });
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={returnTo} replace />;
   const pending = form.formState.isSubmitting || restoring || googleBusy;
   const submit = form.handleSubmit(async (values) => {
     setError(null);
@@ -71,7 +75,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         setRegistered(true);
       }
       await session.login(values.email, values.password);
-      await navigate('/dashboard', { replace: true });
+      await navigate(returnTo, { replace: true });
     } catch (cause) {
       setError(safeError(cause));
     } finally {
@@ -277,7 +281,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
               onToken={async (token) => {
                 setError(null);
                 await session.google(token);
-                await navigate('/dashboard', { replace: true });
+                await navigate(returnTo, { replace: true });
               }}
             />
             <FieldDescription className="text-center">

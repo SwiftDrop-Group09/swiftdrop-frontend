@@ -1,3 +1,9 @@
+import { AdminWorkspace } from '~/features/identity/admin-workspace';
+import { useIdentity } from '~/features/identity/session';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -6,7 +12,6 @@ import {
   Filter,
   Search,
   ShieldBan,
-  ShieldCheck,
   Store,
 } from 'lucide-react';
 import type {
@@ -77,6 +82,7 @@ function AdminStatusBadge({ status }: { status: BusinessStatus }) {
 }
 
 export function AdminMerchantsPage() {
+  const { user, restoring } = useIdentity();
   const api = useMerchantApi();
   const queryClient = useQueryClient();
 
@@ -95,8 +101,11 @@ export function AdminMerchantsPage() {
     data: merchants = [],
     isLoading,
     error,
+    refetch,
+    isFetching,
   } = useQuery<BusinessResponse[]>({
-    queryKey: ['admin-merchants'],
+    queryKey: ['admin-merchants', user?.id],
+    enabled: !restoring && !!user?.roles.includes('Admin'),
     queryFn: () => api.listMerchants(),
   });
 
@@ -175,25 +184,13 @@ export function AdminMerchantsPage() {
   return (
     <Protected admin={true}>
       <IdentityShell>
-        <div className="container max-w-6xl mx-auto py-8 px-4 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold tracking-tight">
-                  Merchant Approvals
-                </h1>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Review applicant merchants, grant shipping approvals, and manage
-                status transitions.
-              </p>
-            </div>
-          </div>
-
+        <AdminWorkspace
+          title="Merchant Approvals"
+          description="Review applicant merchants, grant shipping approvals, and manage status transitions."
+        >
           {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Card className="shadow-xs">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 lg:gap-4">
+            <Card>
               <CardHeader className="p-4 pb-2">
                 <CardDescription className="text-xs">
                   Total Registered
@@ -203,7 +200,7 @@ export function AdminMerchantsPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            <Card className="shadow-xs border-amber-200 bg-amber-50/50">
+            <Card className="border-border bg-muted/30">
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <CardDescription className="text-xs text-amber-800 font-medium">
@@ -216,7 +213,7 @@ export function AdminMerchantsPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            <Card className="shadow-xs border-emerald-200 bg-emerald-50/50">
+            <Card className="border-border bg-muted/30">
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <CardDescription className="text-xs text-emerald-800 font-medium">
@@ -229,7 +226,7 @@ export function AdminMerchantsPage() {
                 </CardTitle>
               </CardHeader>
             </Card>
-            <Card className="shadow-xs border-rose-200 bg-rose-50/50">
+            <Card className="border-border bg-muted/30">
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <CardDescription className="text-xs text-rose-800 font-medium">
@@ -256,7 +253,7 @@ export function AdminMerchantsPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Status:</span>
               {(
@@ -283,22 +280,23 @@ export function AdminMerchantsPage() {
           )}
 
           {/* Merchants Table */}
-          <Card className="shadow-sm">
+          <Card>
             <CardContent className="p-0">
               {isLoading ? (
-                <p className="p-6 text-sm text-muted-foreground">
-                  Loading merchants…
-                </p>
+                <div className="p-6">
+                  <WorkspaceLoading label="Loading merchants…" />
+                </div>
               ) : error ? (
                 <div className="p-6">
-                  <Alert variant="destructive">
-                    <AlertTitle>Failed to load merchants</AlertTitle>
-                    <AlertDescription>
-                      {error instanceof Error
-                        ? error.message
-                        : 'Please try again later.'}
-                    </AlertDescription>
-                  </Alert>
+                  <WorkspaceNotice
+                    title="Failed to load merchants"
+                    description="Merchant records could not be loaded. Check your connection and try again."
+                    destructive
+                    pending={isFetching}
+                    retry={() => {
+                      void refetch();
+                    }}
+                  />
                 </div>
               ) : filteredMerchants.length === 0 ? (
                 <div className="p-10 text-center text-muted-foreground">
@@ -484,7 +482,7 @@ export function AdminMerchantsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        </AdminWorkspace>
       </IdentityShell>
     </Protected>
   );

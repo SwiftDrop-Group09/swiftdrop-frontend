@@ -1,6 +1,8 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
+import { ThemeMenu } from '~/shared/components/theme-menu';
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { LogOut, Package2 } from 'lucide-react';
+import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -20,14 +22,29 @@ import {
   useSidebar,
 } from '~/shared/components/ui/sidebar';
 import { Separator } from '~/shared/components/ui/separator';
-import { Button } from '~/shared/components/ui/button';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '~/shared/components/ui/breadcrumb';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/shared/components/ui/dropdown-menu';
 import { useIdentity } from './session';
 import { IdentityError } from './api';
 import { getWorkspaceNavigation } from './workspace-navigation';
 
 function AccountSidebar() {
   const { user, session } = useIdentity();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, isMobile } = useSidebar();
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
@@ -39,12 +56,7 @@ function AccountSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link to="/dashboard" onClick={() => setOpenMobile(false)}>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Package2 className="size-5" aria-hidden="true" />
-                </span>
-                <span className="text-lg font-semibold tracking-tight">
-                  SwiftDrop
-                </span>
+                <BrandLogo />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -109,44 +121,80 @@ function AccountSidebar() {
           Items marked Soon will be available in a future update.
         </p>
       </SidebarContent>
-      <SidebarFooter className="gap-3 p-4">
-        <div className="min-w-0 rounded-lg border bg-background p-3">
-          <p className="truncate text-sm font-medium">{user!.fullName}</p>
-          <p
-            className="truncate text-xs text-muted-foreground"
-            title={user!.email}
-          >
-            {user!.email}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          className="justify-start"
-          disabled={signingOut}
-          onClick={() => {
-            setSigningOut(true);
-            void session
-              .logout()
-              .then(() => {
-                window.google?.accounts.id.disableAutoSelect();
-                return navigate('/login', { replace: true });
-              })
-              .catch((cause: unknown) =>
-                navigate('/login', {
-                  replace: true,
-                  state: {
-                    logoutError:
-                      cause instanceof IdentityError
-                        ? cause.message
-                        : 'Server logout could not be confirmed. You have been signed out on this page.',
-                  },
-                }),
-              );
-          }}
-        >
-          <LogOut aria-hidden="true" />
-          {signingOut ? 'Signing out…' : 'Sign out'}
-        </Button>
+      <SidebarFooter className="mt-auto p-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  aria-label="Open account menu"
+                  disabled={signingOut}
+                >
+                  <UserRound aria-hidden="true" />
+                  <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {user!.fullName}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {user!.email}
+                    </span>
+                  </span>
+                  <ChevronsUpDown className="ml-auto" aria-hidden="true" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side={isMobile ? 'top' : 'right'}
+                align="end"
+                sideOffset={8}
+                className="w-64 max-w-[calc(100vw-2rem)]"
+              >
+                <DropdownMenuLabel className="grid gap-1">
+                  <span className="truncate">{user!.fullName}</span>
+                  <span className="truncate text-xs font-normal text-muted-foreground">
+                    {user!.roles.join(', ') || 'Account'}
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" onClick={() => setOpenMobile(false)}>
+                    <UserRound aria-hidden="true" />
+                    My profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <ThemeMenu />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={signingOut}
+                  onSelect={() => {
+                    setSigningOut(true);
+                    void session
+                      .logout()
+                      .then(() => {
+                        window.google?.accounts.id.disableAutoSelect();
+                        return navigate('/login', { replace: true });
+                      })
+                      .catch((cause: unknown) =>
+                        navigate('/login', {
+                          replace: true,
+                          state: {
+                            logoutError:
+                              cause instanceof IdentityError
+                                ? cause.message
+                                : 'Server logout could not be confirmed. You have been signed out on this page.',
+                          },
+                        }),
+                      );
+                  }}
+                >
+                  <LogOut aria-hidden="true" />
+                  {signingOut ? 'Signing out…' : 'Sign out'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
@@ -155,6 +203,44 @@ function AccountSidebar() {
 // dashboard-01's sidebar/inset composition, with all demo content removed.
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const adminPage =
+    {
+      '/admin/users': 'Users',
+      '/admin/audit': 'Audit log',
+      '/admin/merchants': 'Merchant approvals',
+      '/admin/zones': 'Delivery zones',
+      '/admin/pricing': 'Pricing tiers',
+      '/admin/reports': 'Delivery reports',
+      '/dispatch/zones': 'Zone summary',
+      '/dispatch/parcels': 'Parcel tracking & history',
+      '/401': 'Sign in required',
+      '/403': 'Access denied',
+      '/customer/book': 'Book a delivery',
+      '/customer/tracking': 'Track a parcel',
+      '/customer/history': 'Delivery history',
+      '/customer/receipts': 'Receipts',
+      '/courier': 'Assigned deliveries',
+      '/courier/history': 'Delivery history',
+      '/merchant': 'Business and API keys',
+      '/merchant/webhooks': 'Webhooks',
+      '/profile': 'My profile',
+    }[pathname] ??
+    (/^\/(customer|dispatch)\/parcels\/[^/]+(?:\/receipt)?\/?$/.test(pathname)
+      ? pathname.endsWith('/receipt')
+        ? 'Parcel receipt'
+        : 'Parcel tracking'
+      : undefined);
+  const sectionName = pathname.startsWith('/admin/')
+    ? 'Administration'
+    : pathname.startsWith('/dispatch/')
+      ? 'Dispatch'
+      : pathname.startsWith('/customer/')
+        ? 'Customer'
+        : pathname.startsWith('/courier')
+          ? 'Courier'
+          : pathname.startsWith('/merchant')
+            ? 'Merchant'
+            : 'Account';
   const title =
     pathname === '/profile'
       ? 'Account'
@@ -166,14 +252,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             ? 'Courier deliveries'
             : 'Dashboard';
   return (
-    <SidebarProvider
-      style={
-        {
-          '--sidebar-width': '17rem',
-          '--header-height': '3.5rem',
-        } as React.CSSProperties
-      }
-    >
+    <SidebarProvider className="[--sidebar-width:17rem] [--header-height:3.5rem]">
       <a
         href="#main-content"
         className="sr-only z-50 rounded-md bg-background p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -182,11 +261,29 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </a>
       <AccountSidebar />
       <SidebarInset className="min-w-0">
-        <header className="flex h-(--header-height) shrink-0 items-center gap-3 border-b px-4 lg:px-6">
+        <header className="sticky top-0 z-20 flex h-(--header-height) shrink-0 items-center gap-3 border-b bg-background px-4 lg:px-6">
           <SidebarTrigger />
           <Separator orientation="vertical" className="!h-4" />
-          {pathname === '/dashboard' ? (
-            <h1 className="text-sm font-medium">{title}</h1>
+          {adminPage ? (
+            <Breadcrumb>
+              <BreadcrumbList className="flex-nowrap">
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  <BreadcrumbLink asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:block" />
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  {sectionName}
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{adminPage}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          ) : pathname === '/dashboard' ? (
+            <p className="text-sm font-medium">{title}</p>
           ) : (
             <p className="text-sm font-medium">{title}</p>
           )}

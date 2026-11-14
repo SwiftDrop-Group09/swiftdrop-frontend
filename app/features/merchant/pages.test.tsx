@@ -111,6 +111,7 @@ function setupMount(
     [
       { path: '/merchant', element: <MerchantPortalPage /> },
       { path: '/admin/merchants', element: <AdminMerchantsPage /> },
+      { path: '/403', element: <h1>Access denied</h1> },
     ],
     { initialEntries: [initialPath] },
   );
@@ -277,12 +278,17 @@ describe('Merchant Portal Screens', () => {
       await screen.findByText(/Generate New API Key/i),
     ).toBeInTheDocument();
 
-    const scopeCheckbox = screen.getByRole<HTMLInputElement>('checkbox', {
+    const scopeCheckbox = screen.getByRole('checkbox', {
       name: /orders:write/i,
     });
-    if (!scopeCheckbox.checked) {
+    if (scopeCheckbox.getAttribute('aria-checked') !== 'true') {
       await user.click(scopeCheckbox);
     }
+    expect(scopeCheckbox).toBeChecked();
+    await user.click(scopeCheckbox);
+    expect(scopeCheckbox).not.toBeChecked();
+    await user.click(scopeCheckbox);
+    expect(scopeCheckbox).toBeChecked();
 
     const submitCreate = screen.getByRole('button', { name: /^Create Key$/i });
     await user.click(submitCreate);
@@ -354,9 +360,7 @@ describe('Admin Merchant Approvals Screens', () => {
     setupMount('/admin/merchants', customer);
 
     expect(
-      await screen.findByText(
-        /You do not have permission to view user administration/i,
-      ),
+      await screen.findByRole('heading', { name: 'Access denied' }),
     ).toBeInTheDocument();
   });
 

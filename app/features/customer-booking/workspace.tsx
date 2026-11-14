@@ -12,7 +12,7 @@ function SignedInBooking() {
 export function CustomerBookingWorkspace() {
   return (
     <IdentityShell>
-      <Protected>
+      <Protected roles={['Customer']}>
         <SignedInBooking />
       </Protected>
     </IdentityShell>

@@ -1,6 +1,7 @@
+import { BrandLogo } from '~/shared/components/brand-logo';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeft, Clock, MapPin, Search, Truck } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Search } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -41,8 +42,7 @@ export function PublicTrackingPage() {
             to="/"
             className="flex items-center gap-2 font-bold tracking-tight"
           >
-            <Truck className="size-5 text-primary" />
-            <span>SwiftDrop</span>
+            <BrandLogo />
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/dashboard">

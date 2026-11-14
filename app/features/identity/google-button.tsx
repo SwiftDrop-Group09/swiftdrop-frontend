@@ -4,7 +4,6 @@ import { LoaderCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { IdentityError } from './api';
 import { useIdentity } from './session';
-import './google-button.css';
 
 type GoogleSdk = {
   initialize(options: {
@@ -36,7 +35,7 @@ declare global {
 }
 let loading: Promise<GoogleSdk> | null = null;
 export function loadGoogleSdk(): Promise<GoogleSdk> {
-  if (window.google?.accounts.id)
+  if (window.google?.accounts?.id)
     return Promise.resolve(window.google.accounts.id);
   loading ??= new Promise<GoogleSdk>((resolve, reject) => {
     const script = document.createElement('script');
@@ -45,21 +44,22 @@ export function loadGoogleSdk(): Promise<GoogleSdk> {
     const timer = window.setTimeout(() => {
       loading = null;
       script.remove();
-      reject(new IdentityError('google_unavailable'));
+      reject(new IdentityError('google_sdk_unavailable'));
     }, 15_000);
     script.onload = () => {
       window.clearTimeout(timer);
-      if (window.google?.accounts.id) resolve(window.google.accounts.id);
+      if (window.google?.accounts?.id) resolve(window.google.accounts.id);
       else {
         loading = null;
-        reject(new IdentityError('google_unavailable'));
+        script.remove();
+        reject(new IdentityError('google_sdk_unavailable'));
       }
     };
     script.onerror = () => {
       window.clearTimeout(timer);
       loading = null;
       script.remove();
-      reject(new IdentityError('google_unavailable'));
+      reject(new IdentityError('google_sdk_unavailable'));
     };
     document.head.append(script);
   });
@@ -162,11 +162,15 @@ export function GoogleButton({
         observer.observe(element);
         setReady(true);
       })
-      .catch(() => {
-        if (mounted)
+      .catch((cause: unknown) => {
+        if (mounted) {
+          setReady(false);
           setError(
-            'Google sign-in could not load. Check your connection and try again.',
+            cause instanceof IdentityError
+              ? cause.message
+              : 'Google sign-in could not be initialized. Please try again.',
           );
+        }
       });
     return () => {
       mounted = false;
@@ -193,7 +197,7 @@ export function GoogleButton({
             </p>
           )}
           <div
-            className="google-sign-in"
+            className="mx-auto flex min-h-10 w-full min-w-0 max-w-100 justify-center rounded-md scheme-light focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[disabled=true]:opacity-50"
             ref={container}
             inert={disabled || busy}
             data-disabled={disabled || busy}

@@ -1,19 +1,47 @@
-import { Checkbox } from '~/shared/components/ui/checkbox';
-import { Badge } from '~/shared/components/ui/badge';
-import { Label } from '~/shared/components/ui/label';
-import { Alert } from '~/shared/components/ui/alert';
-import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
-import { adminInputSchema, roles } from './contracts';
-import type { AdminInput, Profile } from './contracts';
-import { FieldError, IdentityShell, Protected, safeError } from './components';
+import { useRef, useState } from 'react';
+import { Link, Navigate, useLocation } from 'react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  MoreHorizontal,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserRound,
+  Users,
+} from 'lucide-react';
+import type { Profile } from './contracts';
+import { IdentityShell, Protected, safeError } from './components';
 import { useIdentity } from './session';
+import { AdminWorkspace } from './admin-workspace';
+import { AccountEditor, AccessEditor } from './user-dialogs';
+import {
+  WorkspaceLoading,
+  WorkspaceNotice,
+} from '~/shared/components/workspace-state';
 import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Card } from '~/shared/components/ui/card';
+import { Badge } from '~/shared/components/ui/badge';
+import { Avatar, AvatarFallback } from '~/shared/components/ui/avatar';
+import { Label } from '~/shared/components/ui/label';
+import { Alert } from '~/shared/components/ui/alert';
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '~/shared/components/ui/native-select';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '~/shared/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '~/shared/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -39,547 +67,416 @@ export function Pagination({
       className="flex flex-wrap items-center justify-between gap-3"
       aria-label="Pagination"
     >
-      <Button disabled={page === 1 || pending} onClick={() => change(page - 1)}>
-        Previous
-      </Button>
-      <span>
-        Page {page} · {total} records
-      </span>
-      <Button
-        disabled={page * 20 >= total || pending}
-        onClick={() => change(page + 1)}
-      >
-        Next
-      </Button>
+      <p className="text-sm text-muted-foreground">
+        Page {page} · {total} {total === 1 ? 'record' : 'records'}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page === 1 || pending}
+          onClick={() => change(page - 1)}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page * 20 >= total || pending}
+          onClick={() => change(page + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </nav>
   );
 }
-const createSchema = adminInputSchema.extend({
-  password: z.string().min(12, 'Use at least 12 characters.').max(128),
-});
-type CreateInput = z.infer<typeof createSchema>;
-function CreateUser({ created }: { created: (user: Profile) => void }) {
-  const { session } = useIdentity();
-  const [confirm, setConfirm] = useState(false);
-  const [reveal, setReveal] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const form = useForm<CreateInput>({
-    resolver: zodResolver(createSchema),
-    defaultValues: { email: '', fullName: '', isActive: true, password: '' },
-  });
-  const mutation = useMutation({
-    mutationFn: () => {
-      const input = form.getValues();
-      return session.authorized((token) =>
-        session.api.createUser(token, input),
-      );
-    },
-    onSuccess: (profile) => {
-      created(profile);
-      form.reset();
-      setNotice(
-        'Account created. Assign any additional roles from its account details.',
-      );
-    },
-  });
-  const submit = form.handleSubmit(async () => {
-    if (!confirm) {
-      setConfirm(true);
-      return;
-    }
-    setNotice(null);
-    try {
-      await mutation.mutateAsync();
-    } catch {
-      /* Safe error below; mutations are never retried automatically. */
-    } finally {
-      form.resetField('password');
-      setReveal(false);
-      setConfirm(false);
-    }
-  });
-  return (
-    <section>
-      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
-        <h2 className="text-xl font-semibold tracking-tight">
-          Create user account
-        </h2>
-        <p>
-          Generate a unique password and share it privately. The password is
-          cleared after submission and cannot be retrieved later.
-        </p>
-        <form
-          className="grid gap-5"
-          onSubmit={(event) => {
-            void submit(event);
-          }}
-          onChange={() => setConfirm(false)}
-          noValidate
-        >
-          <Label className="grid gap-2">
-            Email
-            <Input
-              type="email"
-              autoComplete="off"
-              {...form.register('email')}
-            />
-            <FieldError message={form.formState.errors.email?.message} />
-          </Label>
-          <Label className="grid gap-2">
-            Full name
-            <Input autoComplete="off" {...form.register('fullName')} />
-            <FieldError message={form.formState.errors.fullName?.message} />
-          </Label>
-          <Label className="flex items-center gap-2">
-            <Controller
-              name="isActive"
-              control={form.control}
-              render={({ field }) => (
-                <Checkbox
-                  ref={field.ref}
-                  name={field.name}
-                  checked={field.value}
-                  onBlur={field.onBlur}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked === true);
-                    setConfirm(false);
-                  }}
-                />
-              )}
-            />
-            Account active
-          </Label>
-          <Label className="grid gap-2">
-            Initial password
-            <Input
-              type={reveal ? 'text' : 'password'}
-              autoComplete="new-password"
-              {...form.register('password')}
-            />
-            <FieldError message={form.formState.errors.password?.message} />
-          </Label>
-          <div>
-            <Button
-              type="button"
-              disabled={mutation.isPending}
-              onClick={() => {
-                const bytes = crypto.getRandomValues(new Uint8Array(24));
-                form.setValue(
-                  'password',
-                  btoa(String.fromCharCode(...bytes))
-                    .replaceAll('+', '-')
-                    .replaceAll('/', '_'),
-                  { shouldValidate: true },
-                );
-                setConfirm(false);
-              }}
-            >
-              Generate password
-            </Button>
-            <Button type="button" onClick={() => setReveal((value) => !value)}>
-              {reveal ? 'Hide password' : 'Show password'}
-            </Button>
-          </div>
-          {confirm && (
-            <Alert role="status">
-              Confirm creating this account. Make sure its initial password has
-              been shared privately.
-            </Alert>
-          )}
-          <Button disabled={mutation.isPending}>
-            {mutation.isPending
-              ? 'Creating…'
-              : confirm
-                ? 'Confirm create account'
-                : 'Review new account'}
-          </Button>
-        </form>
-        {mutation.error && (
-          <>
-            <Alert variant="destructive">{safeError(mutation.error)}</Alert>
-            <p>
-              Reload the user list before repeating a request whose outcome is
-              uncertain.
-            </p>
-          </>
-        )}
-        {notice && <Alert role="status">{notice}</Alert>}
-      </Card>
-    </section>
-  );
-}
-function UserEditor({
-  profile,
-  updated,
-}: {
-  profile: Profile;
-  updated: (user: Profile) => void;
-}) {
-  const { session, user } = useIdentity();
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(profile.roles);
-  const [confirmation, setConfirmation] = useState<{
-    title: string;
-    execute: () => Promise<unknown>;
-  } | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const form = useForm<AdminInput>({
-    resolver: zodResolver(adminInputSchema),
-    defaultValues: {
-      email: profile.email,
-      fullName: profile.fullName,
-      isActive: profile.isActive,
-    },
-  });
-  const mutation = useMutation({
-    mutationFn: async (execute: () => Promise<unknown>) => execute(),
-    onSuccess: () => {
-      setNotice('Account change saved.');
-      setConfirmation(null);
-    },
-  });
-  async function receive(result: Profile, refreshSelf = false) {
-    form.reset({
-      email: result.email,
-      fullName: result.fullName,
-      isActive: result.isActive,
-    });
-    setSelectedRoles(result.roles);
-    updated(result);
-    if (result.id === user!.id) {
-      session.updateUser(result);
-      if (refreshSelf) {
-        try {
-          await session.refresh();
-        } catch {
-          /* The server accepted the change; an inactive account is now signed out. */
-        }
-      }
-    }
-  }
-  const submit = form.handleSubmit((values) => {
-    setNotice(null);
-    setConfirmation({
-      title: `Save account details for ${profile.email}?`,
-      execute: async () =>
-        receive(
-          await session.authorized((token) =>
-            session.api.updateUser(token, profile.id, values),
-          ),
-          values.isActive !== profile.isActive,
-        ),
-    });
-  });
-  return (
-    <section>
-      <Card className="mx-auto w-full max-w-2xl space-y-5 p-6">
-        <h2 className="text-xl font-semibold tracking-tight">
-          Edit {profile.fullName}
-        </h2>
-        <p className="break-all text-xs text-muted-foreground">
-          Account ID: {profile.id}
-        </p>
-        <form
-          className="grid gap-5"
-          onSubmit={(event) => {
-            void submit(event);
-          }}
-          onChange={() => setConfirmation(null)}
-          noValidate
-        >
-          <Label className="grid gap-2">
-            Email
-            <Input type="email" {...form.register('email')} />
-            <FieldError message={form.formState.errors.email?.message} />
-          </Label>
-          <Label className="grid gap-2">
-            Full name
-            <Input {...form.register('fullName')} />
-            <FieldError message={form.formState.errors.fullName?.message} />
-          </Label>
-          <Label className="flex items-center gap-2">
-            <Controller
-              name="isActive"
-              control={form.control}
-              render={({ field }) => (
-                <Checkbox
-                  ref={field.ref}
-                  name={field.name}
-                  checked={field.value}
-                  onBlur={field.onBlur}
-                  onCheckedChange={(checked) => {
-                    field.onChange(checked === true);
-                    setConfirmation(null);
-                  }}
-                />
-              )}
-            />
-            Account active
-          </Label>
-          <Button disabled={mutation.isPending}>Review account change</Button>
-        </form>
-        <fieldset
-          className="grid gap-3 rounded-lg border p-4"
-          disabled={mutation.isPending}
-        >
-          <legend className="px-1 text-sm font-medium">Assigned roles</legend>
-          {roles.map((role) => (
-            <Label key={role} className="flex items-center gap-2">
-              <Checkbox
-                checked={selectedRoles.includes(role)}
-                onCheckedChange={(checked) => {
-                  setConfirmation(null);
-                  setSelectedRoles((current) =>
-                    checked === true
-                      ? [...current, role]
-                      : current.filter((value) => value !== role),
-                  );
-                }}
-              />
-              {role}
-            </Label>
-          ))}
-        </fieldset>
-        <Button
-          disabled={mutation.isPending}
-          onClick={() => {
-            setNotice(null);
-            setConfirmation({
-              title: `Replace roles for ${profile.email} with ${selectedRoles.join(', ') || 'no roles'}?`,
-              execute: async () =>
-                receive(
-                  await session.authorized((token) =>
-                    session.api.setRoles(token, profile.id, selectedRoles),
-                  ),
-                  true,
-                ),
-            });
-          }}
-        >
-          Review role changes
-        </Button>
-        <Button
-          variant="destructive"
-          disabled={mutation.isPending || !profile.isActive}
-          onClick={() => {
-            setNotice(null);
-            setConfirmation({
-              title: `Deactivate ${profile.email}? New sign-ins and refreshes will be denied. Existing access tokens may remain valid for 900 seconds plus 30 seconds of clock skew.`,
-              execute: async () => {
-                await session.authorized((token) =>
-                  session.api.deactivate(token, profile.id),
-                );
-                await receive({ ...profile, isActive: false }, true);
-              },
-            });
-          }}
-        >
-          Deactivate account
-        </Button>
-        {confirmation && (
-          <div
-            role="group"
-            aria-labelledby="confirm-title"
-            className="space-y-4 rounded-lg border bg-muted/50 p-4"
-          >
-            <h3 className="font-semibold" id="confirm-title">
-              {confirmation.title}
-            </h3>
-            <Button
-              disabled={mutation.isPending}
-              onClick={() => {
-                void mutation.mutateAsync(confirmation.execute).catch(() => {});
-              }}
-            >
-              {mutation.isPending ? 'Saving…' : 'Confirm change'}
-            </Button>
-            <Button
-              disabled={mutation.isPending}
-              onClick={() => setConfirmation(null)}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-        {mutation.error && (
-          <Alert variant="destructive">{safeError(mutation.error)}</Alert>
-        )}
-        {notice && <Alert role="status">{notice}</Alert>}
-      </Card>
-    </section>
-  );
-}
+
+type Editor =
+  | { kind: 'account' | 'roles' | 'status'; profile: Profile }
+  | { kind: 'create'; role: Profile['roles'][number] };
+type RoleFilter = Profile['roles'][number] | 'all';
+const roleViews: { value: RoleFilter; label: string }[] = [
+  { value: 'Customer', label: 'Customers' },
+  { value: 'Courier', label: 'Couriers' },
+  { value: 'Merchant', label: 'Merchants' },
+  { value: 'Dispatcher', label: 'Dispatchers' },
+  { value: 'Admin', label: 'Admins' },
+  { value: 'all', label: 'All users' },
+];
+
 function AdminContent() {
-  const { session } = useIdentity();
+  const { session, user } = useIdentity();
   const queries = useQueryClient();
+  const [role, setRole] = useState<RoleFilter>('Customer');
+  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [auditPage, setAuditPage] = useState(1);
-  const [selected, setSelected] = useState<Profile | null>(null);
-  const [showAudit, setShowAudit] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const lastAction = useRef<HTMLButtonElement | null>(null);
+  const filters = {
+    role: role === 'all' ? undefined : role,
+    status: status || undefined,
+    search: appliedSearch || undefined,
+  };
   const users = useQuery({
-    queryKey: ['identity', 'users', page],
+    queryKey: ['identity', 'users', user?.id, filters, page],
     queryFn: () =>
-      session.authorized((token) => session.api.users(token, page)),
+      session.authorized((token) => session.api.users(token, page, filters)),
+    retry: false,
   });
-  const audit = useQuery({
-    queryKey: ['identity', 'audit', auditPage],
-    queryFn: () =>
-      session.authorized((token) => session.api.audit(token, auditPage)),
-    enabled: showAudit,
-  });
+  const close = () => {
+    setEditor(null);
+    requestAnimationFrame(() =>
+      (lastAction.current?.isConnected
+        ? lastAction.current
+        : addButton.current
+      )?.focus(),
+    );
+  };
+  const saved = (_profile: Profile, message: string) => {
+    close();
+    setNotice(message);
+    void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
+    void queries.invalidateQueries({ queryKey: ['system-audit'] });
+  };
+  const clear = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setStatus('');
+    setPage(1);
+  };
   return (
     <>
-      <section>
-        <Card className="min-w-0 space-y-5 p-6">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            User administration
-          </h1>
-          <p>
-            Manage account status and roles. Every change is checked and audited
-            by the server.
-          </p>
-          {users.isPending ? (
-            <Alert role="status">Loading users…</Alert>
-          ) : users.error ? (
-            <Alert variant="destructive">{safeError(users.error)}</Alert>
-          ) : (
-            <>
-              <div className="min-w-0">
-                <Table>
-                  <caption className="mb-3 text-left text-sm text-muted-foreground">
-                    User accounts
-                  </caption>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Roles</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.data.items.map((profile) => (
-                      <TableRow key={profile.id}>
-                        <TableCell>{profile.fullName}</TableCell>
-                        <TableCell>{profile.email}</TableCell>
-                        <TableCell>
-                          {profile.roles.join(', ') || 'None'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={profile.isActive ? 'default' : 'secondary'}
-                          >
-                            {profile.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button onClick={() => setSelected(profile)}>
-                            Edit {profile.email}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {users.data.items.length === 0 && (
-                <p>No user accounts on this page.</p>
-              )}
-              <Pagination
-                page={page}
-                total={users.data.totalCount}
-                pending={users.isFetching}
-                change={setPage}
-              />
-            </>
-          )}
-        </Card>
-      </section>
-      <CreateUser
-        created={(profile) => {
-          setSelected(profile);
-          void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
-          void queries.invalidateQueries({ queryKey: ['identity', 'audit'] });
-        }}
-      />
-      {selected && (
-        <UserEditor
-          key={selected.id}
-          profile={selected}
-          updated={(profile) => {
-            setSelected(profile);
-            void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
-            void queries.invalidateQueries({ queryKey: ['identity', 'audit'] });
+      {notice && <Alert role="status">{notice}</Alert>}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-muted p-3">
+            <Users className="size-5" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">People & access</h2>
+            <p className="text-sm text-muted-foreground">
+              Manage customers first, then your delivery team and business
+              accounts.
+            </p>
+          </div>
+        </div>
+        <Button
+          ref={addButton}
+          onClick={() => {
+            lastAction.current = null;
+            setEditor({
+              kind: 'create',
+              role: role === 'all' ? 'Customer' : role,
+            });
           }}
+        >
+          <Plus />
+          {role === 'all' ? 'Add user' : `Add ${role.toLowerCase()}`}
+        </Button>
+      </div>
+      <Tabs
+        value={role}
+        onValueChange={(value) => {
+          setRole(value as RoleFilter);
+          setPage(1);
+        }}
+      >
+        <div className="min-w-0 overflow-x-auto pb-1">
+          <TabsList aria-label="User roles">
+            {roleViews.map((view) => (
+              <TabsTrigger key={view.value} value={view.value}>
+                {view.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+        <Card className="space-y-5 p-4 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <form
+              className="flex min-w-0 flex-1 gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setAppliedSearch(search.trim());
+                setPage(1);
+              }}
+            >
+              <Label className="grid w-full max-w-md gap-2">
+                Search users
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    value={search}
+                    maxLength={200}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search name or email"
+                  />
+                </div>
+              </Label>
+              <Button className="self-end" type="submit" variant="outline">
+                Search
+              </Button>
+            </form>
+            <div className="flex items-end gap-2">
+              <Label className="grid w-44 gap-2">
+                Account status
+                <NativeSelect
+                  value={status}
+                  onChange={(event) => {
+                    setStatus(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <NativeSelectOption value="">All statuses</NativeSelectOption>
+                  <NativeSelectOption value="active">Active</NativeSelectOption>
+                  <NativeSelectOption value="inactive">
+                    Inactive
+                  </NativeSelectOption>
+                </NativeSelect>
+              </Label>
+              {(search || appliedSearch || status) && (
+                <Button variant="ghost" onClick={clear}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
+          {roleViews.map((view) => (
+            <TabsContent
+              key={view.value}
+              value={view.value}
+              className="space-y-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 font-medium">
+                  {view.label}
+                  {users.data && (
+                    <Badge variant="secondary">{users.data.totalCount}</Badge>
+                  )}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Users with multiple roles appear in each relevant group.
+                </p>
+              </div>
+              {users.isPending ? (
+                <WorkspaceLoading label="Loading users…" />
+              ) : users.error ? (
+                <WorkspaceNotice
+                  title="Unable to load users"
+                  description={safeError(users.error)}
+                  destructive
+                  pending={users.isFetching}
+                  retry={() => {
+                    void users.refetch();
+                  }}
+                />
+              ) : (
+                <>
+                  {users.data.items.length ? (
+                    <Table>
+                      <caption className="sr-only">
+                        {view.label} accounts
+                      </caption>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">
+                            <span className="sr-only">Actions</span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.data.items.map((profile) => (
+                          <TableRow key={profile.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="hidden size-9 sm:flex">
+                                  <AvatarFallback>
+                                    {profile.fullName
+                                      .split(/\s+/)
+                                      .slice(0, 2)
+                                      .map((part) => part[0])
+                                      .join('')
+                                      .toUpperCase() || <UserRound />}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">
+                                      {profile.fullName}
+                                    </span>
+                                    {profile.id === user?.id && (
+                                      <Badge variant="outline">You</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {profile.email}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex max-w-60 flex-wrap gap-1">
+                                {profile.roles.length ? (
+                                  profile.roles.map((assigned) => (
+                                    <Badge key={assigned} variant="outline">
+                                      {assigned === 'Admin' && (
+                                        <ShieldCheck className="size-3" />
+                                      )}
+                                      {assigned}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    No roles
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  profile.isActive ? 'secondary' : 'outline'
+                                }
+                              >
+                                {profile.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Actions for ${profile.email}`}
+                                    onPointerDown={(event) => {
+                                      lastAction.current = event.currentTarget;
+                                    }}
+                                    onKeyDown={(event) => {
+                                      lastAction.current = event.currentTarget;
+                                    }}
+                                  >
+                                    <MoreHorizontal />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onSelect={() =>
+                                      setEditor({ kind: 'account', profile })
+                                    }
+                                  >
+                                    Edit account
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onSelect={() =>
+                                      setEditor({ kind: 'roles', profile })
+                                    }
+                                  >
+                                    Manage role
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    variant={
+                                      profile.isActive
+                                        ? 'destructive'
+                                        : 'default'
+                                    }
+                                    onSelect={() =>
+                                      setEditor({ kind: 'status', profile })
+                                    }
+                                  >
+                                    {profile.isActive
+                                      ? 'Deactivate'
+                                      : 'Reactivate'}{' '}
+                                    account
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-12 text-center">
+                      <Users className="mb-1 size-7 text-muted-foreground" />
+                      <p className="font-medium">
+                        No {view.label.toLowerCase()} found
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {appliedSearch || status
+                          ? 'Try another search or clear your filters.'
+                          : view.value === 'Customer'
+                            ? 'Add a customer to get started.'
+                            : 'Users will appear here when this role is assigned.'}
+                      </p>
+                      {(appliedSearch || status) && (
+                        <Button variant="outline" size="sm" onClick={clear}>
+                          Clear filters
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <Pagination
+                    page={page}
+                    total={users.data.totalCount}
+                    pending={users.isFetching}
+                    change={setPage}
+                  />
+                </>
+              )}
+            </TabsContent>
+          ))}
+        </Card>
+      </Tabs>
+      {editor?.kind === 'create' && (
+        <AccountEditor saved={saved} close={close} initialRole={editor.role} />
+      )}
+      {editor?.kind === 'account' && (
+        <AccountEditor
+          key={editor.profile.id}
+          profile={editor.profile}
+          saved={saved}
+          close={close}
         />
       )}
-      <section id="identity-audit" tabIndex={-1}>
-        <Card className="min-w-0 space-y-5 p-6">
-          <h2 className="text-xl font-semibold tracking-tight">
-            Identity audit log
-          </h2>
-          <Button onClick={() => setShowAudit((value) => !value)}>
-            {showAudit ? 'Hide audit log' : 'View audit log'}
-          </Button>
-          {showAudit &&
-            (audit.isPending ? (
-              <Alert role="status">Loading audit log…</Alert>
-            ) : audit.error ? (
-              <Alert variant="destructive">{safeError(audit.error)}</Alert>
-            ) : (
-              <>
-                <div className="min-w-0">
-                  <Table>
-                    <caption className="mb-3 text-left text-sm text-muted-foreground">
-                      Identity audit records · UTC timestamps
-                    </caption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Actor</TableHead>
-                        <TableHead>Resource</TableHead>
-                        <TableHead>Result</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {audit.data.items.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>{record.timestamp}</TableCell>
-                          <TableCell>{record.action}</TableCell>
-                          <TableCell className="break-all text-xs text-muted-foreground">
-                            {record.actorId ?? 'Anonymous'}
-                          </TableCell>
-                          <TableCell className="break-all text-xs text-muted-foreground">
-                            {record.resourceId ?? '—'}
-                          </TableCell>
-                          <TableCell>{record.resultCode}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {audit.data.items.length === 0 && (
-                  <p>No audit records on this page.</p>
-                )}
-                <Pagination
-                  page={auditPage}
-                  total={audit.data.totalCount}
-                  pending={audit.isFetching}
-                  change={setAuditPage}
-                />
-              </>
-            ))}
-        </Card>
-      </section>
+      {editor && (editor.kind === 'roles' || editor.kind === 'status') && (
+        <AccessEditor
+          key={`${editor.profile.id}:${editor.kind}`}
+          profile={editor.profile}
+          kind={editor.kind}
+          saved={saved}
+          close={close}
+        />
+      )}
     </>
   );
 }
+
 export function AdminPage() {
+  const { hash } = useLocation();
+  if (hash === '#identity-audit') return <Navigate to="/admin/audit" replace />;
   return (
     <IdentityShell>
       <Protected admin>
-        <AdminContent />
+        <AdminWorkspace
+          title="User management"
+          description="Customer accounts, team roles and access in one place."
+          actions={
+            <Button asChild variant="outline">
+              <Link to="/admin/audit">Audit log</Link>
+            </Button>
+          }
+        >
+          <AdminContent />
+        </AdminWorkspace>
       </Protected>
     </IdentityShell>
   );

@@ -3,6 +3,15 @@ import { IdentityApi, IdentityError } from './api';
 import { csrf, customer, json, pair } from './test-fixtures';
 
 describe('browser Identity API', () => {
+  it('explains outdated filter APIs without silently returning unfiltered users', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ code: 'validation_failed' }, 400));
+    await expect(
+      new IdentityApi(fetcher).users('token', 1, { role: 'Customer' }),
+    ).rejects.toThrow('Restart the backend');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('bootstraps CSRF and uses cookie refresh without any JSON token', async () => {
     const fetcher = vi
       .fn<typeof fetch>()
@@ -103,7 +112,7 @@ describe('browser Identity API', () => {
     ).rejects.toThrow('Sign-in failed');
     fetcher.mockRejectedValue(new Error('secret-network-error'));
     await expect(new IdentityApi(fetcher).bootstrap()).rejects.toThrow(
-      'The request could not be completed',
+      'Unable to reach SwiftDrop',
     );
   });
   it('bounds UTF-8 request bodies before network mutation', async () => {
@@ -116,6 +125,84 @@ describe('browser Identity API', () => {
       }),
     ).rejects.toBeInstanceOf(IdentityError);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('preserves an audit outage and recovers bootstrap only on an explicit retry', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        json(
+          { code: 'audit_unavailable', detail: 'private database detail' },
+          503,
+        ),
+      )
+      .mockResolvedValueOnce(json(csrf))
+      .mockResolvedValueOnce(json(pair()));
+    const api = new IdentityApi(fetcher);
+    await expect(
+      api.login(customer.email, 'private-password'),
+    ).rejects.toMatchObject({
+      code: 'audit_unavailable',
+      status: 503,
+      message:
+        'Account services are temporarily unavailable. Please try again later.',
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]![1]!.method).toBe('GET');
+    await api.login(customer.email, 'private-password');
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/auth/csrf',
+      '/api/v1/auth/csrf',
+      '/api/v1/auth/login',
+    ]);
+    expect(fetcher.mock.calls[2]![1]!.headers).toMatchObject({
+      'X-CSRF-Token': csrf.csrfToken,
+    });
+  });
+  it.each([
+    [503, 'Account services are temporarily unavailable.'],
+    [502, 'Account services are temporarily unavailable.'],
+    [429, 'Too many attempts.'],
+    [504, 'The request timed out.'],
+  ])(
+    'handles a non-JSON HTTP %s error without blaming the connection or exposing the body',
+    async (status, message) => {
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response('private-proxy-error', { status }));
+      await expect(new IdentityApi(fetcher).bootstrap()).rejects.toMatchObject({
+        status,
+        message: expect.stringContaining(message) as unknown,
+      });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each([
+    json({ csrfToken: 'private-token' }),
+    new Response('<html>private page</html>'),
+  ])(
+    'rejects a malformed successful bootstrap before sending credentials',
+    async (response) => {
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
+      await expect(
+        new IdentityApi(fetcher).login(customer.email, 'private-password'),
+      ).rejects.toMatchObject({
+        code: 'invalid_response',
+        message:
+          'SwiftDrop returned an unexpected response. Please try again later.',
+      });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('distinguishes a request timeout from an offline connection', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(
+        new DOMException('private timeout details', 'TimeoutError'),
+      );
+    await expect(new IdentityApi(fetcher).bootstrap()).rejects.toMatchObject({
+      code: 'request_timeout',
+      message: 'The request timed out. Please try again.',
+    });
   });
   it('rejects malformed session responses and excessive lifetimes', async () => {
     const fetcher = vi
