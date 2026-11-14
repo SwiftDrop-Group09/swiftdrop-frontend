@@ -249,7 +249,7 @@ function WorkloadContent() {
           <CardTitle>Outstanding work by courier</CardTitle>
           <CardDescription>
             Counts include all active assignments, including overdue and future
-            service dates. Configured capacity is informational; assignment
+            service dates. Daily capacity is informational here; assignment
             eligibility is checked when assigning a parcel.
           </CardDescription>
         </CardHeader>
@@ -320,7 +320,7 @@ function WorkloadContent() {
                           Outstanding
                         </TableHead>
                         <TableHead className="text-right">
-                          Configured capacity
+                          Daily capacity
                         </TableHead>
                         <TableHead>Assignments</TableHead>
                       </TableRow>

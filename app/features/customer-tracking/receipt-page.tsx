@@ -1,6 +1,6 @@
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Link, useParams } from 'react-router';
-import { ArrowLeft, ReceiptText } from 'lucide-react';
+import { ArrowLeft, Download, ReceiptText } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import {
   Alert,
@@ -22,7 +22,11 @@ import {
   formatDateTime,
   formatMoney,
 } from './components';
-import { useCustomerParcels, useParcelReceipt } from './hooks';
+import {
+  useCustomerParcels,
+  useDownloadReceiptPdf,
+  useParcelReceipt,
+} from './hooks';
 
 function DeliveredReceiptsList() {
   const { data, isLoading, isError } = useCustomerParcels({
@@ -121,20 +125,47 @@ export function ParcelReceiptDetail({
     isLoading,
     error,
   } = useParcelReceipt(parcelId, operational);
+  const { downloadReceiptPdf, downloadingParcelId, downloadError } =
+    useDownloadReceiptPdf();
 
   return (
     <WorkspacePage
       title="Delivery receipt"
       description="View and download the receipt for your completed delivery."
     >
-      <Button variant="ghost" size="sm" className="-ml-2 print:hidden" asChild>
-        <Link
-          to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcelId}`}
-        >
-          <ArrowLeft className="mr-1.5 size-4" />
-          Back to Parcel Tracking
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <Button variant="ghost" size="sm" className="-ml-2" asChild>
+          <Link
+            to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcelId}`}
+          >
+            <ArrowLeft className="mr-1.5 size-4" />
+            Back to Parcel Tracking
+          </Link>
+        </Button>
+        {receipt && (
+          <Button
+            size="sm"
+            disabled={downloadingParcelId === parcelId}
+            onClick={() =>
+              void downloadReceiptPdf(
+                receipt.parcelId,
+                receipt.trackingNumber,
+              ).catch(() => {})
+            }
+          >
+            <Download className="mr-1.5 size-4" />
+            {downloadingParcelId === parcelId
+              ? 'Downloading…'
+              : 'Download PDF Receipt'}
+          </Button>
+        )}
+      </div>
+
+      {downloadError && (
+        <Alert variant="destructive">
+          <AlertDescription>{downloadError}</AlertDescription>
+        </Alert>
+      )}
 
       {isLoading ? (
         <Skeleton className="h-96 w-full" />
