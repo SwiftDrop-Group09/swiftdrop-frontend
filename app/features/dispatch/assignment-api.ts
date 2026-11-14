@@ -33,6 +33,14 @@ const optionsSchema = z
     businessToday: z.iso.date(),
     operationsTimeZone: z.string().min(1),
     serviceDate: z.iso.date(),
+    reassign: z.boolean().default(false),
+    currentAssignment: z
+      .object({
+        courierId: z.uuid(),
+        serviceDate: z.iso.date(),
+      })
+      .nullable()
+      .default(null),
     items: z.array(candidate),
     totalCount: count,
     page: count.refine((n) => n >= 1),
@@ -41,6 +49,10 @@ const optionsSchema = z
   .refine(
     (p) =>
       p.serviceDate >= p.businessToday &&
+      (p.reassign
+        ? p.currentAssignment !== null &&
+          !p.items.some((c) => c.courierId === p.currentAssignment?.courierId)
+        : p.currentAssignment === null) &&
       new Set(p.items.map((c) => c.courierId)).size === p.items.length,
   );
 const receiptSchema = z.object({
@@ -87,7 +99,7 @@ const messages: Record<string, string> = {
   stale_version:
     'The parcel changed. Reload available couriers before confirming again.',
   invalid_transition:
-    'This parcel is no longer awaiting assignment. Reload the queue.',
+    'This parcel no longer permits this assignment. Reload the parcel.',
   capacity_exceeded:
     'This courier is full for the selected date. Reload and choose another courier.',
   courier_unavailable:
@@ -136,9 +148,11 @@ export async function getAssignmentOptions(
   serviceDate: string | undefined,
   page: number,
   signal?: AbortSignal,
+  reassign = false,
 ) {
   const query = new URLSearchParams({ page: String(page), pageSize: '20' });
   if (serviceDate) query.set('serviceDate', serviceDate);
+  if (reassign) query.set('reassign', 'true');
   const response = await request(
     `${base}/v1/deliveries/${encodeURIComponent(parcelId)}/assignment-options?${query}`,
     { signal, cache: 'no-store' },
@@ -147,6 +161,7 @@ export async function getAssignmentOptions(
   if (
     !parsed.success ||
     parsed.data.parcelId !== parcelId ||
+    parsed.data.reassign !== reassign ||
     parsed.data.page !== page ||
     parsed.data.pageSize !== 20 ||
     (serviceDate && parsed.data.serviceDate !== serviceDate)
@@ -159,12 +174,16 @@ export function assignmentAttempt(
   courierId: string,
   expectedVersion: string,
   serviceDate: string,
+  reassignment?: { reason: string },
 ): AssignmentAttempt {
   if (
     !/^[1-9]\d*$/.test(expectedVersion) ||
     BigInt(expectedVersion) > 9223372036854775807n
   )
     throw new Error('Invalid parcel version.');
+  const reason = reassignment?.reason.trim();
+  if (reassignment && (!reason || reason.length > 500))
+    throw new Error('Supply a reassignment reason of 1 to 500 characters.');
   return Object.freeze({
     parcelId,
     expectedVersion,
@@ -173,8 +192,9 @@ export function assignmentAttempt(
       parcelId,
       courierId,
       expectedVersion: new JsonNumber(expectedVersion),
-      reassign: false,
+      reassign: Boolean(reassignment),
       serviceDate,
+      ...(reassignment ? { reason } : {}),
     }),
   });
 }
