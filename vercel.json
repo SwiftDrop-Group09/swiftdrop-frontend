@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|graphql/).*)",
       "destination": "/index.html"
     }
   ],
