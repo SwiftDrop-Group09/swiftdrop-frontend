@@ -20,6 +20,12 @@ async function handler(request: Request): Promise<Response> {
 
   const headers = new Headers(request.headers);
   STRIP_REQ.forEach((h) => headers.delete(h));
+
+  // If browser GET didn't send an Origin header on /api/v1/auth/csrf, provide the caller's origin:
+  if (!headers.get('origin') && url.pathname === '/api/v1/auth/csrf') {
+    headers.set('origin', `https://${url.host}`);
+  }
+
   headers.set('x-forwarded-host', url.host);
   headers.set('x-forwarded-proto', 'https');
 
@@ -45,4 +51,3 @@ export const PATCH = handler;
 export const DELETE = handler;
 export const OPTIONS = handler;
 export const HEAD = handler;
-
