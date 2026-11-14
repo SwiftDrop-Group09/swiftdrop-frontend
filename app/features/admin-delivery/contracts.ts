@@ -26,6 +26,10 @@ export const zonePageSchema = z.object({
   totalCount: z.number(),
   page: z.number(),
   pageSize: z.number(),
+  cities: z
+    .array(z.string())
+    .nullish()
+    .transform((value) => value ?? []),
 });
 
 export type ZonePage = z.infer<typeof zonePageSchema>;

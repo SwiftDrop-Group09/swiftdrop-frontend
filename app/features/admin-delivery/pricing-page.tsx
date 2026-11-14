@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router';
 import { AdminWorkspace } from '~/features/identity/admin-workspace';
 import {
   WorkspaceLoading,
@@ -68,7 +69,15 @@ export default function AdminPricingRoute() {
   const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
-  const [selectedZoneFilter, setSelectedZoneFilter] = useState<string>('');
+  const [searchParams] = useSearchParams();
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState<string>(() => {
+    const id = searchParams.get('zoneId') ?? '';
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      id,
+    )
+      ? id
+      : '';
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -261,6 +270,14 @@ export default function AdminPricingRoute() {
                     <NativeSelectOption value="">
                       All Delivery Zones
                     </NativeSelectOption>
+                    {selectedZoneFilter &&
+                      !zonesQuery.data.items.some(
+                        (zone) => zone.id === selectedZoneFilter,
+                      ) && (
+                        <NativeSelectOption value={selectedZoneFilter}>
+                          Selected zone
+                        </NativeSelectOption>
+                      )}
                     {zonesQuery.data.items.map((z) => (
                       <NativeSelectOption key={z.id} value={z.id}>
                         {z.name}

@@ -28,11 +28,13 @@ export function FilterBuilder({
   rules,
   onChange,
   children,
+  onClearAll,
 }: {
   fields: FilterField[];
   rules: FilterRule[];
   onChange: (rules: FilterRule[]) => void;
   children?: ReactNode;
+  onClearAll?: () => void;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -143,7 +145,12 @@ export function FilterBuilder({
           </Button>
         </form>
         {children}
-        <FilterLabels fields={fields} rules={rules} onChange={onChange} />
+        <FilterLabels
+          fields={fields}
+          rules={rules}
+          onChange={onChange}
+          onClearAll={onClearAll}
+        />
       </PopoverContent>
     </Popover>
   );
@@ -152,10 +159,14 @@ export function FilterLabels({
   fields,
   rules,
   onChange,
+  onClearAll,
+  hideClearAll = false,
 }: {
   fields: FilterField[];
   rules: FilterRule[];
   onChange: (rules: FilterRule[]) => void;
+  onClearAll?: () => void;
+  hideClearAll?: boolean;
 }) {
   if (!rules.length) return null;
   return (
@@ -188,14 +199,16 @@ export function FilterLabels({
           </Badge>
         );
       })}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onChange([])}
-      >
-        Clear all filters
-      </Button>
+      {!hideClearAll && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => (onClearAll ? onClearAll() : onChange([]))}
+        >
+          Clear all filters
+        </Button>
+      )}
     </div>
   );
 }

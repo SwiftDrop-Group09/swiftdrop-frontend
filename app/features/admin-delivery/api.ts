@@ -124,9 +124,31 @@ export function createAdminDeliveryApi(session: IdentitySession) {
   };
 
   return {
-    listZones: (page = 1, pageSize = 20): Promise<ZonePage> =>
-      request(`/zones?page=${page}&pageSize=${pageSize}`, zonePageSchema),
-
+    listZones: (
+      page = 1,
+      pageSize = 20,
+      filters: {
+        search?: string;
+        city?: string;
+        notCity?: string;
+        status?: string;
+      } = {},
+      signal?: AbortSignal,
+    ): Promise<ZonePage> => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      for (const [key, value] of Object.entries(filters))
+        if (value) params.set(key, value);
+      return request(
+        `/zones?${params}`,
+        Object.values(filters).some(Boolean)
+          ? zonePageSchema.extend({ cities: z.array(z.string()) })
+          : zonePageSchema,
+        signal ? { signal } : undefined,
+      );
+    },
     createZone: (input: ZoneInput): Promise<Zone> =>
       request('/zones', zoneSchema, body('POST', input)),
 
