@@ -1,10 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, CheckCircle2, AlertCircle, Filter, DollarSign } from 'lucide-react';
+import {
+  Plus,
+  CheckCircle2,
+  AlertCircle,
+  Filter,
+  DollarSign,
+} from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminNav } from '~/features/admin-delivery/admin-nav';
-import { createAdminDeliveryApi, AdminDeliveryError } from '~/features/admin-delivery/api';
+import {
+  createAdminDeliveryApi,
+  AdminDeliveryError,
+} from '~/features/admin-delivery/api';
 import {
   parcelSizes,
   type ParcelSize,
@@ -21,7 +30,11 @@ import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import { Badge } from '~/shared/components/ui/badge';
-import { Alert, AlertTitle, AlertDescription } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '~/shared/components/ui/alert';
 import { Checkbox } from '~/shared/components/ui/checkbox';
 import {
   NativeSelect,
@@ -70,7 +83,8 @@ export default function AdminPricingRoute() {
 
   const pricingQuery = useQuery({
     queryKey: ['admin-pricing', page, selectedZoneFilter],
-    queryFn: () => api.listPricingTiers(page, 20, selectedZoneFilter || undefined),
+    queryFn: () =>
+      api.listPricingTiers(page, 20, selectedZoneFilter || undefined),
   });
 
   const createMutation = useMutation({
@@ -82,7 +96,11 @@ export default function AdminPricingRoute() {
       setErrorMsg(null);
     },
     onError: (err: unknown) => {
-      setErrorMsg(err instanceof AdminDeliveryError ? err.message : 'Failed to create pricing tier.');
+      setErrorMsg(
+        err instanceof AdminDeliveryError
+          ? err.message
+          : 'Failed to create pricing tier.',
+      );
     },
   });
 
@@ -102,7 +120,11 @@ export default function AdminPricingRoute() {
       setErrorMsg(null);
     },
     onError: (err: unknown) => {
-      setErrorMsg(err instanceof AdminDeliveryError ? err.message : 'Failed to update status.');
+      setErrorMsg(
+        err instanceof AdminDeliveryError
+          ? err.message
+          : 'Failed to update status.',
+      );
     },
   });
 
@@ -146,9 +168,12 @@ export default function AdminPricingRoute() {
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Pricing Tiers Configuration</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Pricing Tiers Configuration
+              </h1>
               <p className="text-muted-foreground text-sm">
-                Configure tariff rates by delivery zone, size brackets, and per-kg incremental weights.
+                Configure tariff rates by delivery zone, size brackets, and
+                per-kg incremental weights.
               </p>
             </div>
             <Button
@@ -209,13 +234,20 @@ export default function AdminPricingRoute() {
             <CardHeader className="p-4 pb-2">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold">Pricing Formula & Audit Rules</CardTitle>
+                <CardTitle className="text-sm font-semibold">
+                  Pricing Formula & Audit Rules
+                </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <span className="font-mono font-medium">Total = BaseRate(Zone, Size, Version) + PerKgRate &times; max(0, WeightKg &minus; 1)</span>.
-                The recipient delivery address zone selects the pricing tier. Rates are immutable once referenced in customer bookings; create a new version to update pricing.
+                <span className="font-mono font-medium">
+                  Total = BaseRate(Zone, Size, Version) + PerKgRate &times;
+                  max(0, WeightKg &minus; 1)
+                </span>
+                . The recipient delivery address zone selects the pricing tier.
+                Rates are immutable once referenced in customer bookings; create
+                a new version to update pricing.
               </p>
             </CardContent>
           </Card>
@@ -224,9 +256,12 @@ export default function AdminPricingRoute() {
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
               <div>
-                <CardTitle className="text-lg">Configured Pricing Tiers</CardTitle>
+                <CardTitle className="text-lg">
+                  Configured Pricing Tiers
+                </CardTitle>
                 <CardDescription>
-                  Active and legacy tariff versions mapped to delivery zones and parcel sizes.
+                  Active and legacy tariff versions mapped to delivery zones and
+                  parcel sizes.
                 </CardDescription>
               </div>
 
@@ -241,7 +276,9 @@ export default function AdminPricingRoute() {
                       setPage(1);
                     }}
                   >
-                    <NativeSelectOption value="">All Delivery Zones</NativeSelectOption>
+                    <NativeSelectOption value="">
+                      All Delivery Zones
+                    </NativeSelectOption>
                     {zonesQuery.data.items.map((z) => (
                       <NativeSelectOption key={z.id} value={z.id}>
                         {z.name}
@@ -253,13 +290,17 @@ export default function AdminPricingRoute() {
             </CardHeader>
             <CardContent>
               {pricingQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Loading pricing tiers...</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Loading pricing tiers...
+                </p>
               ) : pricingQuery.isError ? (
                 <p className="text-sm text-destructive py-4 text-center">
                   Pricing tiers are unavailable.
                 </p>
               ) : pricingQuery.data?.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">No pricing tiers match the selected criteria.</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No pricing tiers match the selected criteria.
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -267,8 +308,12 @@ export default function AdminPricingRoute() {
                       <TableHead>Zone Name</TableHead>
                       <TableHead>Size Category</TableHead>
                       <TableHead>Tariff Version</TableHead>
-                      <TableHead className="text-right">Base Rate (LKR)</TableHead>
-                      <TableHead className="text-right">Per Kg Rate (LKR)</TableHead>
+                      <TableHead className="text-right">
+                        Base Rate (LKR)
+                      </TableHead>
+                      <TableHead className="text-right">
+                        Per Kg Rate (LKR)
+                      </TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -276,12 +321,17 @@ export default function AdminPricingRoute() {
                   <TableBody>
                     {pricingQuery.data?.items.map((tier) => (
                       <TableRow key={tier.id}>
-                        <TableCell className="font-medium">{tier.zoneName}</TableCell>
+                        <TableCell className="font-medium">
+                          {tier.zoneName}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{tier.size}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="font-mono text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-xs"
+                          >
                             {tier.pricingVersion}
                           </Badge>
                         </TableCell>
@@ -292,7 +342,9 @@ export default function AdminPricingRoute() {
                           {tier.perKgRate.toFixed(2)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={tier.isActive ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={tier.isActive ? 'default' : 'secondary'}
+                          >
                             {tier.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </TableCell>
@@ -329,7 +381,8 @@ export default function AdminPricingRoute() {
                     Previous
                   </Button>
                   <span className="text-xs text-muted-foreground">
-                    Page {page} of {Math.ceil(pricingQuery.data.totalCount / 20)}
+                    Page {page} of{' '}
+                    {Math.ceil(pricingQuery.data.totalCount / 20)}
                   </span>
                   <Button
                     disabled={page * 20 >= pricingQuery.data.totalCount}
@@ -350,7 +403,8 @@ export default function AdminPricingRoute() {
               <DialogHeader>
                 <DialogTitle>Create Pricing Tier</DialogTitle>
                 <DialogDescription>
-                  Define base and incremental rates for a delivery zone and package size bracket.
+                  Define base and incremental rates for a delivery zone and
+                  package size bracket.
                 </DialogDescription>
               </DialogHeader>
 
@@ -363,7 +417,9 @@ export default function AdminPricingRoute() {
                     onChange={(e) => setFormZoneId(e.target.value)}
                     required
                   >
-                    <NativeSelectOption value="">Select a zone...</NativeSelectOption>
+                    <NativeSelectOption value="">
+                      Select a zone...
+                    </NativeSelectOption>
                     {zonesQuery.data?.items.map((z) => (
                       <NativeSelectOption key={z.id} value={z.id}>
                         {z.name} ({z.city ?? 'General'})
@@ -378,7 +434,9 @@ export default function AdminPricingRoute() {
                     <NativeSelect
                       id="pricingSize"
                       value={formSize}
-                      onChange={(e) => setFormSize(e.target.value as ParcelSize)}
+                      onChange={(e) =>
+                        setFormSize(e.target.value as ParcelSize)
+                      }
                     >
                       {parcelSizes.map((size) => (
                         <NativeSelectOption key={size} value={size}>
@@ -432,15 +490,24 @@ export default function AdminPricingRoute() {
                   <Checkbox
                     id="tierActive"
                     checked={formIsActive}
-                    onCheckedChange={(checked) => setFormIsActive(Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      setFormIsActive(Boolean(checked))
+                    }
                   />
-                  <Label htmlFor="tierActive" className="text-sm font-normal cursor-pointer">
+                  <Label
+                    htmlFor="tierActive"
+                    className="text-sm font-normal cursor-pointer"
+                  >
                     Tier is active for new customer booking quotes
                   </Label>
                 </div>
 
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending}>

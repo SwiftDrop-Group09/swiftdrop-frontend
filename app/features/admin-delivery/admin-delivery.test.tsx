@@ -26,10 +26,9 @@ describe('AdminNav', () => {
 
     render(<RouterProvider router={router} />);
 
-    expect(screen.getByRole('link', { name: /delivery zones/i })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    expect(
+      screen.getByRole('link', { name: /delivery zones/i }),
+    ).toHaveAttribute('aria-current', 'page');
     expect(
       screen.getByRole('link', { name: /pricing configuration/i }),
     ).toBeInTheDocument();
@@ -131,7 +130,9 @@ describe('Admin delivery API', () => {
       new TypeError('Failed to fetch'),
     );
 
-    await expect(createAdminDeliveryApi(session).listZones()).rejects.toMatchObject({
+    await expect(
+      createAdminDeliveryApi(session).listZones(),
+    ).rejects.toMatchObject({
       code: 'delivery_unavailable',
     });
   });
@@ -144,7 +145,10 @@ describe('Admin delivery API', () => {
           code: 'validation',
           errors: { name: ['Zone name is required.'] },
         }),
-        { status: 400, headers: { 'Content-Type': 'application/problem+json' } },
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/problem+json' },
+        },
       ),
     );
 
@@ -186,4 +190,3 @@ describe('Delivery report date ranges', () => {
     expect(getUtcIsoRange('2024-01-01', '2025-01-01').isValid).toBe(false);
   });
 });
-

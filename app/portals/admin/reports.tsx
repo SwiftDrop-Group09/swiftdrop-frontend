@@ -13,7 +13,10 @@ import {
 import { useIdentity } from '~/features/identity/session';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminNav } from '~/features/admin-delivery/admin-nav';
-import { createAdminDeliveryApi, AdminDeliveryError } from '~/features/admin-delivery/api';
+import {
+  createAdminDeliveryApi,
+  AdminDeliveryError,
+} from '~/features/admin-delivery/api';
 import {
   getUtcDatePreset,
   getUtcIsoRange,
@@ -30,7 +33,11 @@ import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import { Badge } from '~/shared/components/ui/badge';
-import { Alert, AlertTitle, AlertDescription } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '~/shared/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -57,7 +64,8 @@ export default function AdminReportsRoute() {
   const reportQuery = useQuery({
     queryKey: ['admin-delivery-report', fromUtc, toUtc],
     queryFn: () => {
-      if (!fromUtc || !toUtc) throw new Error('The report date range is invalid.');
+      if (!fromUtc || !toUtc)
+        throw new Error('The report date range is invalid.');
       return api.getDeliveryReport(fromUtc, toUtc);
     },
     enabled: Boolean(isValid && fromUtc && toUtc),
@@ -73,19 +81,31 @@ export default function AdminReportsRoute() {
     if (!reportQuery.data || typeof window === 'undefined') return;
     const report = reportQuery.data;
     const rows = [
-      ['Date', 'Delivered', 'Failed', 'Cancelled', 'Terminal Total', 'Success Rate'],
+      [
+        'Date',
+        'Delivered',
+        'Failed',
+        'Cancelled',
+        'Terminal Total',
+        'Success Rate',
+      ],
       ...report.days.map((d) => {
         const term = d.delivered + d.failed;
-        const rate = term > 0 ? ((d.delivered / term) * 100).toFixed(2) + '%' : '0.00%';
+        const rate =
+          term > 0 ? ((d.delivered / term) * 100).toFixed(2) + '%' : '0.00%';
         return [d.date, d.delivered, d.failed, d.cancelled, term, rate];
       }),
     ];
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `swiftdrop-delivery-report-${startDate}-to-${endDate}.csv`);
+    link.setAttribute(
+      'download',
+      `swiftdrop-delivery-report-${startDate}-to-${endDate}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -97,13 +117,21 @@ export default function AdminReportsRoute() {
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Delivery Performance Reports</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Delivery Performance Reports
+              </h1>
               <p className="text-muted-foreground text-sm">
-                System delivery outcomes, success/failure rates, and terminal history across UTC windows.
+                System delivery outcomes, success/failure rates, and terminal
+                history across UTC windows.
               </p>
             </div>
             {reportQuery.data && (
-              <Button variant="outline" size="sm" onClick={exportCsv} className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCsv}
+                className="gap-2"
+              >
                 <Download className="h-4 w-4" />
                 Export CSV
               </Button>
@@ -120,19 +148,32 @@ export default function AdminReportsRoute() {
                 Report Date Window (UTC)
               </CardTitle>
               <CardDescription>
-                Select predefined presets or choose custom dates (maximum {maxDeliveryReportDays} days).
+                Select predefined presets or choose custom dates (maximum{' '}
+                {maxDeliveryReportDays} days).
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPreset(1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreset(1)}
+                  >
                     Today
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPreset(7)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreset(7)}
+                  >
                     Last 7 Days
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPreset(30)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreset(30)}
+                  >
                     Last 30 Days
                   </Button>
                 </div>
@@ -172,8 +213,9 @@ export default function AdminReportsRoute() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Invalid Date Window</AlertTitle>
               <AlertDescription>
-                Choose valid dates, keep the end date on or after the start date, and select no more than{' '}
-                {maxDeliveryReportDays} calendar days.
+                Choose valid dates, keep the end date on or after the start
+                date, and select no more than {maxDeliveryReportDays} calendar
+                days.
               </AlertDescription>
             </Alert>
           )}
@@ -295,9 +337,12 @@ export default function AdminReportsRoute() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <div>
-                    <CardTitle className="text-lg">Daily Delivery Breakdown</CardTitle>
+                    <CardTitle className="text-lg">
+                      Daily Delivery Breakdown
+                    </CardTitle>
                     <CardDescription>
-                      Distribution of completed and failed deliveries per UTC calendar day.
+                      Distribution of completed and failed deliveries per UTC
+                      calendar day.
                     </CardDescription>
                   </div>
                   <Badge variant="outline">
@@ -307,27 +352,39 @@ export default function AdminReportsRoute() {
                 <CardContent>
                   {reportQuery.data.days.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
-                      No delivery status changes were recorded within this time window.
+                      No delivery status changes were recorded within this time
+                      window.
                     </p>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date (UTC)</TableHead>
-                          <TableHead className="text-right">Delivered</TableHead>
+                          <TableHead className="text-right">
+                            Delivered
+                          </TableHead>
                           <TableHead className="text-right">Failed</TableHead>
-                          <TableHead className="text-right">Cancelled</TableHead>
-                          <TableHead className="text-right">Terminal Outcomes</TableHead>
-                          <TableHead className="text-right">Success Rate</TableHead>
+                          <TableHead className="text-right">
+                            Cancelled
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Terminal Outcomes
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Success Rate
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {reportQuery.data.days.map((d) => {
                           const terminal = d.delivered + d.failed;
-                          const rate = terminal > 0 ? (d.delivered / terminal) * 100 : 0;
+                          const rate =
+                            terminal > 0 ? (d.delivered / terminal) * 100 : 0;
                           return (
                             <TableRow key={d.date}>
-                              <TableCell className="font-mono font-medium">{d.date}</TableCell>
+                              <TableCell className="font-mono font-medium">
+                                {d.date}
+                              </TableCell>
                               <TableCell className="text-right text-green-600 font-semibold">
                                 {d.delivered}
                               </TableCell>
@@ -342,7 +399,13 @@ export default function AdminReportsRoute() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <Badge
-                                  variant={rate >= 90 ? 'default' : rate > 0 ? 'secondary' : 'outline'}
+                                  variant={
+                                    rate >= 90
+                                      ? 'default'
+                                      : rate > 0
+                                        ? 'secondary'
+                                        : 'outline'
+                                  }
                                 >
                                   {rate.toFixed(1)}%
                                 </Badge>

@@ -31,7 +31,10 @@ export class AdminDeliveryError extends Error {
     super(AdminDeliveryError.resolveMessage(code, errors));
   }
 
-  static resolveMessage(code: string, errors?: Record<string, string[]>): string {
+  static resolveMessage(
+    code: string,
+    errors?: Record<string, string[]>,
+  ): string {
     if (code === 'validation' && errors) {
       const message = Object.values(errors).flat()[0];
       if (message) return message;
@@ -128,9 +131,16 @@ export function createAdminDeliveryApi(session: IdentitySession) {
       request('/zones', zoneSchema, body('POST', input)),
 
     updateZone: (id: string, input: ZoneInput): Promise<Zone> =>
-      request(`/zones/${encodeURIComponent(id)}`, zoneSchema, body('PUT', input)),
+      request(
+        `/zones/${encodeURIComponent(id)}`,
+        zoneSchema,
+        body('PUT', input),
+      ),
 
-    getZoneSummary: (from?: string, to?: string): Promise<ZoneSummaryResponse> =>
+    getZoneSummary: (
+      from?: string,
+      to?: string,
+    ): Promise<ZoneSummaryResponse> =>
       request('/zones/summary' + dates(from, to), zoneSummaryResponseSchema),
 
     listPricingTiers: (
@@ -164,6 +174,9 @@ export function createAdminDeliveryApi(session: IdentitySession) {
       from?: string,
       to?: string,
     ): Promise<DeliveryReportResponse> =>
-      request('/reports/deliveries' + dates(from, to), deliveryReportResponseSchema),
+      request(
+        '/reports/deliveries' + dates(from, to),
+        deliveryReportResponseSchema,
+      ),
   };
 }

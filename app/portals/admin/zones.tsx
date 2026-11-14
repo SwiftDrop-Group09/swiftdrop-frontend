@@ -4,7 +4,10 @@ import { MapPin, Plus, Pencil, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { AdminNav } from '~/features/admin-delivery/admin-nav';
-import { createAdminDeliveryApi, AdminDeliveryError } from '~/features/admin-delivery/api';
+import {
+  createAdminDeliveryApi,
+  AdminDeliveryError,
+} from '~/features/admin-delivery/api';
 import type { Zone, ZoneInput } from '~/features/admin-delivery/contracts';
 import {
   Card,
@@ -17,7 +20,11 @@ import { Button } from '~/shared/components/ui/button';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import { Badge } from '~/shared/components/ui/badge';
-import { Alert, AlertTitle, AlertDescription } from '~/shared/components/ui/alert';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '~/shared/components/ui/alert';
 import { Checkbox } from '~/shared/components/ui/checkbox';
 import {
   Dialog,
@@ -74,12 +81,17 @@ export default function AdminZonesRoute() {
       setErrorMsg(null);
     },
     onError: (err: unknown) => {
-      setErrorMsg(err instanceof AdminDeliveryError ? err.message : 'Failed to create zone.');
+      setErrorMsg(
+        err instanceof AdminDeliveryError
+          ? err.message
+          : 'Failed to create zone.',
+      );
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ZoneInput }) => api.updateZone(id, input),
+    mutationFn: ({ id, input }: { id: string; input: ZoneInput }) =>
+      api.updateZone(id, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin-zones'] });
       void queryClient.invalidateQueries({ queryKey: ['admin-zone-summary'] });
@@ -90,7 +102,11 @@ export default function AdminZonesRoute() {
       setErrorMsg(null);
     },
     onError: (err: unknown) => {
-      setErrorMsg(err instanceof AdminDeliveryError ? err.message : 'Failed to update zone.');
+      setErrorMsg(
+        err instanceof AdminDeliveryError
+          ? err.message
+          : 'Failed to update zone.',
+      );
     },
   });
 
@@ -149,9 +165,12 @@ export default function AdminZonesRoute() {
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Delivery Zones Configuration</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Delivery Zones Configuration
+              </h1>
               <p className="text-muted-foreground text-sm">
-                Define geographic service regions, postal coverage codes, and real-time operational boundaries.
+                Define geographic service regions, postal coverage codes, and
+                real-time operational boundaries.
               </p>
             </div>
             <Button onClick={openCreate} size="sm" className="gap-2">
@@ -216,16 +235,26 @@ export default function AdminZonesRoute() {
                   <Card key={item.zoneId}>
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-base font-semibold">{item.name}</CardTitle>
+                        <CardTitle className="text-base font-semibold">
+                          {item.name}
+                        </CardTitle>
                         <Badge variant="outline">{item.total} Parcels</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1.5 pt-1">
-                        <span>Created: {item.statusCounts['Created'] ?? 0}</span>
-                        <span>Assigned: {item.statusCounts['Assigned'] ?? 0}</span>
-                        <span>In Transit: {item.statusCounts['InTransit'] ?? 0}</span>
-                        <span>Delivered: {item.statusCounts['Delivered'] ?? 0}</span>
+                        <span>
+                          Created: {item.statusCounts['Created'] ?? 0}
+                        </span>
+                        <span>
+                          Assigned: {item.statusCounts['Assigned'] ?? 0}
+                        </span>
+                        <span>
+                          In Transit: {item.statusCounts['InTransit'] ?? 0}
+                        </span>
+                        <span>
+                          Delivered: {item.statusCounts['Delivered'] ?? 0}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -237,20 +266,27 @@ export default function AdminZonesRoute() {
           {/* Configured Zones Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Configured Delivery Zones</CardTitle>
+              <CardTitle className="text-lg">
+                Configured Delivery Zones
+              </CardTitle>
               <CardDescription>
-                Service zones partition operational territories and determine courier assignment boundaries.
+                Service zones partition operational territories and determine
+                courier assignment boundaries.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {zonesQuery.isLoading ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Loading delivery zones...</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Loading delivery zones...
+                </p>
               ) : zonesQuery.isError ? (
                 <p className="text-sm text-destructive py-4 text-center">
                   Delivery zones are unavailable.
                 </p>
               ) : zonesQuery.data?.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">No delivery zones configured yet.</p>
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No delivery zones configured yet.
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -265,28 +301,43 @@ export default function AdminZonesRoute() {
                   <TableBody>
                     {zonesQuery.data?.items.map((zone) => (
                       <TableRow key={zone.id}>
-                        <TableCell className="font-medium">{zone.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {zone.name}
+                        </TableCell>
                         <TableCell>{zone.city ?? '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1 max-w-md">
                             {zone.servicePostalCodes.length > 0 ? (
                               zone.servicePostalCodes.map((code) => (
-                                <Badge key={code} variant="secondary" className="text-xs">
+                                <Badge
+                                  key={code}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
                                   {code}
                                 </Badge>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground">All General</span>
+                              <span className="text-xs text-muted-foreground">
+                                All General
+                              </span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={zone.isActive ? 'default' : 'secondary'}>
+                          <Badge
+                            variant={zone.isActive ? 'default' : 'secondary'}
+                          >
                             {zone.isActive ? 'Active' : 'Inactive'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(zone)} className="gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(zone)}
+                            className="gap-1.5"
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
                           </Button>
@@ -328,10 +379,13 @@ export default function AdminZonesRoute() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>
-                  {editingZone ? `Edit Zone: ${editingZone.name}` : 'Create Delivery Zone'}
+                  {editingZone
+                    ? `Edit Zone: ${editingZone.name}`
+                    : 'Create Delivery Zone'}
                 </DialogTitle>
                 <DialogDescription>
-                  Configure zone attributes and serviced postal codes. Postal codes cannot overlap with active zones.
+                  Configure zone attributes and serviced postal codes. Postal
+                  codes cannot overlap with active zones.
                 </DialogDescription>
               </DialogHeader>
 
@@ -358,7 +412,9 @@ export default function AdminZonesRoute() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="zonePostal">Service Postal Codes (comma or space separated)</Label>
+                  <Label htmlFor="zonePostal">
+                    Service Postal Codes (comma or space separated)
+                  </Label>
                   <Input
                     id="zonePostal"
                     value={formPostalCodes}
@@ -366,7 +422,8 @@ export default function AdminZonesRoute() {
                     placeholder="00100, 00200, 00300"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Active postal codes are mutually exclusive across active service zones.
+                    Active postal codes are mutually exclusive across active
+                    service zones.
                   </p>
                 </div>
 
@@ -374,18 +431,33 @@ export default function AdminZonesRoute() {
                   <Checkbox
                     id="zoneActive"
                     checked={formIsActive}
-                    onCheckedChange={(checked) => setFormIsActive(Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      setFormIsActive(Boolean(checked))
+                    }
                   />
-                  <Label htmlFor="zoneActive" className="text-sm font-normal cursor-pointer">
-                    Zone is active for booking quote calculation and courier dispatch
+                  <Label
+                    htmlFor="zoneActive"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Zone is active for booking quote calculation and courier
+                    dispatch
                   </Label>
                 </div>
 
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={
+                      createMutation.isPending || updateMutation.isPending
+                    }
+                  >
                     {editingZone ? 'Save Changes' : 'Create Zone'}
                   </Button>
                 </DialogFooter>
