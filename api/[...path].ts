@@ -1,14 +1,12 @@
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(request: Request) {
   const backendTarget = process.env.BACKEND_API_TARGET;
   if (!backendTarget) {
     return new Response(
-      JSON.stringify({
-        error: 'BACKEND_API_TARGET is not configured in Vercel',
-      }),
+      JSON.stringify({ error: 'BACKEND_API_TARGET is not configured in Vercel' }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
