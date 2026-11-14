@@ -36,7 +36,7 @@ making changes. The default integration branch is `dev`.
 ## Workspace design system
 
 - Compose authenticated page layouts with `WorkspacePage` from
-  `~/shared/components/workspace-page`. Use one page heading and its responsive actions slot. Do not render a subtitle
+  `~/shared/components/workspace-page`. Use one page heading (`text-xl sm:text-2xl`) and its responsive actions slot. Do not render a subtitle
   or description directly below workspace page titles. Keep operational guidance
   in the relevant content card. Keep domain-specific actions and validation in
   the owning feature. Do not add role-name badges above page headings.

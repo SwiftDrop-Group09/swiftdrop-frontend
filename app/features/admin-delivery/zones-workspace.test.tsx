@@ -62,6 +62,10 @@ beforeEach(() => {
           ],
         }),
       );
+    if (path.endsWith('/pricing-tiers/overview'))
+      return Promise.resolve(
+        json({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
+      );
     if (path.endsWith('/pricing-tiers'))
       return Promise.resolve(
         json({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
@@ -256,7 +260,7 @@ describe('Coverage configuration workspace', () => {
       expect(
         mocks.request.mock.calls.some(
           ([input]) =>
-            url(input).pathname.endsWith('/pricing-tiers') &&
+            url(input).pathname.endsWith('/pricing-tiers/overview') &&
             url(input).searchParams.get('zoneId') === zone.id,
         ),
       ).toBe(true),

@@ -20,7 +20,7 @@ export function WorkspacePage({
         <div className="min-w-0 space-y-3">
           {eyebrow}
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {title}
             </h1>
           </div>
