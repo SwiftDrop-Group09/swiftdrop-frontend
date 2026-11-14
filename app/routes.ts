@@ -1,6 +1,7 @@
 import { index, route, type RouteConfig } from '@react-router/dev/routes';
 
 export default [
+  route('dispatch/workload', 'portals/dispatcher/workload.tsx'),
   index('portals/public/index.tsx'),
   route('login', 'portals/auth/login.tsx'),
   route('register', 'portals/auth/register.tsx'),

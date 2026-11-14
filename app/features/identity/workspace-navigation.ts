@@ -100,7 +100,7 @@ const navigation: readonly NavigationGroup[] = [
         icon: ClipboardList,
         to: '/dispatch/unassigned',
       },
-      { label: 'Courier workload', icon: Users },
+      { label: 'Courier workload', icon: Users, to: '/dispatch/workload' },
       { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },
     ],
   },
