@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   MapPin,
   Package,
   ReceiptText,
@@ -27,7 +28,7 @@ import {
 } from '~/shared/components/ui/table';
 import { formatDateTime, formatMoney, StatusBadge } from './components';
 import type { ParcelStatus } from './contracts';
-import { useCustomerParcels } from './hooks';
+import { useCustomerParcels, useDownloadReceiptPdf } from './hooks';
 
 type FilterTab = 'All' | 'InTransit' | 'Delivered' | 'Cancelled' | 'Failed';
 
@@ -65,6 +66,8 @@ export function OrderHistoryContent({
     },
     operational,
   );
+  const { downloadReceiptPdf, downloadingParcelId, downloadError } =
+    useDownloadReceiptPdf();
 
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -126,6 +129,13 @@ export function OrderHistoryContent({
           </div>
         </CardHeader>
         <CardContent>
+          {downloadError && (
+            <div className="mb-4">
+              <Alert variant="destructive">
+                <AlertDescription>{downloadError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-12 w-full" />
@@ -197,6 +207,22 @@ export function OrderHistoryContent({
                             </Button>
                             {canDownload && parcel.status === 'Delivered' && (
                               <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={downloadingParcelId === parcel.id}
+                                  onClick={() =>
+                                    void downloadReceiptPdf(
+                                      parcel.id,
+                                      parcel.trackingNumber,
+                                    ).catch(() => {})
+                                  }
+                                >
+                                  <Download className="mr-1 size-3.5" />
+                                  {downloadingParcelId === parcel.id
+                                    ? 'Downloading…'
+                                    : 'Download PDF Receipt'}
+                                </Button>
                                 <Button size="sm" variant="secondary" asChild>
                                   <Link
                                     to={`${basePath}/parcels/${parcel.id}/receipt`}

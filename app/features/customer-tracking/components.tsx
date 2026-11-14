@@ -267,7 +267,7 @@ export function ReceiptCard({ receipt }: { receipt: ParcelReceipt }) {
             type="button"
           >
             <Download className="mr-1.5 size-4" />
-            {downloading ? 'Downloading…' : 'Download PDF'}
+            {downloading ? 'Downloading…' : 'Download PDF Receipt'}
           </Button>
         </div>
       </CardHeader>

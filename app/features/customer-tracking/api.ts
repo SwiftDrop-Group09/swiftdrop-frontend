@@ -138,7 +138,7 @@ export async function downloadReceiptPdf(
   request: AuthenticatedRequest,
   apiBase: string,
   parcelId: string,
-  trackingNumber: string,
+  trackingNumber?: string,
   signal?: AbortSignal,
 ): Promise<void> {
   const response = await request(
@@ -155,7 +155,7 @@ export async function downloadReceiptPdf(
   try {
     const link = document.createElement('a');
     link.href = url;
-    link.download = `swiftdrop-receipt-${trackingNumber}.pdf`;
+    link.download = `swiftdrop-receipt-${trackingNumber || parcelId}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();
