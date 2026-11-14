@@ -79,6 +79,10 @@ making changes. The default integration branch is `dev`.
   error states, session isolation and idempotent retry behavior.
 - Keep domain logic in features and backend contracts authoritative. Shared UI
   must not depend on feature modules. Keep the application SPA-safe.
+- Reuse shared QueryClient freshness policies and user-scoped lookup keys.
+  Invalidate affected reads after successful mutations. Keep private caches in
+  memory and clear them on session/account/role changes; never persist private
+  query results or tokens to browser storage to reduce page-load reads.
 - Use the Node/npm versions declared by `.nvmrc` and `package.json`. For code
   changes, run `npm run check` and relevant browser checks for changed layouts
   or interactions. For documentation-only changes, check formatting and the diff.

@@ -120,7 +120,11 @@ function PricingContent() {
     });
   }
   function invalidate() {
-    for (const key of ['admin-pricing', 'admin-zone-summary'])
+    for (const key of [
+      'admin-pricing',
+      'delivery-zone-summary',
+      'customer-booking',
+    ])
       void queries.invalidateQueries({ queryKey: [key, user!.id] });
   }
   const create = useMutation({

@@ -126,8 +126,9 @@ function ZoneContent() {
       for (const key of [
         'admin-zones',
         'admin-zones-all',
-        'admin-zone-summary',
+        'delivery-zone-summary',
         'admin-pricing',
+        'customer-booking',
       ])
         void queries.invalidateQueries({ queryKey: [key, user!.id] });
     },

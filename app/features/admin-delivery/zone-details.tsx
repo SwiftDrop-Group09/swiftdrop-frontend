@@ -14,7 +14,7 @@ export function ZoneDetails({ zone }: { zone: Zone }) {
   const { session, user } = useIdentity();
   const api = useMemo(() => createAdminDeliveryApi(session), [session]);
   const load = useQuery({
-    queryKey: ['admin-zone-summary', user!.id],
+    queryKey: ['delivery-zone-summary', user!.id],
     queryFn: () => api.getZoneSummary(),
     retry: false,
   });

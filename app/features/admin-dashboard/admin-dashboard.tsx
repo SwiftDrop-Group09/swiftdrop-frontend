@@ -148,7 +148,7 @@ function AdminDashboardContent() {
     retry: false,
   });
   const workload = useQuery({
-    queryKey: ['admin-zone-summary', user!.id],
+    queryKey: ['delivery-zone-summary', user!.id],
     queryFn: ({ signal }) => api.getZoneSummary(undefined, undefined, signal),
     retry: false,
   });
@@ -182,7 +182,7 @@ function AdminDashboardContent() {
   function refresh() {
     for (const key of [
       'admin-delivery-report',
-      'admin-zone-summary',
+      'delivery-zone-summary',
       'admin-merchants',
     ])
       void queries.invalidateQueries({ queryKey: [key, user!.id] });
