@@ -20,6 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/shared/components/ui/popover';
+import { Textarea } from '~/shared/components/ui/textarea';
 import { Label } from '~/shared/components/ui/label';
 import {
   Table,
@@ -36,6 +37,7 @@ import {
   submitAssignment,
   type AssignmentAttempt,
   type AssignmentCandidate,
+  type AssignmentOptions,
 } from './assignment-api';
 
 export function AssignmentDialog({
@@ -43,18 +45,24 @@ export function AssignmentDialog({
   trackingNumber,
   close,
   restoreFocus,
+  reassign = false,
 }: {
   parcelId: string;
   trackingNumber: string;
   close: () => void;
   restoreFocus: () => void;
+  reassign?: boolean;
 }) {
   const { session, user } = useIdentity();
   const queries = useQueryClient();
   const [date, setDate] = useState<string>();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<AssignmentCandidate>();
+  const [selection, setSelection] = useState<{
+    courier: AssignmentCandidate;
+    preview: AssignmentOptions;
+  }>();
+  const [reason, setReason] = useState('');
   const [attempt, setAttempt] = useState<AssignmentAttempt>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AssignmentError>();
@@ -80,8 +88,16 @@ export function AssignmentDialog({
     const timer = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(timer);
   }, [attempt]);
+  const optionsKey = [
+    'dispatch-assignment-options',
+    user!.id,
+    parcelId,
+    reassign,
+    date,
+    page,
+  ];
   const options = useQuery({
-    queryKey: ['dispatch-assignment-options', user!.id, parcelId, date, page],
+    queryKey: optionsKey,
     queryFn: ({ signal }) =>
       getAssignmentOptions(
         session.authenticatedRequest,
@@ -90,13 +106,23 @@ export function AssignmentDialog({
         date,
         page,
         signal,
+        reassign,
       ),
+    structuralSharing: false,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     enabled: !attempt && !confirmed,
   });
   const data = options.data;
+  // A selection belongs to one response, never a newer version returned by refresh.
+  const selected =
+    selection && !options.isFetching && selection.preview === data
+      ? selection.courier
+      : undefined;
+  if (selection && !selected) setSelection(undefined);
+  const validReason =
+    !reassign || (reason.trim().length >= 1 && reason.trim().length <= 500);
   const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / 20)) : 1;
   if (options.isSuccess && page > totalPages) setPage(totalPages);
   const locked = busy || Boolean(attempt);
@@ -121,7 +147,13 @@ export function AssignmentDialog({
     if (inFlight.current || now < retryAt || denied || needsReload) return;
     if (
       !attempt &&
-      (!data || !selected || options.isFetching || options.isError)
+      (!data ||
+        !selected ||
+        options.isFetching ||
+        options.isError ||
+        !validReason ||
+        selection?.preview !== queries.getQueryData(optionsKey) ||
+        queries.getQueryState(optionsKey)?.fetchStatus !== 'idle')
     )
       return;
     const original =
@@ -131,6 +163,7 @@ export function AssignmentDialog({
         selected!.courierId,
         data!.parcelVersion,
         data!.serviceDate,
+        reassign ? { reason } : undefined,
       );
     const generation = lifecycle.current.generation;
     inFlight.current = true;
@@ -148,7 +181,7 @@ export function AssignmentDialog({
       if (generation !== lifecycle.current.generation) return;
       setConfirmed(true);
       setAttempt(undefined);
-      setSelected(undefined);
+      setSelection(undefined);
       await invalidate();
     } catch (e) {
       if (generation !== lifecycle.current.generation) return;
@@ -161,7 +194,7 @@ export function AssignmentDialog({
       } else {
         setAttempt(undefined);
         setNeedsReload(true);
-        setSelected(undefined);
+        setSelection(undefined);
         await invalidate();
       }
     } finally {
@@ -172,7 +205,7 @@ export function AssignmentDialog({
     }
   }
   function reload() {
-    setSelected(undefined);
+    setSelection(undefined);
     setNeedsReload(false);
     setError(undefined);
     void options.refetch();
@@ -198,14 +231,17 @@ export function AssignmentDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Assign courier</DialogTitle>
+          <DialogTitle>
+            {reassign ? 'Reassign courier' : 'Assign courier'}
+          </DialogTitle>
           <DialogDescription>Parcel {trackingNumber}</DialogDescription>
         </DialogHeader>
         {confirmed ? (
           <>
             <p role="status">
-              Assignment confirmed. Return to the queue to review remaining
-              parcels.
+              {reassign
+                ? 'Reassignment confirmed. Review the updated parcel and courier workload.'
+                : 'Assignment confirmed. Return to the queue to review remaining parcels.'}
             </p>
             <Button disabled={busy} onClick={close}>
               Done
@@ -215,6 +251,12 @@ export function AssignmentDialog({
           <>
             {data && (
               <div className="space-y-2">
+                {reassign && data.currentAssignment && (
+                  <p className="text-sm break-all">
+                    Current courier {data.currentAssignment.courierId} ·
+                    scheduled {data.currentAssignment.serviceDate}
+                  </p>
+                )}
                 <Label htmlFor="assignment-service-date">Service date</Label>
                 <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                   <PopoverTrigger asChild>
@@ -244,7 +286,7 @@ export function AssignmentDialog({
                         if (day) {
                           setDate(format(day, 'yyyy-MM-dd'));
                           setPage(1);
-                          setSelected(undefined);
+                          setSelection(undefined);
                           setError(undefined);
                           setNeedsReload(false);
                           setCalendarOpen(false);
@@ -330,7 +372,9 @@ export function AssignmentDialog({
                               disabled={
                                 locked || options.isFetching || needsReload
                               }
-                              onClick={() => setSelected(courier)}
+                              onClick={() =>
+                                setSelection({ courier, preview: data })
+                              }
                             >
                               {selected?.courierId === courier.courierId
                                 ? 'Selected'
@@ -349,7 +393,7 @@ export function AssignmentDialog({
                       disabled={locked || options.isFetching || page <= 1}
                       onClick={() => {
                         setPage(page - 1);
-                        setSelected(undefined);
+                        setSelection(undefined);
                       }}
                     >
                       Previous couriers
@@ -364,7 +408,7 @@ export function AssignmentDialog({
                       }
                       onClick={() => {
                         setPage(page + 1);
-                        setSelected(undefined);
+                        setSelection(undefined);
                       }}
                     >
                       Next couriers
@@ -373,10 +417,34 @@ export function AssignmentDialog({
                 )}
               </>
             )}
+            {reassign && data && (
+              <div className="space-y-2">
+                <Label htmlFor="assignment-reason">Reassignment reason</Label>
+                <Textarea
+                  id="assignment-reason"
+                  value={reason}
+                  disabled={locked}
+                  onChange={(event) => setReason(event.target.value)}
+                  aria-describedby="assignment-reason-help"
+                />
+                <p
+                  id="assignment-reason-help"
+                  className="text-sm text-muted-foreground"
+                >
+                  Required: 1–500 characters after trimming. The reason is
+                  retained in parcel history.
+                </p>
+                {!validReason && reason.length > 0 && (
+                  <p role="alert" className="text-sm text-destructive">
+                    Enter a reason of 1–500 characters.
+                  </p>
+                )}
+              </div>
+            )}
             {selected && (
               <p className="text-sm break-all">
                 Confirm {trackingNumber} → courier {selected.courierId} on{' '}
-                {data?.serviceDate}.
+                {data?.serviceDate}.{reassign && <> Reason: {reason.trim()}</>}
               </p>
             )}
             {error && (
@@ -384,8 +452,9 @@ export function AssignmentDialog({
                 <p>{error.message}</p>
                 {attempt && (
                   <p>
-                    The outcome is uncertain. Your original assignment is
-                    retained; retry uses the same request and key.
+                    The outcome is uncertain. Your original request is retained;
+                    retry uses the same request and key. Cancelling a request
+                    does not guarantee server rollback.
                   </p>
                 )}
                 {needsReload && !denied && (
@@ -406,17 +475,24 @@ export function AssignmentDialog({
                   needsReload ||
                   now < retryAt ||
                   (!attempt &&
-                    (!selected || options.isFetching || options.isError))
+                    (!selected ||
+                      !validReason ||
+                      options.isFetching ||
+                      options.isError))
                 }
                 onClick={() => void submit()}
               >
                 {busy
-                  ? 'Assigning…'
+                  ? reassign
+                    ? 'Reassigning…'
+                    : 'Assigning…'
                   : attempt
                     ? now < retryAt
                       ? 'Please wait before retrying'
                       : 'Retry same assignment'
-                    : 'Confirm assignment'}
+                    : reassign
+                      ? 'Confirm reassignment'
+                      : 'Confirm assignment'}
               </Button>
             </div>
           </>
