@@ -11,7 +11,6 @@
   "scripts": {
     "dev": "react-router dev",
     "dev:booking-test": "vite --config vite.booking-test.config.ts",
-    "build:vercel": "node scripts/generate-vercel-config.mjs && react-router build",
     "build": "react-router build",
     "preview": "node scripts/preview.mjs",
     "lint": "react-router typegen && eslint . --max-warnings=0",
