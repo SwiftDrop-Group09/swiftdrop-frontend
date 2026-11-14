@@ -103,7 +103,7 @@ function BookingDatePicker({
 function UnassignedParcelsContent() {
   const { user, session } = useIdentity();
   const zones = useQuery({
-    queryKey: ['dispatch-zone-summary', user!.id],
+    queryKey: ['delivery-zone-summary', user!.id],
     queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
   });
   const [assignment, setAssignment] = useState<{

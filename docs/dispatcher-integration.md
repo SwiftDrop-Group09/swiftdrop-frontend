@@ -55,15 +55,18 @@ It requires the corresponding Delivery `zoneId` read extension, documented in
 before this UI. Priority semantics remain undefined. Full FR-D01/TC-D01
 acceptance still requires the pending shared-environment and startup checks.
 
-FR-D02/TC-D02 assignment, FR-D03 workload and FR-D04 reassignment remain separate
-milestones. Their commands/read contracts must be implemented before enabling
-assignment controls or the workload destination. This page has no placeholder
-assignment dialog. Existing operations detail and Admin-only receipt/proof rules
+FR-D03 workload monitoring is now integrated at `/dispatch/workload`; see
+[workload integration](dispatcher-workload.md) for the fleet and active-assignment
+read contracts. Initial FR-D02/TC-D02 assignment is now implemented through the
+confirmed dialog; see [assignment integration](dispatcher-assignment.md).
+FR-D04 reassignment remains a separate milestone. Existing operations detail and Admin-only receipt/proof rules
 are preserved. Customer reads remain unchanged and owner-scoped by the backend.
 
-Shared database migrations remain deferred. The workspace previously recorded
+Earlier queue verification deferred shared database migrations. The workspace previously recorded
 an audit-schema dependency affecting authenticated Delivery reads; source and
-fixture tests do not establish live database readiness.
+fixture tests do not establish live database readiness. Subsequent database-data
+verification is recorded separately in the backend's `docs/development-data.md`;
+it does not replace end-to-end startup acceptance.
 
 ## Verification — initial queue, 14 November 2026
 

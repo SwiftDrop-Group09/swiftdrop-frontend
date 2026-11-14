@@ -28,7 +28,7 @@ import {
 function ZoneSummaryContent() {
   const { user, session } = useIdentity();
   const query = useQuery({
-    queryKey: ['dispatch-zone-summary', user!.id],
+    queryKey: ['delivery-zone-summary', user!.id],
     queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
   });
   return (

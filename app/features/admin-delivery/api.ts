@@ -4,6 +4,7 @@ import {
   deliveryReportResponseSchema,
   pricingPageSchema,
   pricingTierSchema,
+  pricingOverviewSchema,
   zonePageSchema,
   zoneSchema,
   zoneSummaryResponseSchema,
@@ -124,9 +125,48 @@ export function createAdminDeliveryApi(session: IdentitySession) {
   };
 
   return {
-    listZones: (page = 1, pageSize = 20): Promise<ZonePage> =>
-      request(`/zones?page=${page}&pageSize=${pageSize}`, zonePageSchema),
-
+    getPricingOverview: (
+      page = 1,
+      pageSize = 20,
+      zoneId?: string,
+      signal?: AbortSignal,
+    ) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      if (zoneId) params.set('zoneId', zoneId);
+      return request(
+        `/pricing-tiers/overview?${params}`,
+        pricingOverviewSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+    listZones: (
+      page = 1,
+      pageSize = 20,
+      filters: {
+        search?: string;
+        city?: string;
+        notCity?: string;
+        status?: string;
+      } = {},
+      signal?: AbortSignal,
+    ): Promise<ZonePage> => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      for (const [key, value] of Object.entries(filters))
+        if (value) params.set(key, value);
+      return request(
+        `/zones?${params}`,
+        Object.values(filters).some(Boolean)
+          ? zonePageSchema.extend({ cities: z.array(z.string()) })
+          : zonePageSchema,
+        signal ? { signal } : undefined,
+      );
+    },
     createZone: (input: ZoneInput): Promise<Zone> =>
       request('/zones', zoneSchema, body('POST', input)),
 
@@ -140,20 +180,30 @@ export function createAdminDeliveryApi(session: IdentitySession) {
     getZoneSummary: (
       from?: string,
       to?: string,
+      signal?: AbortSignal,
     ): Promise<ZoneSummaryResponse> =>
-      request('/zones/summary' + dates(from, to), zoneSummaryResponseSchema),
+      request(
+        '/zones/summary' + dates(from, to),
+        zoneSummaryResponseSchema,
+        signal ? { signal } : undefined,
+      ),
 
     listPricingTiers: (
       page = 1,
       pageSize = 20,
       zoneId?: string,
+      signal?: AbortSignal,
     ): Promise<PricingPage> => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
       });
       if (zoneId) params.set('zoneId', zoneId);
-      return request(`/pricing-tiers?${params.toString()}`, pricingPageSchema);
+      return request(
+        `/pricing-tiers?${params.toString()}`,
+        pricingPageSchema,
+        signal ? { signal } : undefined,
+      );
     },
 
     createPricingTier: (input: PricingTierInput): Promise<PricingTier> =>
@@ -173,10 +223,12 @@ export function createAdminDeliveryApi(session: IdentitySession) {
     getDeliveryReport: (
       from?: string,
       to?: string,
+      signal?: AbortSignal,
     ): Promise<DeliveryReportResponse> =>
       request(
         '/reports/deliveries' + dates(from, to),
         deliveryReportResponseSchema,
+        signal ? { signal } : undefined,
       ),
   };
 }
