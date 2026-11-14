@@ -36,7 +36,11 @@ import {
   TableRow,
 } from '~/shared/components/ui/table';
 import { DispatchReadError, type CourierWorkload } from './workload-api';
-import { useCourierWorkload, useDispatchAssignments } from './workload-hooks';
+import {
+  useCourierWorkload,
+  useDispatchAssignments,
+  useCourierDirectory,
+} from './workload-hooks';
 
 const PAGE_SIZE = 20;
 
@@ -209,10 +213,13 @@ function WorkloadContent() {
   const selectedTrigger = useRef<HTMLButtonElement | null>(null);
   const query = useCourierWorkload(page);
   const zones = useQuery({
-    queryKey: ['dispatch-zone-summary', user!.id],
+    queryKey: ['delivery-zone-summary', user!.id],
     queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
   });
   const { data } = query;
+  const names = useCourierDirectory(
+    data?.items.map((courier) => courier.courierId) ?? [],
+  );
   const pages = data ? Math.max(1, Math.ceil(data.totalCount / PAGE_SIZE)) : 1;
   const correcting = query.isSuccess && page > pages;
   if (correcting) setPage(pages);
@@ -220,6 +227,7 @@ function WorkloadContent() {
   function refresh() {
     void query.refetch();
     void zones.refetch();
+    if (data?.items.length) void names.refetch();
   }
 
   return (
@@ -254,6 +262,16 @@ function WorkloadContent() {
                 void zones.refetch();
               }}
               pending={zones.isFetching}
+            />
+          )}
+          {names.isError && (
+            <WorkspaceNotice
+              title="Courier names unavailable"
+              description="Courier codes remain available. Retry to load names."
+              retry={() => {
+                void names.refetch();
+              }}
+              pending={names.isFetching}
             />
           )}
           {query.isFetching && data && (
@@ -294,7 +312,7 @@ function WorkloadContent() {
                     </TableCaption>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Courier ID</TableHead>
+                        <TableHead>Courier</TableHead>
                         <TableHead>Profile</TableHead>
                         <TableHead>Duty</TableHead>
                         <TableHead>Zones</TableHead>
@@ -310,8 +328,16 @@ function WorkloadContent() {
                     <TableBody>
                       {data.items.map((courier) => (
                         <TableRow key={courier.courierId}>
-                          <TableCell className="max-w-52 break-all font-mono text-xs">
-                            {courier.courierId}
+                          <TableCell className="min-w-40 max-w-64">
+                            <p className="font-medium break-words">
+                              {names.data?.[courier.courierId] ??
+                                (names.isFetching
+                                  ? 'Loading courier name…'
+                                  : 'Name unavailable')}
+                            </p>
+                            <p className="mt-1 font-mono text-xs text-muted-foreground">
+                              {courier.courierCode}
+                            </p>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
@@ -343,7 +369,7 @@ function WorkloadContent() {
                             <Button
                               variant="outline"
                               size="sm"
-                              aria-label={`View active parcels for ${courier.courierId}`}
+                              aria-label={`View active parcels for ${courier.courierCode}`}
                               onClick={(event) => {
                                 selectedTrigger.current = event.currentTarget;
                                 setSelected(courier);
@@ -387,7 +413,8 @@ function WorkloadContent() {
           <DialogHeader>
             <DialogTitle>Active parcels</DialogTitle>
             <DialogDescription className="break-all">
-              Courier {selected?.courierId}. Includes overdue and future service
+              {selected && (names.data?.[selected.courierId] ?? 'Courier')} ·{' '}
+              {selected?.courierCode}. Includes overdue and future service
               dates.
             </DialogDescription>
           </DialogHeader>

@@ -142,6 +142,8 @@ function AdminContent() {
     setNotice(message);
     void queries.invalidateQueries({ queryKey: ['identity', 'users'] });
     void queries.invalidateQueries({ queryKey: ['system-audit'] });
+    void queries.invalidateQueries({ queryKey: ['courier-directory'] });
+    void queries.invalidateQueries({ queryKey: ['audit-actor-names'] });
   };
   const clear = () => {
     setSearch('');

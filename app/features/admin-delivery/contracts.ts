@@ -26,6 +26,10 @@ export const zonePageSchema = z.object({
   totalCount: z.number(),
   page: z.number(),
   pageSize: z.number(),
+  cities: z
+    .array(z.string())
+    .nullish()
+    .transform((value) => value ?? []),
 });
 
 export type ZonePage = z.infer<typeof zonePageSchema>;
@@ -84,6 +88,24 @@ export const pricingPageSchema = z.object({
 });
 
 export type PricingPage = z.infer<typeof pricingPageSchema>;
+
+export const pricingOverviewSchema = z.object({
+  items: z.array(
+    z.object({
+      zoneId: z.string().uuid(),
+      zoneName: z.string(),
+      isZoneActive: z.boolean(),
+      tierCount: z.number().int().nonnegative(),
+      activeTiers: z.array(pricingTierSchema),
+    }),
+  ),
+  totalCount: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+});
+export type PricingZoneOverview = z.infer<
+  typeof pricingOverviewSchema
+>['items'][number];
 
 export const dailyReportMetricSchema = z.object({
   date: z.string(),

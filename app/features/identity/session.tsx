@@ -16,6 +16,7 @@ type Snapshot = {
   user: Profile | null;
   restoring: boolean;
   error: string | null;
+  logoutRequested: boolean;
 };
 export class IdentitySession {
   private token: string | null = null;
@@ -23,7 +24,12 @@ export class IdentitySession {
   private generation = 0;
   private refreshFlight: Promise<string> | null = null;
   private restoreFlight: Promise<void> | null = null;
-  private snapshot: Snapshot = { user: null, restoring: true, error: null };
+  private snapshot: Snapshot = {
+    user: null,
+    restoring: true,
+    error: null,
+    logoutRequested: false,
+  };
   private readonly listeners = new Set<() => void>();
   constructor(
     readonly api: IdentityApi,
@@ -83,10 +89,12 @@ export class IdentitySession {
   async login(email: string, password: string) {
     const generation = ++this.generation;
     this.accept(await this.api.login(email, password), generation);
+    this.publish({ logoutRequested: false });
   }
   async google(idToken: string) {
     const generation = ++this.generation;
     this.accept(await this.api.google(idToken), generation);
+    this.publish({ logoutRequested: false });
   }
   refresh() {
     this.refreshFlight ??= (async () => {
@@ -108,6 +116,7 @@ export class IdentitySession {
     return this.token;
   }
   async logout() {
+    this.publish({ logoutRequested: true });
     let token = this.token;
     try {
       token = await this.accessToken();

@@ -14,6 +14,34 @@ function setup(response: Response) {
 }
 
 describe('real Delivery administration transport', () => {
+  it('requires filter-capable response metadata when searching to avoid silently unfiltered results', async () => {
+    const { api } = setup(
+      Response.json({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
+    );
+    await expect(
+      api.listZones(1, 20, { search: 'Galle' }),
+    ).rejects.toMatchObject({ code: 'invalid_response' });
+  });
+  it('encodes global zone criteria through the authenticated transport', async () => {
+    const { api, request } = setup(
+      Response.json({
+        items: [],
+        totalCount: 0,
+        page: 1,
+        pageSize: 20,
+        cities: ['Colombo', 'Galle'],
+      }),
+    );
+    await api.listZones(2, 20, {
+      search: '00100',
+      notCity: 'Colombo',
+      status: 'inactive',
+    });
+    expect(request).toHaveBeenCalledWith(
+      '/custom-api/v1/zones?page=2&pageSize=20&search=00100&notCity=Colombo&status=inactive',
+      undefined,
+    );
+  });
   it('uses the shared authenticated transport and configured base', async () => {
     const { api, request } = setup(
       Response.json({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
