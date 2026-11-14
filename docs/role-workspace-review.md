@@ -44,11 +44,10 @@ Shadcn tabs, row dropdowns and account/role/status dialogs replace the persisten
 | Workflow                                       | Current gap                                                                                                                  | UI behavior                          |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | Assignment/reassignment (FR-D02/D04)           | No exposed assignment command                                                                                                | Assignment controls remain deferred  |
-| Courier workload/capacity (FR-D03)             | No exposed workload/capacity endpoint                                                                                        | Remains disabled                     |
 | Merchant business overview/statistics (FR-M06) | No business statistics endpoint; owned order reads are now available                                                         | Remains disabled; no invented totals |
 | Merchant orders (FR-M04/M07)                   | Backend dev now exposes scoped POST/GET /api/v1/merchant/orders and GET by ID; the web order workspace remains unimplemented | Remains disabled                     |
 
-Backend PRs #23 and #24 added Merchant API-key authentication, scoped order intake and owner reads after the initial review. Merchant Orders stays disabled until its separate web workspace is implemented. Assignment, workload and business-statistics gaps remain. The role review does not fabricate endpoints or enable unavailable workflows.
+Backend PRs #23 and #24 added Merchant API-key authentication, scoped order intake and owner reads after the initial review. Merchant Orders stays disabled until its separate web workspace is implemented. Assignment commands and business-statistics integration remain gaps. Courier workload monitoring is now implemented for Dispatcher and Admin at `/dispatch/workload`, including active-assignment reads; see [workload integration](dispatcher-workload.md). The role review does not fabricate endpoints or enable unavailable workflows.
 
 ## Validation
 
