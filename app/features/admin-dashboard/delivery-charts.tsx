@@ -1,3 +1,4 @@
+import { DashboardInfo } from './dashboard-info';
 import {
   Table,
   TableBody,
@@ -20,7 +21,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '~/shared/components/ui/card';
@@ -65,10 +65,13 @@ export function DeliveryCharts({ report }: { report: DeliveryReportResponse }) {
     <div className="grid min-w-0 gap-6 xl:grid-cols-3">
       <Card className="min-w-0 xl:col-span-2">
         <CardHeader className="space-y-1 p-4 sm:p-6">
-          <CardTitle className="text-base">Daily delivery trend</CardTitle>
-          <CardDescription>
-            Recorded terminal transitions by UTC day.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Daily delivery trend</CardTitle>
+            <DashboardInfo label="daily delivery trend">
+              Delivered, failed and cancelled transitions recorded on each UTC
+              day in the selected period.
+            </DashboardInfo>
+          </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
           {!hasOutcomes ? (
@@ -152,10 +155,14 @@ export function DeliveryCharts({ report }: { report: DeliveryReportResponse }) {
       </Card>
       <Card className="min-w-0">
         <CardHeader className="space-y-1 p-4 sm:p-6">
-          <CardTitle className="text-base">Outcome breakdown</CardTitle>
-          <CardDescription>
-            Cancellation is excluded from success and failure rates.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Outcome breakdown</CardTitle>
+            <DashboardInfo label="outcome breakdown">
+              Totals for the selected period. Success and failure rates use
+              delivered plus failed as the denominator; cancellations are
+              reported separately.
+            </DashboardInfo>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
           {hasOutcomes ? (
@@ -277,8 +284,7 @@ export function WorkloadChart({
         </ChartContainer>
       )}
       <p className="text-xs text-muted-foreground">
-        {shown.length} of {zones.length} zones, ordered by active workload. All
-        dates; current parcel statuses.
+        {shown.length} of {zones.length} zones
       </p>
       <div className="sr-only">
         <Table>

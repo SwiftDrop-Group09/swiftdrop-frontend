@@ -1,18 +1,14 @@
-import { useMemo, useState, type ComponentType } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
-  CheckCheck,
-  CircleAlert,
   Clock3,
   Minus,
-  PackageCheck,
   RefreshCw,
   Store,
-  XCircle,
 } from 'lucide-react';
 import { useIdentity } from '~/features/identity/session';
 import { Protected } from '~/features/identity/components';
@@ -44,6 +40,7 @@ import {
 import { Skeleton } from '~/shared/components/ui/skeleton';
 import { metricComparison, zoneWorkloads } from './analytics';
 import { DeliveryCharts, WorkloadChart } from './delivery-charts';
+import { DashboardInfo } from './dashboard-info';
 
 function Kpi({
   label,
@@ -51,7 +48,6 @@ function Kpi({
   previous,
   rate = false,
   lowerIsBetter = false,
-  icon: Icon,
   unavailable,
 }: {
   label: string;
@@ -59,7 +55,6 @@ function Kpi({
   previous?: number;
   rate?: boolean;
   lowerIsBetter?: boolean;
-  icon: ComponentType<{ className?: string }>;
   unavailable: boolean;
 }) {
   const comparison =
@@ -74,9 +69,24 @@ function Kpi({
       : ArrowDownRight;
   return (
     <Card className="min-w-0">
-      <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-2">
+      <CardHeader className="flex min-h-16 flex-row items-center justify-between gap-2 p-4 pb-2">
         <CardDescription>{label}</CardDescription>
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-1">
+          <DashboardInfo label={label}>
+            {label === 'Terminal outcomes'
+              ? 'Delivered plus failed transitions in the selected UTC period.'
+              : label === 'Success rate'
+                ? 'Delivered divided by delivered plus failed. Cancellations are excluded; no terminal outcomes gives 0%.'
+                : label === 'Failure rate'
+                  ? 'Failed divided by delivered plus failed. Cancellations are excluded; no terminal outcomes gives 0%.'
+                  : label === 'Cancelled'
+                    ? 'Cancelled transitions in the selected period, excluded from success and failure rates.'
+                    : `${label} transitions in the selected UTC period.`}{' '}
+            {rate
+              ? 'Comparison shows percentage-point change.'
+              : 'Comparison shows percentage change; a zero baseline with new outcomes is labelled New activity.'}
+          </DashboardInfo>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 p-4 pt-0">
         <p className="text-2xl font-semibold tabular-nums">
@@ -91,7 +101,6 @@ function Kpi({
               <Trend className="mr-1 size-3" aria-hidden="true" />
               {comparison.label}
             </Badge>
-            <p className="text-xs text-muted-foreground">vs previous period</p>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
@@ -184,27 +193,23 @@ function AdminDashboardContent() {
           label: 'Terminal outcomes',
           value: current.terminalCount,
           previous: baseline?.terminalCount,
-          icon: PackageCheck,
         },
         {
           label: 'Delivered',
           value: current.delivered,
           previous: baseline?.delivered,
-          icon: CheckCheck,
         },
         {
           label: 'Success rate',
           value: current.successRate,
           previous: baseline?.successRate,
           rate: true,
-          icon: CheckCheck,
         },
         {
           label: 'Failed',
           value: current.failed,
           previous: baseline?.failed,
           lowerIsBetter: true,
-          icon: CircleAlert,
         },
         {
           label: 'Failure rate',
@@ -212,14 +217,12 @@ function AdminDashboardContent() {
           previous: baseline?.failureRate,
           rate: true,
           lowerIsBetter: true,
-          icon: CircleAlert,
         },
         {
           label: 'Cancelled',
           value: current.cancelled,
           previous: baseline?.cancelled,
           lowerIsBetter: true,
-          icon: XCircle,
         },
       ]
     : [];
@@ -237,20 +240,19 @@ function AdminDashboardContent() {
       }
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <p>
-            Delivery performance / {formatReportDate(period.startDate)} -{' '}
-            {formatReportDate(period.endDate)} (UTC)
-          </p>
-          <p className="text-xs">
-            Compared with {formatReportDate(preceding.fromUtc.slice(0, 10))} -{' '}
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold">Delivery performance</h2>
+          <DashboardInfo label="delivery performance">
+            Selected period: {formatReportDate(period.startDate)} -{' '}
+            {formatReportDate(period.endDate)} (UTC). Compared with{' '}
+            {formatReportDate(preceding.fromUtc.slice(0, 10))} -{' '}
             {formatReportDate(
-              new Date(new Date(preceding.toUtc).getTime() - 86400000)
+              new Date(Date.parse(preceding.toUtc) - 86400000)
                 .toISOString()
                 .slice(0, 10),
             )}
             . The current UTC day may be incomplete.
-          </p>
+          </DashboardInfo>
         </div>
         <Button variant="ghost" asChild>
           <Link to={reportUrl}>
@@ -296,11 +298,6 @@ function AdminDashboardContent() {
               />
             )}
             <DeliveryCharts report={current} />
-            <p className="text-xs text-muted-foreground">
-              Terminal outcomes = delivered + failed. Success and failure rates
-              exclude cancellations. Rate comparisons use percentage points
-              (pp); count comparisons use percentage change.
-            </p>
           </>
         )
       )}
@@ -308,11 +305,18 @@ function AdminDashboardContent() {
         <Card className="min-w-0 xl:col-span-2">
           <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 p-4 sm:p-6">
             <div className="space-y-1">
-              <CardTitle className="text-base">Current zone workload</CardTitle>
-              <CardDescription>
-                Current snapshot across all dates; independent of the reporting
-                period.
-              </CardDescription>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">
+                  Current zone workload
+                </CardTitle>
+                <DashboardInfo label="zone workload">
+                  Current parcel statuses across all dates, independent of the
+                  reporting period. In progress includes Assigned, PickedUp,
+                  InTransit and OutForDelivery. Created parcels await
+                  assignment; terminal outcomes are excluded. The chart shows
+                  the six busiest zones.
+                </DashboardInfo>
+              </div>
             </div>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/dispatch/zones">
@@ -364,7 +368,7 @@ function AdminDashboardContent() {
           </CardContent>
         </Card>
         <Card className="min-w-0">
-          <CardHeader className="space-y-1 p-4 sm:p-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base">
               <Store
                 className="size-4 text-muted-foreground"
@@ -372,9 +376,11 @@ function AdminDashboardContent() {
               />
               Pending approvals
             </CardTitle>
-            <CardDescription>
-              Current merchant applications, oldest first.
-            </CardDescription>
+            <DashboardInfo label="pending approvals">
+              Current merchant applications awaiting review, independent of the
+              reporting period. The oldest four are listed; the total includes
+              all pending applications.
+            </DashboardInfo>
           </CardHeader>
           <CardContent className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
             {merchants.isPending ? (

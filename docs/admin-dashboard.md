@@ -54,10 +54,17 @@ light/dark layouts.
 
 ## Verification on 14 November 2026
 
-`npm run check` passes formatting, lint, type checking, all 489 tests in 29 files,
+Metric definitions, comparison-period rules, chart explanations and snapshot
+scope appear in accessible shadcn info tooltips beside their headings. Hover or
+keyboard focus opens the explanation; Escape dismisses it. KPI values, comparison
+changes, snapshot labels and actionable error/empty guidance remain visible.
+
+After integrating the upstream dispatcher screens, `npm run check` passes
+formatting, lint, type checking, all 547 tests in 32 files,
 and the production build. Chromium checks at 390px, 768px and 1920px render
 all three chart SVGs, exercise range presets/custom validation/cancel, follow
 the period-specific report link, and verify light/dark themes and independent
 source failures without page errors or viewport overflow. Browser API fixtures
 are isolated and perform GET reads only. Workspace actions now wrap within the
-available tablet width. No shared service data or databases were modified.
+available tablet width. Hover and keyboard-focus checks also verify the info
+tooltips and Escape dismissal. These browser checks do not modify service data.

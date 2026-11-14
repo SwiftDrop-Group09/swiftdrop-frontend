@@ -142,6 +142,32 @@ function mount(
   return { user, queries, ...view };
 }
 describe('Admin operations dashboard', () => {
+  it('keeps definitions in accessible shadcn info tooltips instead of page copy', async () => {
+    const { user } = mount();
+    await screen.findByText('+25.0 pp');
+    expect(
+      screen.queryByText('Terminal outcomes = delivered + failed.'),
+    ).not.toBeInTheDocument();
+    await user.hover(
+      screen.getByRole('button', { name: 'About Success rate' }),
+    );
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Cancellations are excluded',
+    );
+    await user.keyboard('{Escape}');
+    await user.unhover(
+      screen.getByRole('button', { name: 'About Success rate' }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument(),
+    );
+    await user.hover(
+      screen.getByRole('button', { name: 'About zone workload' }),
+    );
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'independent of the reporting period',
+    );
+  });
   it('reaches the rich dashboard through the actual route with 30-day comparisons and real charts', async () => {
     mount();
     expect(
