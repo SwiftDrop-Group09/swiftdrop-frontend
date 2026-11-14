@@ -22,6 +22,7 @@ export function createAppQueryClient() {
     client.setQueryDefaults([key], { staleTime: 5 * 60_000 });
   for (const key of [
     'customer-parcels',
+    'customer-delivery-summary',
     'customer-parcel',
     'dispatch-workload',
     'dispatch-assignments',

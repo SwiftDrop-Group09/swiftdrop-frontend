@@ -90,6 +90,14 @@ async function fillForm() {
   };
   for (const [label, value] of Object.entries(fields))
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  for (let step = 0; step < 3; step++) {
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { current: 'step' })).toHaveTextContent(
+        String(step + 2),
+      ),
+    );
+  }
 }
 
 async function preview() {
@@ -101,6 +109,84 @@ async function preview() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('Customer booking interaction', () => {
+  it('shows one step at a time, preserves values on Back and requires review before a quote', async () => {
+    const { request } = setup();
+    expect(screen.getByRole('button', { current: 'step' })).toHaveTextContent(
+      '1Pickup',
+    );
+    expect(screen.getByLabelText('Pickup street address')).toBeVisible();
+    expect(screen.getByLabelText('Recipient name')).not.toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Get delivery quote' }),
+    ).not.toBeInTheDocument();
+    await fillForm();
+    expect(screen.getByRole('button', { current: 'step' })).toHaveTextContent(
+      '4Review & price',
+    );
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Pickup' }));
+    expect(screen.getByLabelText('Pickup street address')).toHaveValue(
+      'Fictional pickup street',
+    );
+    expect(screen.getByLabelText('Pickup street address')).toBeVisible();
+    expect(screen.getByLabelText('Weight (kg)')).not.toBeVisible();
+  });
+
+  it('restores an in-memory draft after remounting without carrying it to another account', () => {
+    const { environment, rerender } = setup();
+    fireEvent.change(screen.getByLabelText('Pickup street address'), {
+      target: { value: 'Retained address' },
+    });
+    rerender(
+      <AppProviders>
+        <p>Another page</p>
+      </AppProviders>,
+    );
+    rerender(
+      <AppProviders>
+        <CustomerBookingPage environment={environment} />
+      </AppProviders>,
+    );
+    expect(screen.getByLabelText('Pickup street address')).toHaveValue(
+      'Retained address',
+    );
+    rerender(
+      <AppProviders>
+        <CustomerBookingPage
+          environment={{
+            ...environment,
+            session: { principalId: other, roles: ['Customer'] },
+          }}
+        />
+      </AppProviders>,
+    );
+    expect(screen.getByLabelText('Pickup street address')).toHaveValue('');
+  });
+
+  it('copies profile details only after an explicit shortcut and still requires the address zone', () => {
+    const { environment, rerender } = setup();
+    rerender(
+      <AppProviders>
+        <CustomerBookingPage
+          environment={environment}
+          profile={{
+            fullName: 'Nimali Perera',
+            phoneNumber: '+94771234567',
+            address: '12 Galle Road',
+          }}
+        />
+      </AppProviders>,
+    );
+    expect(screen.getByLabelText('Pickup street address')).toHaveValue('');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use my profile address for pickup' }),
+    );
+    expect(screen.getByLabelText('Pickup street address')).toHaveValue(
+      '12 Galle Road',
+    );
+    expect(screen.getByLabelText('Pickup city')).toHaveValue('');
+    expect(screen.getByLabelText('Pickup area')).toHaveValue('');
+  });
   it('keeps the normal application closed without an injected Customer session', () => {
     render(
       <AppProviders>
@@ -134,11 +220,9 @@ describe('Customer booking interaction', () => {
   it('validates required fields and exact weight before requesting a quote', async () => {
     const { request } = setup();
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Get delivery quote' }),
-      ).toBeEnabled(),
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Get delivery quote' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findAllByText('This field is required.');
     expect(request).not.toHaveBeenCalled();
     await fillForm();
@@ -373,6 +457,9 @@ describe('Customer booking interaction', () => {
         <CustomerBookingPage environment={environment} />
       </AppProviders>,
     );
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
     fireEvent.click(
       screen.getByRole('button', { name: 'Retry original confirmation' }),
     );
