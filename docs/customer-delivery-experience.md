@@ -66,9 +66,11 @@ status in Tracking. Cached private reads stay in memory with 30-second freshness
 
 Dashboard, booking, history, tracking and delivery details use Customer-only
 compositions of shadcn Card, Badge, Button, Tabs, Separator and Progress. Existing
-SwiftDrop red theme tokens provide subtle accents in both themes; no feature
+Shadcn primary tokens provide subtle brand accents in both themes; no feature
 stylesheets or global theme/shell changes are introduced. Other role screens,
 shared operational delivery components and shared profile views remain unchanged.
+See [brand theme](brand-theme.md) for the single editable brand source and the
+derived semantic/chart tokens used across the application.
 
 Active delivery cards show the route, recipient, package, confirmed price, latest
 update and status milestones. History uses compact rows with document/detail

@@ -102,7 +102,7 @@ export function DeliveryRows({
             <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:px-0 md:py-5">
               <Badge
                 variant="outline"
-                className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1 md:flex"
+                className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-primary/15 bg-primary/5 p-0 text-primary md:flex"
                 aria-hidden="true"
               >
                 <Package className="size-5" />
@@ -170,7 +170,7 @@ export function OwnerTrackingLookup({ origin }: { origin: string }) {
     return () => lookup.current?.abort();
   }, []);
   return (
-    <Card className="grid items-center border-chart-1/20 bg-chart-1/5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+    <Card className="grid items-center border-primary/20 bg-primary/5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
       <CustomerSectionHeader
         icon={Search}
         title="Find a delivery"
@@ -325,7 +325,7 @@ export function CustomerDashboardContent() {
                       {label}
                     </p>
                     <Icon
-                      className="size-4 shrink-0 text-chart-1"
+                      className="size-4 shrink-0 text-primary"
                       aria-hidden="true"
                     />
                   </div>
@@ -732,13 +732,13 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
         />
       ) : (
         <>
-          <Card className="overflow-hidden border-chart-1/20">
+          <Card className="overflow-hidden border-primary/20">
             <CardContent className="space-y-5 p-4 sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <Badge
                     variant="outline"
-                    className="size-12 shrink-0 justify-center rounded-xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
+                    className="size-12 shrink-0 justify-center rounded-xl border-primary/20 bg-primary/5 p-0 text-primary"
                     aria-hidden="true"
                   >
                     <Package className="size-6" />
@@ -911,11 +911,11 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
                       {data.history.map((entry, index) => (
                         <li
                           key={`${entry.timestamp}-${index}`}
-                          className="relative ml-3 space-y-1 border-l border-chart-1/20 pb-5 pl-7 last:border-transparent last:pb-0"
+                          className="relative ml-3 space-y-1 border-l border-primary/20 pb-5 pl-7 last:border-transparent last:pb-0"
                         >
                           <Badge
                             variant="outline"
-                            className="absolute -left-3 top-0 size-6 justify-center rounded-full border-chart-1/20 bg-background p-0 text-chart-1"
+                            className="absolute -left-3 top-0 size-6 justify-center rounded-full border-primary/20 bg-background p-0 text-primary"
                             aria-hidden="true"
                           >
                             <CheckCircle2 className="size-3.5" />

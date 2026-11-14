@@ -51,7 +51,7 @@ export function CustomerSectionHeader({
       <div className="flex min-w-0 items-start gap-3">
         <Badge
           variant="outline"
-          className="size-10 shrink-0 justify-center rounded-xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1"
+          className="size-10 shrink-0 justify-center rounded-xl border-primary/15 bg-primary/5 p-0 text-primary"
           aria-hidden="true"
         >
           <Icon className="size-5" />
@@ -84,7 +84,7 @@ export function CustomerEmptyState({
       <CardContent className="flex flex-col items-center gap-4 px-4 py-10 text-center">
         <Badge
           variant="outline"
-          className="size-14 justify-center rounded-2xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1"
+          className="size-14 justify-center rounded-2xl border-primary/15 bg-primary/5 p-0 text-primary"
           aria-hidden="true"
         >
           <Icon className="size-7" />
@@ -113,7 +113,7 @@ export function DeliveryRoute({
   if (compact)
     return (
       <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-medium">
-        <MapPin className="size-4 shrink-0 text-chart-1" aria-hidden="true" />
+        <MapPin className="size-4 shrink-0 text-primary" aria-hidden="true" />
         <span className="break-words">{pickup}</span>
         <ArrowRight
           className="size-3.5 shrink-0 text-muted-foreground"
@@ -124,7 +124,7 @@ export function DeliveryRoute({
     );
   return (
     <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-sm">
-      <CircleDot className="mx-auto size-4 text-chart-1" aria-hidden="true" />
+      <CircleDot className="mx-auto size-4 text-primary" aria-hidden="true" />
       <div>
         <p className="text-xs text-muted-foreground">From</p>
         <p className="break-words font-medium">{pickup}</p>
@@ -134,7 +134,7 @@ export function DeliveryRoute({
         aria-hidden="true"
       />
       <span />
-      <MapPin className="mx-auto size-4 text-chart-1" aria-hidden="true" />
+      <MapPin className="mx-auto size-4 text-primary" aria-hidden="true" />
       <div>
         <p className="text-xs text-muted-foreground">To</p>
         <p className="break-words font-medium">{delivery}</p>
@@ -184,7 +184,7 @@ export function CustomerJourney({
           value={(index / (milestones.length - 1)) * 100}
           aria-label="Delivery milestones"
           aria-valuetext={`${PARCEL_STATUS_LABELS[status]}, milestone ${index + 1} of ${milestones.length}`}
-          className="h-1.5 bg-chart-1/10 [&>div]:bg-chart-1"
+          className="h-1.5 bg-primary/10 [&>div]:bg-primary"
         />
       </div>
       {!compact && (
@@ -201,7 +201,7 @@ export function CustomerJourney({
                 className={cn(
                   'flex items-center gap-2 rounded-lg border p-3 xl:flex-col xl:items-start',
                   position === index
-                    ? 'border-chart-1/30 bg-chart-1/5'
+                    ? 'border-primary/30 bg-primary/5'
                     : 'border-transparent bg-muted/30',
                 )}
               >
@@ -210,7 +210,7 @@ export function CustomerJourney({
                   className={cn(
                     'size-7 shrink-0 justify-center rounded-full p-0',
                     position <= index
-                      ? 'border-chart-1/20 bg-chart-1/10 text-chart-1'
+                      ? 'border-primary/20 bg-primary/10 text-primary'
                       : 'border-border text-muted-foreground',
                   )}
                   aria-hidden="true"
@@ -252,7 +252,7 @@ export function ActiveDeliveryCards({
           <CardHeader className="flex flex-wrap items-center justify-between gap-3 space-y-0 bg-muted/20 p-4 sm:flex-row">
             <div className="flex min-w-0 items-center gap-2">
               <Package
-                className="size-4 shrink-0 text-chart-1"
+                className="size-4 shrink-0 text-primary"
                 aria-hidden="true"
               />
               <p className="break-all font-mono text-sm font-semibold">

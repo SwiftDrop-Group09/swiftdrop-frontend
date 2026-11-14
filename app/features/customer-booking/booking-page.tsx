@@ -430,12 +430,12 @@ function BookingFlow({
   if (receipt)
     return (
       <Card
-        className="space-y-4 border-chart-1/20 p-4 sm:p-6"
+        className="space-y-4 border-primary/20 p-4 sm:p-6"
         aria-labelledby="booked-title"
       >
         <Badge
           variant="outline"
-          className="size-14 justify-center rounded-2xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
+          className="size-14 justify-center rounded-2xl border-primary/20 bg-primary/5 p-0 text-primary"
           aria-hidden="true"
         >
           <CircleCheck className="size-7" />
@@ -451,7 +451,7 @@ function BookingFlow({
           below.
         </p>
         <p
-          className="mt-4 break-all rounded-xl border border-chart-1/15 bg-chart-1/5 p-4 font-mono text-lg font-semibold"
+          className="mt-4 break-all rounded-xl border border-primary/15 bg-primary/5 p-4 font-mono text-lg font-semibold"
           aria-label="Tracking number"
         >
           {receipt.trackingNumber}
@@ -499,7 +499,7 @@ function BookingFlow({
           queryKey: ['customer-booking-draft', actor],
         });
       })}
-      <Card className="border-chart-1/20">
+      <Card className="border-primary/20">
         <div className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
@@ -523,14 +523,14 @@ function BookingFlow({
             value={((step + 1) / steps.length) * 100}
             aria-label="Booking progress"
             aria-valuetext={`Step ${step + 1} of ${steps.length}: ${steps[step]}`}
-            className="h-1.5 bg-chart-1/10 [&>div]:bg-chart-1"
+            className="h-1.5 bg-primary/10 [&>div]:bg-primary"
           />
           <nav aria-label="Booking steps">
             <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {steps.map((label, index) => (
                 <li key={label}>
                   <Button
-                    className={`h-full min-h-12 w-full justify-start whitespace-normal px-3 py-3 text-left ${step === index ? 'border border-chart-1/20 bg-chart-1/5 text-foreground hover:bg-chart-1/10' : ''}`}
+                    className={`h-full min-h-12 w-full justify-start whitespace-normal px-3 py-3 text-left ${step === index ? 'border border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10' : ''}`}
                     variant={step === index ? 'secondary' : 'ghost'}
                     disabled={index > step || !!attempt || busy}
                     aria-current={step === index ? 'step' : undefined}
@@ -543,7 +543,7 @@ function BookingFlow({
                       {index < step ? (
                         <>
                           <Check
-                            className="size-3.5 text-chart-1"
+                            className="size-3.5 text-primary"
                             aria-hidden="true"
                           />
                           <span className="sr-only">{index + 1}</span>
@@ -799,7 +799,7 @@ function BookingFlow({
         </form>
         <Card
           hidden={step !== 3 && !attempt}
-          className="min-w-0 space-y-4 border-chart-1/20 p-4 sm:p-6 xl:sticky xl:top-6"
+          className="min-w-0 space-y-4 border-primary/20 p-4 sm:p-6 xl:sticky xl:top-6"
           aria-labelledby="quote-title"
         >
           <h2
@@ -808,7 +808,7 @@ function BookingFlow({
           >
             <Badge
               variant="outline"
-              className="size-9 justify-center rounded-xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
+              className="size-9 justify-center rounded-xl border-primary/20 bg-primary/5 p-0 text-primary"
               aria-hidden="true"
             >
               <Wallet className="size-4" />
@@ -937,7 +937,7 @@ function SectionTitle({ step, title }: { step: string; title: string }) {
     <h2 className="flex items-center gap-3 font-semibold">
       <Badge
         variant="outline"
-        className="size-9 shrink-0 justify-center rounded-xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1"
+        className="size-9 shrink-0 justify-center rounded-xl border-primary/15 bg-primary/5 p-0 text-primary"
         aria-hidden="true"
       >
         <Icon className="size-4" />
