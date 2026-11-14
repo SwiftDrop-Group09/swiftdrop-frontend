@@ -3,8 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ZonesPage from './zones-page';
-import PricingPage from './pricing-page';
+import ZonesPage from '~/portals/admin/zones';
+import PricingPage from '~/portals/admin/pricing';
 import { parsePostalCodes } from './zone-editor';
 const mocks = vi.hoisted(() => ({ request: vi.fn<typeof fetch>() }));
 vi.mock('~/features/identity/session', () => ({
