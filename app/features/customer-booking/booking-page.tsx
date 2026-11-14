@@ -1,3 +1,13 @@
+import {
+  Check,
+  CircleCheck,
+  ClipboardCheck,
+  MapPin,
+  Package,
+  UserRound,
+  Wallet,
+} from 'lucide-react';
+import { Progress } from '~/shared/components/ui/progress';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Button } from '~/shared/components/ui/button';
 import { Card } from '~/shared/components/ui/card';
@@ -420,26 +430,28 @@ function BookingFlow({
   if (receipt)
     return (
       <Card
-        className="max-w-2xl space-y-4 p-6 sm:p-8"
+        className="space-y-4 border-chart-1/20 p-4 sm:p-6"
         aria-labelledby="booked-title"
       >
-        <span
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-2xl text-primary"
+        <Badge
+          variant="outline"
+          className="size-14 justify-center rounded-2xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
           aria-hidden="true"
         >
-          ✓
-        </span>
-        <p className="mt-5 text-xs font-bold uppercase tracking-widest text-primary">
-          Confirmed
-        </p>
+          <CircleCheck className="size-7" />
+        </Badge>
+        <Badge variant="secondary" className="w-fit">
+          Booking confirmed
+        </Badge>
         <h2 id="booked-title" className="mt-2 text-2xl font-bold">
           Your delivery is booked
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Keep this tracking number for your parcel.
+          Your booking is confirmed. Follow your parcel with the tracking number
+          below.
         </p>
         <p
-          className="mt-4 break-all rounded-xl bg-muted p-4 font-mono text-lg font-semibold"
+          className="mt-4 break-all rounded-xl border border-chart-1/15 bg-chart-1/5 p-4 font-mono text-lg font-semibold"
           aria-label="Tracking number"
         >
           {receipt.trackingNumber}
@@ -487,24 +499,67 @@ function BookingFlow({
           queryKey: ['customer-booking-draft', actor],
         });
       })}
-      <nav aria-label="Booking steps">
-        <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {steps.map((label, index) => (
-            <li key={label}>
-              <Button
-                className="h-auto w-full justify-start whitespace-normal py-3 text-left"
-                variant={step === index ? 'secondary' : 'ghost'}
-                disabled={index > step || !!attempt || busy}
-                aria-current={step === index ? 'step' : undefined}
-                onClick={() => setStep(index)}
-              >
-                <Badge variant="outline">{index + 1}</Badge>
-                {label}
-              </Button>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      <Card className="border-chart-1/20">
+        <div className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium">Let's get your parcel moving</p>
+              <p className="text-sm text-muted-foreground">
+                {
+                  [
+                    'Start with where we should collect your parcel.',
+                    'Choose its destination and who will receive it.',
+                    'A few parcel details help us calculate the right price.',
+                    'Check your details, review the price, then confirm when you are ready.',
+                  ][step]
+                }
+              </p>
+            </div>
+            <Badge variant="outline" className="shrink-0">
+              Step {step + 1} of {steps.length}
+            </Badge>
+          </div>
+          <Progress
+            value={((step + 1) / steps.length) * 100}
+            aria-label="Booking progress"
+            aria-valuetext={`Step ${step + 1} of ${steps.length}: ${steps[step]}`}
+            className="h-1.5 bg-chart-1/10 [&>div]:bg-chart-1"
+          />
+          <nav aria-label="Booking steps">
+            <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {steps.map((label, index) => (
+                <li key={label}>
+                  <Button
+                    className={`h-full min-h-12 w-full justify-start whitespace-normal px-3 py-3 text-left ${step === index ? 'border border-chart-1/20 bg-chart-1/5 text-foreground hover:bg-chart-1/10' : ''}`}
+                    variant={step === index ? 'secondary' : 'ghost'}
+                    disabled={index > step || !!attempt || busy}
+                    aria-current={step === index ? 'step' : undefined}
+                    onClick={() => setStep(index)}
+                  >
+                    <Badge
+                      variant="outline"
+                      className="size-6 shrink-0 justify-center rounded-full p-0"
+                    >
+                      {index < step ? (
+                        <>
+                          <Check
+                            className="size-3.5 text-chart-1"
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">{index + 1}</span>
+                        </>
+                      ) : (
+                        index + 1
+                      )}
+                    </Badge>
+                    {label}
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
+      </Card>
       <div
         className={
           step === 3 || attempt
@@ -744,10 +799,20 @@ function BookingFlow({
         </form>
         <Card
           hidden={step !== 3 && !attempt}
-          className="min-w-0 space-y-4 p-4 sm:p-6 xl:sticky xl:top-6"
+          className="min-w-0 space-y-4 border-chart-1/20 p-4 sm:p-6 xl:sticky xl:top-6"
           aria-labelledby="quote-title"
         >
-          <h2 id="quote-title" className="text-lg font-bold">
+          <h2
+            id="quote-title"
+            className="flex items-center gap-3 text-lg font-semibold"
+          >
+            <Badge
+              variant="outline"
+              className="size-9 justify-center rounded-xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
+              aria-hidden="true"
+            >
+              <Wallet className="size-4" />
+            </Badge>
             Your delivery quote
           </h2>
           {!quote && !attempt && (
@@ -860,9 +925,23 @@ function BookingFlow({
 }
 
 function SectionTitle({ step, title }: { step: string; title: string }) {
+  const Icon =
+    title === 'Recipient'
+      ? UserRound
+      : step === '03'
+        ? Package
+        : step === '04'
+          ? ClipboardCheck
+          : MapPin;
   return (
-    <h2 className="flex items-center gap-3 font-bold">
-      <Badge variant="secondary">{step}</Badge>
+    <h2 className="flex items-center gap-3 font-semibold">
+      <Badge
+        variant="outline"
+        className="size-9 shrink-0 justify-center rounded-xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1"
+        aria-hidden="true"
+      >
+        <Icon className="size-4" />
+      </Badge>
       {title}
     </h2>
   );

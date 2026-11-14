@@ -114,6 +114,9 @@ describe('Customer booking interaction', () => {
     expect(screen.getByRole('button', { current: 'step' })).toHaveTextContent(
       '1Pickup',
     );
+    expect(
+      screen.getByRole('progressbar', { name: 'Booking progress' }),
+    ).toHaveAttribute('aria-valuetext', 'Step 1 of 4: Pickup');
     expect(screen.getByLabelText('Pickup street address')).toBeVisible();
     expect(screen.getByLabelText('Recipient name')).not.toBeVisible();
     expect(

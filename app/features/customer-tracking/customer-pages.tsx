@@ -4,6 +4,14 @@ import {
   ArrowLeft,
   ArrowRight,
   FileText,
+  History,
+  MapPin,
+  Package,
+  PackageCheck,
+  Truck,
+  CircleDot,
+  CheckCircle2,
+  SlidersHorizontal,
   PackagePlus,
   RefreshCw,
   Search,
@@ -16,26 +24,14 @@ import {
 } from '~/shared/components/workspace-state';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '~/shared/components/ui/card';
+import { Card, CardContent } from '~/shared/components/ui/card';
 import { Input } from '~/shared/components/ui/input';
 import { Label } from '~/shared/components/ui/label';
 import {
   NativeSelect,
   NativeSelectOption,
 } from '~/shared/components/ui/native-select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '~/shared/components/ui/table';
+import { Separator } from '~/shared/components/ui/separator';
 import {
   Tabs,
   TabsContent,
@@ -44,7 +40,6 @@ import {
 } from '~/shared/components/ui/tabs';
 import { CustomerTrackingApiError, listCustomerParcels } from './api';
 import {
-  DeliveryStepper,
   ProofOfDeliveryCard,
   ReceiptCard,
   StatusBadge,
@@ -67,6 +62,13 @@ import {
   useParcelReceipt,
 } from './hooks';
 import { deliveryReturnTo, detailHref, isTerminal } from './navigation';
+import {
+  ActiveDeliveryCards,
+  CustomerEmptyState,
+  CustomerJourney,
+  CustomerSectionHeader,
+  DeliveryRoute,
+} from './customer-presentation';
 
 function Refresh({
   refresh,
@@ -92,106 +94,68 @@ export function DeliveryRows({
   items: CustomerParcelListItem[];
   origin: string;
 }) {
-  function actions(item: CustomerParcelListItem) {
-    return (
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <Link to={detailHref(item.id)} state={{ returnTo: origin }}>
-            View details
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-        {item.status === 'Delivered' && (
-          <Button variant="ghost" size="sm" asChild>
-            <Link
-              to={detailHref(item.id, 'documents')}
-              state={{ returnTo: origin }}
-            >
-              <FileText className="size-4" />
-              Documents
-            </Link>
-          </Button>
-        )}
-      </div>
-    );
-  }
   return (
-    <>
-      <div className="grid gap-4 md:hidden">
-        {items.map((item) => (
-          <Card key={item.id}>
-            <CardContent className="space-y-4 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="break-all font-mono text-sm font-semibold">
-                  {item.trackingNumber}
-                </p>
-                <StatusBadge status={item.status} />
-              </div>
-              <div className="space-y-1 text-sm">
-                <p>
-                  {item.pickupCity} → {item.deliveryCity}
-                </p>
-                <p className="text-muted-foreground">To {item.recipientName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Booked {formatDateTime(item.createdAt)}
-                </p>
-              </div>
-              <p className="text-sm font-medium">
-                {formatMoney(
-                  item.priceSnapshot.total,
-                  item.priceSnapshot.currency,
-                )}
-              </p>
-              {actions(item)}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Delivery</TableHead>
-              <TableHead>Route & recipient</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Booked</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono text-xs font-semibold">
-                  {item.trackingNumber}
-                </TableCell>
-                <TableCell>
-                  <p>
-                    {item.pickupCity} → {item.deliveryCity}
+    <ul className="grid gap-3 md:gap-0 md:divide-y" aria-label="Delivery list">
+      {items.map((item) => (
+        <li key={item.id}>
+          <Card className="md:rounded-none md:border-0 md:bg-transparent">
+            <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:px-0 md:py-5">
+              <Badge
+                variant="outline"
+                className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-chart-1/15 bg-chart-1/5 p-0 text-chart-1 md:flex"
+                aria-hidden="true"
+              >
+                <Package className="size-5" />
+              </Badge>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="break-all font-mono text-sm font-semibold">
+                    {item.trackingNumber}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.recipientName}
-                  </p>
-                </TableCell>
-                <TableCell>
                   <StatusBadge status={item.status} />
-                </TableCell>
-                <TableCell className="text-xs">
+                </div>
+                <DeliveryRoute
+                  pickup={item.pickupCity}
+                  delivery={item.deliveryCity}
+                  compact
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  To {item.recipientName} · Booked{' '}
                   {formatDateTime(item.createdAt)}
-                </TableCell>
-                <TableCell>
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 md:items-end">
+                <p className="text-sm font-semibold">
                   {formatMoney(
                     item.priceSnapshot.total,
                     item.priceSnapshot.currency,
                   )}
-                </TableCell>
-                <TableCell>{actions(item)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={detailHref(item.id)} state={{ returnTo: origin }}>
+                      View details
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                  {item.status === 'Delivered' && (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link
+                        to={detailHref(item.id, 'documents')}
+                        state={{ returnTo: origin }}
+                      >
+                        <FileText className="size-4" />
+                        Documents
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -206,11 +170,13 @@ export function OwnerTrackingLookup({ origin }: { origin: string }) {
     return () => lookup.current?.abort();
   }, []);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Find a delivery</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="grid items-center border-chart-1/20 bg-chart-1/5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
+      <CustomerSectionHeader
+        icon={Search}
+        title="Find a delivery"
+        description="Your parcel updates, one tracking number away."
+      />
+      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0 lg:pt-6">
         <form
           className="flex flex-col gap-2 sm:flex-row"
           onSubmit={(event) => {
@@ -271,9 +237,13 @@ export function OwnerTrackingLookup({ origin }: { origin: string }) {
             maxLength={128}
             onChange={(event) => setCode(event.target.value)}
             placeholder="Enter your tracking number"
-            className="min-w-0 flex-1"
+            className="h-10 min-w-0 flex-1 bg-background"
           />
-          <Button type="submit" disabled={pending || !code.trim()}>
+          <Button
+            type="submit"
+            className="h-10"
+            disabled={pending || !code.trim()}
+          >
             <Search className="size-4" />
             {pending ? 'Searching…' : 'Find delivery'}
           </Button>
@@ -309,6 +279,7 @@ export function CustomerDashboardContent() {
         </>
       }
     >
+      <OwnerTrackingLookup origin="/dashboard" />
       {summary.isPending ? (
         <WorkspaceLoading label="Loading delivery dashboard" />
       ) : summary.isError || !summary.data ? (
@@ -320,59 +291,99 @@ export function CustomerDashboardContent() {
         />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             {[
-              ['Total deliveries', summary.data.totalCount],
-              ['Active deliveries', summary.data.activeCount],
-              ['Delivered', summary.data.deliveredCount],
-              [
-                'Unsuccessful / cancelled',
-                summary.data.failedCount + summary.data.cancelledCount,
-              ],
-            ].map(([label, value]) => (
+              {
+                label: 'Total deliveries',
+                value: summary.data.totalCount,
+                icon: Package,
+                note: 'All your bookings',
+              },
+              {
+                label: 'Active deliveries',
+                value: summary.data.activeCount,
+                icon: Truck,
+                note: 'Current bookings',
+              },
+              {
+                label: 'Delivered',
+                value: summary.data.deliveredCount,
+                icon: PackageCheck,
+                note: 'Completed deliveries',
+              },
+              {
+                label: 'Unsuccessful / cancelled',
+                value: summary.data.failedCount + summary.data.cancelledCount,
+                icon: History,
+                note: 'Closed bookings',
+              },
+            ].map(({ label, value, icon: Icon, note }) => (
               <Card key={label}>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {label}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3 p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium leading-relaxed text-muted-foreground sm:text-sm">
+                      {label}
+                    </p>
+                    <Icon
+                      className="size-4 shrink-0 text-chart-1"
+                      aria-hidden="true"
+                    />
+                  </div>
                   <p className="text-3xl font-semibold tabular-nums">{value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    All your deliveries
-                  </p>
+                  <p className="text-xs text-muted-foreground">{note}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
           <Card>
-            <CardHeader>
-              <CardTitle>Active deliveries</CardTitle>
-            </CardHeader>
+            <CustomerSectionHeader
+              icon={Truck}
+              title="Active deliveries"
+              description="Follow your current bookings, from pickup to delivery."
+              action={
+                <Badge variant="outline" className="w-fit">
+                  {summary.data.activeDeliveries.length} of{' '}
+                  {summary.data.activeCount} shown
+                </Badge>
+              }
+            />
             <CardContent>
               {summary.data.activeDeliveries.length ? (
-                <DeliveryRows
+                <ActiveDeliveryCards
                   items={summary.data.activeDeliveries}
                   origin="/dashboard"
                 />
               ) : (
-                <WorkspaceNotice
-                  title="No active deliveries"
-                  description="Your current deliveries will appear here after booking."
+                <CustomerEmptyState
+                  title="Ready for your next delivery?"
+                  description="Book a parcel and follow its journey here, from pickup to your recipient."
+                  icon={PackagePlus}
+                  action={
+                    <Button asChild>
+                      <Link to="/customer/book">
+                        Book a delivery
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    </Button>
+                  }
                 />
               )}
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-wrap items-center justify-between gap-3 sm:flex-row">
-              <CardTitle>Recent history</CardTitle>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/customer/history">
-                  Delivery history
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </CardHeader>
+            <CustomerSectionHeader
+              icon={History}
+              title="Recent history"
+              description="Your latest completed and closed deliveries."
+              action={
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/customer/history">
+                    Delivery history
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              }
+            />
             <CardContent>
               {summary.data.recentDeliveries.length ? (
                 <DeliveryRows
@@ -380,16 +391,16 @@ export function CustomerDashboardContent() {
                   origin="/dashboard"
                 />
               ) : (
-                <WorkspaceNotice
-                  title="No completed deliveries yet"
-                  description="Delivered, cancelled and unsuccessful deliveries appear here."
+                <CustomerEmptyState
+                  title="Your delivery history starts here"
+                  description="Completed and closed deliveries will appear here, with their details and available documents."
+                  icon={History}
                 />
               )}
             </CardContent>
           </Card>
         </>
       )}
-      <OwnerTrackingLookup origin="/dashboard" />
     </WorkspacePage>
   );
 }
@@ -479,7 +490,12 @@ export function CustomerHistoryContent() {
       }
     >
       <Card>
-        <CardContent className="space-y-4 p-4 sm:p-6">
+        <CustomerSectionHeader
+          icon={SlidersHorizontal}
+          title="Find the delivery you need"
+          description="Search by tracking number or recipient, then narrow by status and booking date."
+        />
+        <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -571,9 +587,19 @@ export function CustomerHistoryContent() {
                   origin={location.pathname + location.search}
                 />
               ) : (
-                <WorkspaceNotice
+                <CustomerEmptyState
                   title="No matching deliveries"
-                  description="Try changing the search, status or booking dates."
+                  description="Try a different tracking number, recipient or date range. Your new bookings will appear here too."
+                  action={
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button variant="outline" onClick={() => setParams({})}>
+                        Clear filters
+                      </Button>
+                      <Button asChild>
+                        <Link to="/customer/book">Book a delivery</Link>
+                      </Button>
+                    </div>
+                  }
                 />
               )}
             </CardContent>
@@ -616,9 +642,10 @@ function DeliveryDocuments({ parcel }: { parcel: ParcelDetail }) {
   const proof = useParcelProof(parcel.id, delivered);
   if (!delivered)
     return (
-      <WorkspaceNotice
+      <CustomerEmptyState
+        icon={FileText}
         title="Documents available after delivery"
-        description="Your receipt and any proof of delivery will appear here once this parcel is delivered."
+        description="Once your parcel is delivered, return here for its receipt and any proof of delivery."
       />
     );
   return (
@@ -705,22 +732,49 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
         />
       ) : (
         <>
-          <Card>
-            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
-              <div className="space-y-2">
-                <p className="break-all font-mono font-semibold">
-                  {data.trackingNumber}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Booked {formatDateTime(data.createdAt)}
-                </p>
+          <Card className="overflow-hidden border-chart-1/20">
+            <CardContent className="space-y-5 p-4 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    className="size-12 shrink-0 justify-center rounded-xl border-chart-1/20 bg-chart-1/5 p-0 text-chart-1"
+                    aria-hidden="true"
+                  >
+                    <Package className="size-6" />
+                  </Badge>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Tracking number
+                    </p>
+                    <p className="break-all font-mono font-semibold">
+                      {data.trackingNumber}
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge status={data.status} />
               </div>
-              <StatusBadge status={data.status} />
-              <p className="font-semibold">
-                {formatMoney(
-                  data.priceSnapshot.total,
-                  data.priceSnapshot.currency,
-                )}
+              <Separator />
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <DeliveryRoute
+                  compact
+                  pickup={data.pickupAddress.city}
+                  delivery={data.deliveryAddress.city}
+                />
+                <div className="text-sm sm:text-right">
+                  <p className="text-xs text-muted-foreground">
+                    Confirmed delivery fee
+                  </p>
+                  <p className="mt-1 font-semibold">
+                    {formatMoney(
+                      data.priceSnapshot.total,
+                      data.priceSnapshot.currency,
+                    )}
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Booked {formatDateTime(data.createdAt)}
               </p>
             </CardContent>
           </Card>
@@ -736,36 +790,58 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
             }}
           >
             <TabsList className="grid w-full grid-cols-3 sm:w-fit">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="tracking">Tracking</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="overview" className="gap-2">
+                <Package
+                  className="hidden size-4 sm:block"
+                  aria-hidden="true"
+                />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="tracking" className="gap-2">
+                <Truck className="hidden size-4 sm:block" aria-hidden="true" />
+                Tracking
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-2">
+                <FileText
+                  className="hidden size-4 sm:block"
+                  aria-hidden="true"
+                />
+                Documents
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
               <div className="grid gap-6 lg:grid-cols-2">
                 {[
-                  [
-                    'Pickup',
-                    data.pickupAddress.street,
-                    `${data.pickupAddress.city}, ${data.pickupAddress.postalCode}`,
-                  ],
-                  [
-                    'Delivery & recipient',
-                    data.recipient.name,
-                    data.recipient.phoneNumber,
-                    data.deliveryAddress.street,
-                    `${data.deliveryAddress.city}, ${data.deliveryAddress.postalCode}`,
-                  ],
-                  [
-                    'Parcel',
-                    `${data.packageDetails.size} · ${data.packageDetails.weightKg} kg`,
-                    `Confirmed price: ${formatMoney(data.priceSnapshot.total, data.priceSnapshot.currency)}`,
-                  ],
-                ].map(([title, ...lines]) => (
+                  {
+                    title: 'Pickup',
+                    icon: CircleDot,
+                    lines: [
+                      data.pickupAddress.street,
+                      `${data.pickupAddress.city}, ${data.pickupAddress.postalCode}`,
+                    ],
+                  },
+                  {
+                    title: 'Delivery & recipient',
+                    icon: MapPin,
+                    lines: [
+                      data.recipient.name,
+                      data.recipient.phoneNumber,
+                      data.deliveryAddress.street,
+                      `${data.deliveryAddress.city}, ${data.deliveryAddress.postalCode}`,
+                    ],
+                  },
+                  {
+                    title: 'Parcel',
+                    icon: Package,
+                    lines: [
+                      `${data.packageDetails.size} · ${data.packageDetails.weightKg} kg`,
+                      `Confirmed price: ${formatMoney(data.priceSnapshot.total, data.priceSnapshot.currency)}`,
+                    ],
+                  },
+                ].map(({ title, icon, lines }) => (
                   <Card key={title}>
-                    <CardHeader>
-                      <CardTitle>{title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
+                    <CustomerSectionHeader title={title} icon={icon} />
+                    <CardContent className="space-y-2 p-4 pt-0 text-sm sm:p-6 sm:pt-0">
                       {lines.map((line, index) => (
                         <p className="break-words" key={index}>
                           {line}
@@ -775,13 +851,12 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
                   </Card>
                 ))}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Delivery progress</CardTitle>
-                  </CardHeader>
+                  <CustomerSectionHeader
+                    title="Delivery progress"
+                    icon={Truck}
+                  />
                   <CardContent className="space-y-4">
-                    <p className="text-sm">
-                      {PARCEL_STATUS_LABELS[data.status]}
-                    </p>
+                    <CustomerJourney status={data.status} compact />
                     {data.assignment && (
                       <p className="text-sm text-muted-foreground">
                         Scheduled {data.assignment.serviceDate}
@@ -816,18 +891,35 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
                           : 'Connecting to live updates…'}
                   </Badge>
                 </div>
-                <DeliveryStepper status={data.status} />
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Delivery timeline</CardTitle>
-                  </CardHeader>
+                  <CustomerSectionHeader
+                    title="Your delivery journey"
+                    description="Milestones show delivery stages, not an estimated arrival time."
+                    icon={Truck}
+                  />
+                  <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                    <CustomerJourney status={data.status} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CustomerSectionHeader
+                    title="Delivery timeline"
+                    icon={History}
+                  />
                   <CardContent>
                     <ol className="space-y-5">
                       {data.history.map((entry, index) => (
                         <li
                           key={`${entry.timestamp}-${index}`}
-                          className="space-y-1 border-l-2 pl-4"
+                          className="relative ml-3 space-y-1 border-l border-chart-1/20 pb-5 pl-7 last:border-transparent last:pb-0"
                         >
+                          <Badge
+                            variant="outline"
+                            className="absolute -left-3 top-0 size-6 justify-center rounded-full border-chart-1/20 bg-background p-0 text-chart-1"
+                            aria-hidden="true"
+                          >
+                            <CheckCircle2 className="size-3.5" />
+                          </Badge>
                           <p className="text-sm font-medium">
                             {PARCEL_STATUS_LABELS[entry.toStatus]}
                           </p>
@@ -873,9 +965,11 @@ export function CustomerTrackingHub() {
     >
       <OwnerTrackingLookup origin="/customer/tracking" />
       <Card>
-        <CardHeader>
-          <CardTitle>Active deliveries</CardTitle>
-        </CardHeader>
+        <CustomerSectionHeader
+          title="Active deliveries"
+          description="Pick a parcel to follow its latest updates."
+          icon={Truck}
+        />
         <CardContent>
           {summary.isPending ? (
             <WorkspaceLoading label="Loading active deliveries" />
@@ -887,14 +981,23 @@ export function CustomerTrackingHub() {
               retry={() => void summary.refetch()}
             />
           ) : summary.data.activeDeliveries.length ? (
-            <DeliveryRows
+            <ActiveDeliveryCards
               items={summary.data.activeDeliveries}
               origin="/customer/tracking"
             />
           ) : (
-            <WorkspaceNotice
+            <CustomerEmptyState
+              icon={Truck}
               title="No active deliveries"
-              description="Visit Delivery history for completed deliveries and documents."
+              description="Your current bookings will appear here. Visit Delivery history for completed deliveries and documents."
+              action={
+                <Button asChild>
+                  <Link to="/customer/book">
+                    Book a delivery
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              }
             />
           )}
         </CardContent>

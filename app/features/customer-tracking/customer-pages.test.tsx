@@ -156,6 +156,25 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe('Customer delivery experience', () => {
+  it('places lookup first and provides accessible milestones on the active delivery cards', async () => {
+    mount('/dashboard');
+    await screen.findByText('42');
+    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveTextContent(
+      'Find a delivery',
+    );
+    const journey = screen.getByRole('progressbar', {
+      name: 'Delivery milestones',
+    });
+    expect(journey).toHaveAttribute('aria-valuenow', '60');
+    expect(journey).toHaveAttribute(
+      'aria-valuetext',
+      'In transit, milestone 4 of 6',
+    );
+    expect(
+      screen.getByRole('list', { name: 'Delivery list' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
   it('returns to the dashboard after opening details and changing tabs', async () => {
     mount('/dashboard');
     await screen.findByText('42');

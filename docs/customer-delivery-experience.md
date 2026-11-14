@@ -5,13 +5,13 @@ Delivery API remains authoritative for access, availability, quotes and document
 
 ## Routes and navigation
 
-- `/dashboard` shows all-time owner totals, up to five active deliveries first
+- `/dashboard` places Find a delivery first, followed by all-time owner totals, up to five active deliveries
   and up to five recent terminal deliveries. These lists are not the source of
   the aggregate totals. Dashboard read failures never become zero totals.
 - `/customer/history` is the Delivery history hub. Search, all eight delivery
   statuses, inclusive local booking dates and pagination live in the URL.
   Search applies on submission; changing a filter returns to page one.
-  Desktop tables become delivery cards on narrow screens.
+  Compact desktop rows become delivery cards on narrow screens.
 - `/customer/parcels/:id` contains Overview, Tracking and Documents tabs. View
   details and Documents actions carry an allowlisted origin in router state.
   Back returns to the dashboard, tracking hub or filtered history; a direct link
@@ -62,6 +62,27 @@ a changed version also invalidate the owner lists. Terminal deliveries stop live
 tracking. Manual Refresh is always available, with plain-language connection
 status in Tracking. Cached private reads stay in memory with 30-second freshness.
 
+## Customer visual design
+
+Dashboard, booking, history, tracking and delivery details use Customer-only
+compositions of shadcn Card, Badge, Button, Tabs, Separator and Progress. Existing
+SwiftDrop red theme tokens provide subtle accents in both themes; no feature
+stylesheets or global theme/shell changes are introduced. Other role screens,
+shared operational delivery components and shared profile views remain unchanged.
+
+Active delivery cards show the route, recipient, package, confirmed price, latest
+update and status milestones. History uses compact rows with document/detail
+actions and responsive mobile cards. Customer section headers, routes, journey
+displays and empty states are reusable feature compositions. Empty states offer
+contextual booking/filter actions while failed reads retain safe retries.
+
+Booking announces the current step and offers accessible progress alongside its
+existing validated navigation. Delivery progress represents the six server status
+milestones; it does not estimate time or distance. Failed and cancelled deliveries
+never display a completed-delivery progress bar. Lookup stays available at the top
+of the dashboard even when its summary is loading or unavailable. No extra API
+requests, business rules or data persistence are introduced by the visual refresh.
+
 ## Backend dependency and verification
 
 Deploy the companion Delivery summary endpoint before the dashboard client:
@@ -76,7 +97,7 @@ explicit profile shortcuts, draft isolation, leave confirmation, SSE reconnectio
 and failure states. Browser checks cover responsive history, details and booking.
 
 Validation on 15 November 2026: `npm run check` passed formatting, zero-warning
-lint, TypeScript, all 615 tests in 40 files and the production build. The suite
+lint, TypeScript, all 620 tests in 41 files and the production build. The suite
 used `VITEST_MAX_WORKERS=4` to avoid local worker-saturation timeouts. Production
 Chromium checks passed at 320/390/768/1440px in light/dark themes, including
 origin/filter preservation, lazy document reads and PDF download, legacy receipt
