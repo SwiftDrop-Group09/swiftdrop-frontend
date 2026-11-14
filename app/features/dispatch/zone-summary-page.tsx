@@ -84,55 +84,72 @@ function ZoneSummaryContent() {
             period filters booking time.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {query.isPending ? (
-            <WorkspaceLoading label="Loading zone summary…" />
-          ) : query.isError ? (
+        <CardContent className="space-y-4">
+          {query.isFetching && query.data && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Refreshing zone summary…
+            </p>
+          )}
+          {query.isError && (
             <WorkspaceNotice
               destructive
-              title="Unable to load zone summary"
-              description="Check your connection and try again."
+              title={
+                query.data
+                  ? 'Unable to refresh zone summary'
+                  : 'Unable to load zone summary'
+              }
+              description={
+                query.data
+                  ? 'Showing previously loaded results for this period. Try again to get current counts.'
+                  : 'Check your connection and try again.'
+              }
               retry={() => {
                 void query.refetch();
               }}
               pending={query.isFetching}
             />
-          ) : query.data.zones.length === 0 ? (
-            <WorkspaceNotice
-              title="No zone activity yet"
-              description="Zone totals will appear as delivery operations records parcels."
-            />
+          )}
+          {query.isPending ? (
+            <WorkspaceLoading label="Loading zone summary…" />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Zone</TableHead>
-                  <TableHead className="text-right">Total parcels</TableHead>
-                  <TableHead>Status breakdown</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {query.data.zones.map((zone) => (
-                  <TableRow key={zone.zoneId}>
-                    <TableCell className="font-medium">{zone.name}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {zone.total}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        {Object.entries(zone.statusCounts).map(
-                          ([status, count]) => (
-                            <span key={status}>
-                              {status}: {count}
-                            </span>
-                          ),
-                        )}
-                      </div>
-                    </TableCell>
+            query.data &&
+            (query.data.zones.length === 0 ? (
+              <WorkspaceNotice
+                title="No delivery zones configured"
+                description="There are no configured delivery zones to summarize."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Zone</TableHead>
+                    <TableHead className="text-right">Total parcels</TableHead>
+                    <TableHead>Status breakdown</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {query.data.zones.map((zone) => (
+                    <TableRow key={zone.zoneId}>
+                      <TableCell className="font-medium">{zone.name}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {zone.total}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          {Object.entries(zone.statusCounts).map(
+                            ([status, count]) => (
+                              <span key={status}>
+                                {status}: {count}
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ))
           )}
         </CardContent>
       </Card>

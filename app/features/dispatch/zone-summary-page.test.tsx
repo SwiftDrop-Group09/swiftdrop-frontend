@@ -208,12 +208,50 @@ describe('Dispatcher zone summary', () => {
       await Promise.resolve();
     });
     await screen.findByText('Unable to load zone summary');
-    expect(screen.queryByText('No zone activity yet')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No delivery zones configured'),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try again' }));
-    await screen.findByText('No zone activity yet');
+    await screen.findByText('No delivery zones configured');
     expect(
       screen.queryByText('Unable to load zone summary'),
     ).not.toBeInTheDocument();
+  });
+
+  it('retains this period’s loaded rows during refresh and failed refresh, then recovers', async () => {
+    let resolve!: (response: Response) => void;
+    let attempts = 0;
+    const { user } = mount(() =>
+      ++attempts === 2
+        ? new Promise<Response>((done) => {
+            resolve = done;
+          })
+        : json({ zones }),
+    );
+    await loaded();
+    await user.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(screen.getByText('Refreshing zone summary…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('cell', { name: zones[0]!.name }),
+    ).toBeInTheDocument();
+    await act(async () => {
+      resolve(json({ code: 'delivery_unavailable' }, 503));
+      await Promise.resolve();
+    });
+    await screen.findByText('Unable to refresh zone summary');
+    expect(
+      screen.getByText(/Showing previously loaded results for this period/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('cell', { name: zones[0]!.name }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Unable to refresh zone summary'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(attempts).toBe(3);
   });
 
   it('applies complete Calendar dates as inclusive UTC days and clears to the existing catalog cache', async () => {

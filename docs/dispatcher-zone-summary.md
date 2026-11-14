@@ -30,6 +30,11 @@ consumers continue using the undated catalog. Existing user-prefix invalidation
 also invalidates dated summaries. New-period loading/failure does not show rows
 from another period. Refresh explicitly refetches the current key.
 
+Same-period refresh keeps loaded rows visible. A failed refresh identifies them
+as previously loaded results for this period and offers a safe read retry.
+Initial failures never display invented zero counts. An empty zone catalog has
+its own notice, distinct from configured zones with zero parcels.
+
 Reads consume the abort signal; private results stay in memory and session
 changes clear caches. Account changes also reset the page's local period.
 Customer, Courier, Merchant and signed-out users cannot mount summary reads.
@@ -42,6 +47,7 @@ Apply/Clear/Cancel/validation, separate catalog caches, prefix invalidation,
 cancellation and account/role isolation. Shared period tests cover keyboard
 selection/focus and compatibility with existing report inputs. Run
 `npm run check` and browser checks for changed controls before review.
+Refresh tests also verify retained rows, an honest failure notice and recovery.
 
 Backend TC-D05 tests cover persisted counts, exact date boundaries and HTTP
 authorization. See `swiftdrop-backend/docs/dispatcher-zone-summary.md`. Release
