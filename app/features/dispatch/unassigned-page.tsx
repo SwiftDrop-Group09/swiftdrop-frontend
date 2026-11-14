@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, RefreshCw } from 'lucide-react';
+import { AssignmentDialog } from './assignment-dialog';
 import { createAdminDeliveryApi } from '~/features/admin-delivery/api';
 import type { CustomerParcelQuery } from '~/features/customer-tracking/contracts';
 import { formatDateTime } from '~/features/customer-tracking/components';
@@ -105,6 +106,12 @@ function UnassignedParcelsContent() {
     queryKey: ['dispatch-zone-summary', user!.id],
     queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
   });
+  const [assignment, setAssignment] = useState<{
+    id: string;
+    trackingNumber: string;
+  }>();
+  const assignmentTrigger = useRef<HTMLButtonElement | null>(null);
+  const refreshButton = useRef<HTMLButtonElement | null>(null);
   const [search, setSearch] = useState('');
   const [zoneId, setZoneId] = useState('all');
   const [fromDate, setFromDate] = useState<Date>();
@@ -167,6 +174,7 @@ function UnassignedParcelsContent() {
       title="Unassigned parcels"
       actions={
         <Button
+          ref={refreshButton}
           type="button"
           variant="outline"
           disabled={query.isFetching || zones.isFetching}
@@ -403,14 +411,30 @@ function UnassignedParcelsContent() {
                               {formatDateTime(parcel.createdAt)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button asChild size="sm" variant="outline">
-                                <Link
-                                  to={`/dispatch/parcels/${encodeURIComponent(parcel.id)}`}
-                                  aria-label={`View details for ${parcel.trackingNumber}`}
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  aria-label={`Assign courier for ${parcel.trackingNumber}`}
+                                  onClick={(event) => {
+                                    assignmentTrigger.current =
+                                      event.currentTarget;
+                                    setAssignment({
+                                      id: parcel.id,
+                                      trackingNumber: parcel.trackingNumber,
+                                    });
+                                  }}
                                 >
-                                  View details
-                                </Link>
-                              </Button>
+                                  Assign courier
+                                </Button>
+                                <Button asChild size="sm" variant="outline">
+                                  <Link
+                                    to={`/dispatch/parcels/${encodeURIComponent(parcel.id)}`}
+                                    aria-label={`View details for ${parcel.trackingNumber}`}
+                                  >
+                                    View details
+                                  </Link>
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -451,6 +475,20 @@ function UnassignedParcelsContent() {
           )}
         </CardContent>
       </Card>
+      {assignment && (
+        <AssignmentDialog
+          key={`${user!.id}:${assignment.id}`}
+          parcelId={assignment.id}
+          trackingNumber={assignment.trackingNumber}
+          close={() => setAssignment(undefined)}
+          restoreFocus={() => {
+            (assignmentTrigger.current?.isConnected
+              ? assignmentTrigger.current
+              : refreshButton.current
+            )?.focus();
+          }}
+        />
+      )}
     </WorkspacePage>
   );
 }
