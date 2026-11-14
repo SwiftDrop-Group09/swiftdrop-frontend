@@ -8,6 +8,7 @@ export default [
   route('signup', 'portals/auth/signup.tsx'),
   route('401', 'portals/public/unauthorized.tsx'),
   route('403', 'portals/public/forbidden.tsx'),
+  route('dispatch/unassigned', 'portals/dispatcher/unassigned.tsx'),
   route('dispatch/parcels', 'portals/dispatcher/parcels.tsx'),
   route('dispatch/parcels/:id', 'portals/dispatcher/parcel.tsx'),
   route('dispatch/parcels/:id/receipt', 'portals/dispatcher/receipt.tsx'),

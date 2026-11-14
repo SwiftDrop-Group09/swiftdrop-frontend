@@ -41,9 +41,11 @@ the selected assignments, workload and zone catalog. Its current response total
 is authoritative; separate reads may observe different committed revisions.
 Zone-catalog failure keeps workload usable with IDs and a safe retry.
 
-The workload branches start independently from reviewed dev. Existing unmerged
-queue/zone filtering remains on its own branches; this feature does not duplicate
-those changes. No new package, custom CSS or UI primitive is introduced.
+The workload feature was developed independently from the unassigned queue. After
+the queue merged into dev, integration preserves both navigation links,
+breadcrumbs, route permissions and sign-in return paths. Navigation tests cover
+both implemented destinations for Dispatcher and Admin. No new package, custom
+CSS or UI primitive is introduced by workload monitoring.
 
 Shared migrations remain deferred. Docker startup and real shared-environment
 FR-D03/TC-D03 acceptance require an authorized ready environment and verified

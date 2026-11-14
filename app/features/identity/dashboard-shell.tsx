@@ -213,6 +213,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       '/admin/reports': 'Delivery reports',
       '/dispatch/zones': 'Zone summary',
       '/dispatch/workload': 'Courier workload',
+      '/dispatch/unassigned': 'Unassigned parcels',
       '/dispatch/parcels': 'Parcel tracking & history',
       '/401': 'Sign in required',
       '/403': 'Access denied',
