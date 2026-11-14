@@ -129,3 +129,91 @@ describe('assignment transport', () => {
     ).rejects.toMatchObject({ uncertain: false, code: 'capacity_exceeded' });
   });
 });
+
+it('reads reassignment context and retains normalized reason and exact bytes on retry', async () => {
+  const oldCourier = '33333333-3333-4333-8333-333333333333';
+  const read = vi.fn<AuthenticatedRequest>().mockResolvedValue(
+    json({
+      ...options,
+      parcelVersion: 2,
+      reassign: true,
+      currentAssignment: { courierId: oldCourier, serviceDate: '2026-11-15' },
+      serviceDate: '2026-11-15',
+    }),
+  );
+  const context = await getAssignmentOptions(
+    read,
+    '/api',
+    parcelId,
+    undefined,
+    1,
+    undefined,
+    true,
+  );
+  expect(read.mock.calls[0]?.[0]).toEqual(
+    expect.stringContaining('reassign=true'),
+  );
+  expect(context.currentAssignment?.courierId).toBe(oldCourier);
+  const attempt = assignmentAttempt(
+    parcelId,
+    courierId,
+    context.parcelVersion,
+    context.serviceDate,
+    { reason: '  Route unavailable  ' },
+  );
+  expect(JSON.parse(attempt.body)).toMatchObject({
+    reassign: true,
+    reason: 'Route unavailable',
+    expectedVersion: 2,
+    serviceDate: '2026-11-15',
+  });
+  const write = vi
+    .fn<AuthenticatedRequest>()
+    .mockRejectedValueOnce(new TypeError('lost'))
+    .mockResolvedValueOnce(json({ ...receipt, version: 3 }));
+  await expect(submitAssignment(write, '/api', attempt)).rejects.toMatchObject({
+    uncertain: true,
+  });
+  await submitAssignment(write, '/api', attempt);
+  expect(write.mock.calls[0]?.[1]).toEqual(write.mock.calls[1]?.[1]);
+});
+it.each([
+  { reassign: false, currentAssignment: null },
+  { reassign: true, currentAssignment: null },
+  {
+    reassign: true,
+    currentAssignment: { courierId, serviceDate: '2026-11-14' },
+  },
+])(
+  'rejects missing, mismatched or self-replacement contexts',
+  async (context) => {
+    await expect(
+      getAssignmentOptions(
+        vi
+          .fn<AuthenticatedRequest>()
+          .mockResolvedValue(json({ ...options, ...context })),
+        '/api',
+        parcelId,
+        undefined,
+        1,
+        undefined,
+        true,
+      ),
+    ).rejects.toMatchObject({ code: 'invalid_response' });
+  },
+);
+it('does not add reason to initial assignment and rejects invalid reassignment reasons', () => {
+  expect(
+    JSON.parse(assignmentAttempt(parcelId, courierId, '1', '2026-11-14').body),
+  ).toEqual({
+    parcelId,
+    courierId,
+    expectedVersion: 1,
+    reassign: false,
+    serviceDate: '2026-11-14',
+  });
+  for (const reason of ['', '   ', 'a'.repeat(501)])
+    expect(() =>
+      assignmentAttempt(parcelId, courierId, '2', '2026-11-14', { reason }),
+    ).toThrow();
+});
