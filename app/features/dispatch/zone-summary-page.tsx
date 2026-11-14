@@ -1,8 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { createAdminDeliveryApi } from '~/features/admin-delivery/api';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { useIdentity } from '~/features/identity/session';
+import {
+  ReportPeriod,
+  formatReportDate,
+  type ReportDates,
+} from '~/shared/components/report-period';
+import { getUtcIsoRange } from '~/shared/lib/report-date-range';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import {
   WorkspaceLoading,
@@ -27,32 +34,54 @@ import {
 
 function ZoneSummaryContent() {
   const { user, session } = useIdentity();
+  const [period, setPeriod] = useState<ReportDates | null>(null);
+  const range = period
+    ? getUtcIsoRange(period.startDate, period.endDate)
+    : null;
   const query = useQuery({
-    queryKey: ['delivery-zone-summary', user!.id],
-    queryFn: () => createAdminDeliveryApi(session).getZoneSummary(),
+    queryKey: range
+      ? ['delivery-zone-summary', user!.id, range.fromUtc, range.toUtc]
+      : ['delivery-zone-summary', user!.id],
+    queryFn: ({ signal }) =>
+      createAdminDeliveryApi(session).getZoneSummary(
+        range?.fromUtc,
+        range?.toUtc,
+        signal,
+      ),
   });
+  const scope = period
+    ? `Bookings from ${formatReportDate(period.startDate)} through ${formatReportDate(period.endDate)} (UTC).`
+    : 'All booking dates.';
   return (
     <WorkspacePage
       title="Zone summary"
-      description="Review delivery volume and parcel status across your service zones."
       actions={
-        <Button
-          variant="outline"
-          disabled={query.isFetching}
-          onClick={() => {
-            void query.refetch();
-          }}
-        >
-          <RefreshCw aria-hidden="true" />
-          Refresh
-        </Button>
+        <>
+          <ReportPeriod
+            allowAllDates
+            inputMode="calendar"
+            value={period}
+            onChange={setPeriod}
+          />
+          <Button
+            variant="outline"
+            disabled={query.isFetching}
+            onClick={() => {
+              void query.refetch();
+            }}
+          >
+            <RefreshCw aria-hidden="true" />
+            Refresh
+          </Button>
+        </>
       }
     >
       <Card>
         <CardHeader>
           <CardTitle>Delivery volume by zone</CardTitle>
           <CardDescription>
-            Current parcel counts from delivery operations.
+            {scope} Current parcel statuses, grouped by delivery zone. The
+            period filters booking time.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,11 +140,16 @@ function ZoneSummaryContent() {
   );
 }
 
+function AccountSummary() {
+  const { user } = useIdentity();
+  return <ZoneSummaryContent key={user!.id} />;
+}
+
 export function ZoneSummaryPage() {
   return (
     <IdentityShell>
       <Protected roles={['Dispatcher', 'Admin']}>
-        <ZoneSummaryContent />
+        <AccountSummary />
       </Protected>
     </IdentityShell>
   );
