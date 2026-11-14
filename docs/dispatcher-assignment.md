@@ -92,7 +92,8 @@ It confirms original/replacement courier, selected date and reason. Selecting th
 current courier is rejected by the server with 400 validation/errors.courierId.
 The server remains authoritative for status, version, eligibility and daily slots.
 
-Every draft options refresh clears courier selection and confirmation, including
+Opening the dialog refreshes eligibility even within the shared navigation cache's
+freshness window. Every draft options refresh clears courier selection and confirmation, including
 invalidation-driven refetch. Selection binds to one response object with structural
 sharing disabled. Submission also checks live query-cache identity/fetch status,
 preventing an event before a React rerender from pairing an old courier choice

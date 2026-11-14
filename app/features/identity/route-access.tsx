@@ -58,13 +58,13 @@ export function AccessGate({
   children: ReactNode;
   roles?: readonly Role[];
 }) {
-  const { user, restoring } = useIdentity();
+  const { user, restoring, logoutRequested } = useIdentity();
   const location = useLocation();
   if (restoring) return <AppLoading />;
   if (!user)
     return (
       <Navigate
-        to="/401"
+        to={logoutRequested ? '/login' : '/401'}
         replace
         state={{
           returnTo: location.pathname + location.search + location.hash,

@@ -36,7 +36,7 @@ making changes. The default integration branch is `dev`.
 ## Workspace design system
 
 - Compose authenticated page layouts with `WorkspacePage` from
-  `~/shared/components/workspace-page`. Use one page heading and its responsive actions slot. Do not render a subtitle
+  `~/shared/components/workspace-page`. Use one page heading (`text-xl sm:text-2xl`) and its responsive actions slot. Do not render a subtitle
   or description directly below workspace page titles. Keep operational guidance
   in the relevant content card. Keep domain-specific actions and validation in
   the owning feature. Do not add role-name badges above page headings.
@@ -49,6 +49,12 @@ making changes. The default integration branch is `dev`.
   gaps of 4 or 5, action gaps of 2. Use responsive form/card grids; tables scroll
   inside their cards instead of expanding the page. Align table actions with their
   heading and keep focus indicators visible.
+- Use the shared `ReportPeriod` popover for report/dashboard date filters in the
+  header actions. Keep period-based KPI values distinct from current operational
+  snapshots; label their time scope and never infer comparisons from missing data.
+- Compose charts with the shared shadcn Chart primitives. Use the shared
+  `--chart-*` tokens for SwiftDrop's red palette in both themes; retain legends,
+  tooltips and numeric context so values are not communicated by colour alone.
 - Keep cards, buttons, fields and badges flat. Use borders and semantic theme
   tokens for hierarchy; reserve elevation for floating dialogs, sheets and menus.
 - Support Light, Dark and Device appearance through the shared profile-menu theme
@@ -73,6 +79,10 @@ making changes. The default integration branch is `dev`.
   error states, session isolation and idempotent retry behavior.
 - Keep domain logic in features and backend contracts authoritative. Shared UI
   must not depend on feature modules. Keep the application SPA-safe.
+- Reuse shared QueryClient freshness policies and user-scoped lookup keys.
+  Invalidate affected reads after successful mutations. Keep private caches in
+  memory and clear them on session/account/role changes; never persist private
+  query results or tokens to browser storage to reduce page-load reads.
 - Use the Node/npm versions declared by `.nvmrc` and `package.json`. For code
   changes, run `npm run check` and relevant browser checks for changed layouts
   or interactions. For documentation-only changes, check formatting and the diff.

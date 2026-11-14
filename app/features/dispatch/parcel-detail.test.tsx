@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppQueryClient } from '~/shared/query-client';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { IdentityApi } from '~/features/identity/api';
@@ -70,6 +71,7 @@ function mount({
   };
   const reads: string[] = [],
     writes = vi.fn(write);
+  let optionsVersion = '9007199254740993';
   const fetcher = vi.fn<typeof fetch>(async (input, init) => {
     const url = new URL(
       typeof input === 'string'
@@ -110,7 +112,7 @@ function mount({
           totalCount: 1,
           page: 1,
           pageSize: 20,
-        }).replace('"parcelVersion":2', '"parcelVersion":9007199254740993'),
+        }).replace('"parcelVersion":2', `"parcelVersion":${optionsVersion}`),
       );
     if (url.pathname.endsWith('/deliveries/assign')) {
       const response = await writes(init);
@@ -120,9 +122,7 @@ function mount({
     return json({ code: 'not_found' }, 404);
   });
   vi.stubGlobal('fetch', fetcher);
-  const queries = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+  const queries = createAppQueryClient();
   const session = new IdentitySession(new IdentityApi(fetcher), () =>
     queries.clear(),
   );
@@ -154,6 +154,9 @@ function mount({
     reads,
     queries,
     session,
+    setOptionsVersion: (version: string) => {
+      optionsVersion = version;
+    },
     setProfile: (next: Profile) => {
       profile = next;
     },
@@ -198,7 +201,7 @@ it.each(['Dispatcher', 'Admin'])(
       'dispatch-workload',
       'dispatch-assignments',
       'dispatch-assignment-options',
-      'dispatch-zone-summary',
+      'delivery-zone-summary',
     ])
       expect(
         invalidate.mock.calls.some(
@@ -213,6 +216,46 @@ it.each(['Dispatcher', 'Admin'])(
     );
   },
 );
+it('refreshes eligibility when reopening within the shared cache freshness window', async () => {
+  const { user, reads, writes, setOptionsVersion } = mount({
+    write: () =>
+      new Response(
+        JSON.stringify({ ...base, version: 3 }).replace(
+          '"version":3',
+          '"version":9007199254740995',
+        ),
+      ),
+  });
+  await user.click(
+    await screen.findByRole('button', { name: 'Reassign courier' }),
+  );
+  await screen.findByRole('button', { name: `Select courier ${targetId}` });
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+  const previousReads = reads.filter((path) =>
+    path.endsWith('/assignment-options'),
+  ).length;
+  setOptionsVersion('9007199254740994');
+  await user.click(screen.getByRole('button', { name: 'Reassign courier' }));
+  await waitFor(() =>
+    expect(
+      reads.filter((path) => path.endsWith('/assignment-options')),
+    ).toHaveLength(previousReads + 1),
+  );
+  await user.click(
+    await screen.findByRole('button', { name: `Select courier ${targetId}` }),
+  );
+  await user.type(
+    screen.getByRole('textbox', { name: 'Reassignment reason' }),
+    'Replacement required',
+  );
+  await user.click(
+    screen.getByRole('button', { name: 'Confirm reassignment' }),
+  );
+  await screen.findByText(/Reassignment confirmed/);
+  expect(writes.mock.calls[0]?.[0]?.body).toContain(
+    '"expectedVersion":9007199254740994',
+  );
+});
 it.each(['Customer', 'Courier', 'Merchant'])(
   'denies %s before mounting operational detail or options',
   async (role) => {

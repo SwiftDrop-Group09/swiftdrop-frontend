@@ -109,6 +109,7 @@ export function AssignmentDialog({
         reassign,
       ),
     structuralSharing: false,
+    staleTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -142,7 +143,7 @@ export function AssignmentDialog({
         'dispatch-workload',
         'dispatch-assignments',
         'dispatch-assignment-options',
-        'dispatch-zone-summary',
+        'delivery-zone-summary',
       ].map((key) => queries.invalidateQueries({ queryKey: [key, user!.id] })),
     ]);
   }

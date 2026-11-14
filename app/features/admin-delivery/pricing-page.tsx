@@ -1,57 +1,40 @@
+import { Fragment, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ChevronDown,
+  ChevronRight,
+  Info,
+  LoaderCircle,
+  Plus,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { AdminWorkspace } from '~/features/identity/admin-workspace';
+import { IdentityShell, Protected } from '~/features/identity/components';
+import { useIdentity } from '~/features/identity/session';
 import {
   WorkspaceLoading,
   WorkspaceNotice,
 } from '~/shared/components/workspace-state';
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Plus,
-  CheckCircle2,
-  AlertCircle,
-  Filter,
-  DollarSign,
-} from 'lucide-react';
-import { useIdentity } from '~/features/identity/session';
-import { IdentityShell, Protected } from '~/features/identity/components';
-import {
-  createAdminDeliveryApi,
-  AdminDeliveryError,
-} from '~/features/admin-delivery/api';
-import {
-  parcelSizes,
-  type ParcelSize,
-  type PricingTierInput,
-} from '~/features/admin-delivery/contracts';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '~/shared/components/ui/card';
-import { Button } from '~/shared/components/ui/button';
-import { Input } from '~/shared/components/ui/input';
-import { Label } from '~/shared/components/ui/label';
-import { Badge } from '~/shared/components/ui/badge';
 import {
   Alert,
-  AlertTitle,
   AlertDescription,
+  AlertTitle,
 } from '~/shared/components/ui/alert';
-import { Checkbox } from '~/shared/components/ui/checkbox';
+import { Badge } from '~/shared/components/ui/badge';
+import { Button } from '~/shared/components/ui/button';
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from '~/shared/components/ui/native-select';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '~/shared/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/shared/components/ui/dialog';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/shared/components/ui/popover';
 import {
   Table,
   TableBody,
@@ -60,458 +43,534 @@ import {
   TableHeader,
   TableRow,
 } from '~/shared/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/shared/components/ui/alert-dialog';
+import { AdminDeliveryError, createAdminDeliveryApi } from './api';
+import {
+  parcelSizes,
+  type PricingTier,
+  type PricingTierInput,
+} from './contracts';
+import { PricingVersions } from './pricing-versions';
+import { formatRate, PricingEditor } from './pricing-editor';
+import { PricingZonePicker } from './pricing-zone-picker';
 
-export default function AdminPricingRoute() {
-  const { session, user, restoring } = useIdentity();
-  const enabled = !restoring && !!user?.roles.includes('Admin');
-  const api = useMemo(() => createAdminDeliveryApi(session), [session]);
-  const queryClient = useQueryClient();
-
-  const [page, setPage] = useState(1);
-  const [selectedZoneFilter, setSelectedZoneFilter] = useState<string>('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  // Form states
-  const [formZoneId, setFormZoneId] = useState('');
-  const [formSize, setFormSize] = useState<ParcelSize>('Small');
-  const [formVersion, setFormVersion] = useState('v1');
-  const [formBaseRate, setFormBaseRate] = useState('450.00');
-  const [formPerKgRate, setFormPerKgRate] = useState('60.00');
-  const [formIsActive, setFormIsActive] = useState(true);
-
-  const zonesQuery = useQuery({
-    queryKey: ['admin-zones-all', user?.id],
-    enabled,
-    queryFn: () => api.listZones(1, 100),
-  });
-
-  const pricingQuery = useQuery({
-    queryKey: ['admin-pricing', user?.id, page, selectedZoneFilter],
-    enabled,
-    queryFn: () =>
-      api.listPricingTiers(page, 20, selectedZoneFilter || undefined),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (input: PricingTierInput) => api.createPricingTier(input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['admin-pricing', user?.id],
-      });
-      setIsDialogOpen(false);
-      setSuccessMsg('Pricing tier created successfully.');
-      setErrorMsg(null);
-    },
-    onError: (err: unknown) => {
-      setErrorMsg(
-        err instanceof AdminDeliveryError
-          ? err.message
-          : 'Failed to create pricing tier.',
-      );
-    },
-  });
-
-  const toggleStatusMutation = useMutation({
-    mutationFn: ({
-      id,
-      isActive,
-      expectedVersion,
-    }: {
-      id: string;
-      isActive: boolean;
-      expectedVersion: number;
-    }) => api.updatePricingTierStatus(id, isActive, expectedVersion),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['admin-pricing', user?.id],
-      });
-      setSuccessMsg('Pricing tier status updated.');
-      setErrorMsg(null);
-    },
-    onError: (err: unknown) => {
-      setErrorMsg(
-        err instanceof AdminDeliveryError
-          ? err.message
-          : 'Failed to update status.',
-      );
-    },
-  });
-
-  function openCreate() {
-    setErrorMsg(null);
-    if (
-      zonesQuery.data?.items &&
-      zonesQuery.data.items.length > 0 &&
-      !formZoneId
-    ) {
-      setFormZoneId(zonesQuery.data.items[0]!.id);
-    }
-    setIsDialogOpen(true);
-  }
-
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
-    const base = parseFloat(formBaseRate);
-    const perKg = parseFloat(formPerKgRate);
-
-    if (isNaN(base) || base < 0) {
-      setErrorMsg('Base rate must be a valid non-negative number.');
-      return;
-    }
-    if (isNaN(perKg) || perKg < 0) {
-      setErrorMsg('Per-kg rate must be a valid non-negative number.');
-      return;
-    }
-
-    createMutation.mutate({
-      zoneId: formZoneId,
-      size: formSize,
-      pricingVersion: formVersion.trim(),
-      baseRate: base,
-      perKgRate: perKg,
-      currency: 'LKR',
-      isActive: formIsActive,
-    });
-  }
-
+export default function AdminPricingPage() {
   return (
     <IdentityShell>
       <Protected admin>
-        <AdminWorkspace
-          title="Pricing Tiers Configuration"
-          description="Configure tariff rates by delivery zone, size brackets, and per-kg incremental weights."
-          actions={
+        <PricingContent />
+      </Protected>
+    </IdentityShell>
+  );
+}
+
+function PricingContent() {
+  const { session, user } = useIdentity();
+  const api = useMemo(() => createAdminDeliveryApi(session), [session]);
+  const queries = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const rawZoneId = params.get('zoneId') ?? '';
+  const zoneId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      rawZoneId,
+    )
+      ? rawZoneId
+      : '';
+  const [paging, setPaging] = useState({ zoneId, page: 1 });
+  const page = paging.zoneId === zoneId ? paging.page : 1;
+  const [selection, setSelection] = useState<
+    { id: string; name: string } | undefined
+  >();
+  const [editor, setEditor] = useState<{
+    source?: PricingTier;
+    initialZone?: { id: string; name: string };
+  } | null>(null);
+  const [statusTier, setStatusTier] = useState<PricingTier | null>(null);
+  const [notice, setNotice] = useState('');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLButtonElement | null>(null);
+  const tiers = useQuery({
+    queryKey: ['admin-pricing', user!.id, 'overview', page, zoneId],
+    queryFn: ({ signal }) =>
+      api.getPricingOverview(page, 20, zoneId || undefined, signal),
+    retry: false,
+  });
+  const zoneName =
+    selection?.id === zoneId
+      ? selection.name
+      : tiers.data?.items.find((tier) => tier.zoneId === zoneId)?.zoneName;
+  const selectedZone = zoneId
+    ? { id: zoneId, name: zoneName || 'Selected delivery zone' }
+    : undefined;
+  function restoreFocus(saved = false) {
+    requestAnimationFrame(() => {
+      const target =
+        !saved && opener.current?.isConnected
+          ? opener.current
+          : addButton.current;
+      target?.focus();
+    });
+  }
+  function invalidate() {
+    for (const key of [
+      'admin-pricing',
+      'delivery-zone-summary',
+      'customer-booking',
+    ])
+      void queries.invalidateQueries({ queryKey: [key, user!.id] });
+  }
+  const create = useMutation({
+    retry: false,
+    mutationFn: (input: PricingTierInput) => api.createPricingTier(input),
+    onSuccess: (tier) => {
+      setEditor(null);
+      setNotice(`Pricing tier ${tier.pricingVersion} created successfully.`);
+      setPaging({ zoneId, page: 1 });
+      invalidate();
+      restoreFocus(true);
+    },
+  });
+  const status = useMutation({
+    retry: false,
+    mutationFn: (tier: PricingTier) =>
+      api.updatePricingTierStatus(tier.id, !tier.isActive, tier.version),
+    onSuccess: (tier) => {
+      setStatusTier(null);
+      setNotice(
+        `Pricing tier ${tier.pricingVersion} ${tier.isActive ? 'activated' : 'deactivated'} successfully.`,
+      );
+      invalidate();
+      restoreFocus();
+    },
+  });
+  function openEditor(
+    button: HTMLButtonElement,
+    source?: PricingTier,
+    zone = selectedZone,
+  ) {
+    opener.current = button;
+    create.reset();
+    setNotice('');
+    setEditor({ source, initialZone: zone });
+  }
+  return (
+    <AdminWorkspace
+      title="Pricing tiers"
+      actions={
+        <>
+          <Button
+            variant="outline"
+            disabled={tiers.isFetching}
+            onClick={() =>
+              void queries.invalidateQueries({
+                queryKey: ['admin-pricing', user!.id],
+              })
+            }
+          >
+            <RefreshCw aria-hidden="true" />
+            Refresh
+          </Button>
+          <Button
+            ref={addButton}
+            onClick={(event) => openEditor(event.currentTarget)}
+          >
+            <Plus aria-hidden="true" />
+            Add pricing tier
+          </Button>
+        </>
+      }
+    >
+      {notice && (
+        <Alert role="status">
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      )}
+      <Card className="min-w-0">
+        <CardHeader className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <CardTitle className="text-base">Active rates by zone</CardTitle>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="How pricing works"
+                >
+                  <Info aria-hidden="true" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-[min(24rem,calc(100vw-2rem))] space-y-3 text-sm"
+              >
+                <h2 className="font-semibold">How pricing works</h2>
+                <p>Base rate + additional rate x weight above 1 kg.</p>
+                <p className="text-muted-foreground">
+                  The delivery address zone selects the tariff. Only one version
+                  per zone and parcel size can be active. Activating another
+                  version replaces the previous active version.
+                </p>
+                <p className="text-muted-foreground">
+                  Saved rates are retained. Create a new version to change
+                  pricing; existing booking price snapshots are preserved.
+                </p>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="w-full sm:w-72">
+            <PricingZonePicker
+              value={zoneId}
+              valueLabel={zoneName}
+              label="Filter by delivery zone"
+              allowAll
+              onChange={(zone) => {
+                setSelection(
+                  zone ? { id: zone.id, name: zone.name } : undefined,
+                );
+                setParams((current) => {
+                  const next = new URLSearchParams(current);
+                  if (zone) next.set('zoneId', zone.id);
+                  else next.delete('zoneId');
+                  return next;
+                });
+                setPaging({ zoneId: zone?.id ?? '', page: 1 });
+              }}
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
+          {zoneId && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="secondary"
+                className="max-w-full gap-1 whitespace-normal break-words py-1 pl-3 pr-1"
+              >
+                Zone: {zoneName || 'Selected delivery zone'}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 shrink-0"
+                  aria-label="Clear zone filter"
+                  onClick={() =>
+                    setParams((current) => {
+                      const next = new URLSearchParams(current);
+                      next.delete('zoneId');
+                      return next;
+                    })
+                  }
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </Badge>
+            </div>
+          )}
+          {tiers.isPending ? (
+            <WorkspaceLoading label="Loading pricing tiers..." />
+          ) : tiers.isError ? (
+            <WorkspaceNotice
+              destructive
+              title="Unable to load pricing tiers"
+              description="Pricing records could not be loaded. Your configuration is unchanged."
+              retry={() => void tiers.refetch()}
+              pending={tiers.isFetching}
+            />
+          ) : (
             <>
-              {' '}
-              <Button onClick={openCreate} size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Pricing Tier
-              </Button>{' '}
-            </>
-          }
-        >
-          {errorMsg && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Pricing Configuration Error</AlertTitle>
-              <AlertDescription>{errorMsg}</AlertDescription>
-            </Alert>
-          )}
-
-          {successMsg && (
-            <Alert className="">
-              <CheckCircle2 className="h-4 w-4 text-foreground" />
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{successMsg}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Pricing Formula Explainer Banner */}
-          <Card className="bg-muted/40">
-            <CardHeader className="p-4 pb-2">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold">
-                  Pricing Formula & Audit Rules
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                <span className="font-mono font-medium">
-                  Total = BaseRate(Zone, Size, Version) + PerKgRate &times;
-                  max(0, WeightKg &minus; 1)
-                </span>
-                . The recipient delivery address zone selects the pricing tier.
-                Rates are immutable once referenced in customer bookings; create
-                a new version to update pricing.
+              <p className="text-sm text-muted-foreground" role="status">
+                {tiers.data.totalCount} {zoneId ? 'matching' : 'configured'}{' '}
+                delivery zones{' '}
+                <span className="mx-1" aria-hidden="true">
+                  /
+                </span>{' '}
+                Rates in LKR
               </p>
-            </CardContent>
-          </Card>
-
-          {/* Pricing Tiers Table Card */}
-          <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-              <div>
-                <CardTitle className="text-lg">
-                  Configured Pricing Tiers
-                </CardTitle>
-                <CardDescription>
-                  Active and legacy tariff versions mapped to delivery zones and
-                  parcel sizes.
-                </CardDescription>
-              </div>
-
-              {zonesQuery.data?.items && (
-                <div className="flex items-center gap-2 max-w-xs">
-                  <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <NativeSelect
-                    size="sm"
-                    value={selectedZoneFilter}
-                    onChange={(e) => {
-                      setSelectedZoneFilter(e.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <NativeSelectOption value="">
-                      All Delivery Zones
-                    </NativeSelectOption>
-                    {zonesQuery.data.items.map((z) => (
-                      <NativeSelectOption key={z.id} value={z.id}>
-                        {z.name}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              {pricingQuery.isLoading ? (
-                <WorkspaceLoading label="Loading pricing tiers..." />
-              ) : pricingQuery.isError ? (
+              {!tiers.data.items.length ? (
                 <WorkspaceNotice
-                  title="Unable to load pricing tiers"
-                  description="Your saved tariffs are unchanged. Check your connection and try again."
-                  destructive
-                  pending={pricingQuery.isFetching}
-                  retry={() => {
-                    void pricingQuery.refetch();
-                  }}
-                />
-              ) : pricingQuery.data?.items.length === 0 ? (
-                <WorkspaceNotice
-                  title="No pricing tiers match the selected criteria."
-                  description="Choose another zone or add a pricing tier to get started."
+                  title="No delivery zones match the selected criteria."
+                  description={
+                    zoneId
+                      ? 'Clear the zone filter to view configured delivery zones.'
+                      : 'Configure a delivery zone before adding pricing tiers.'
+                  }
                 />
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Zone Name</TableHead>
-                      <TableHead>Size Category</TableHead>
-                      <TableHead>Tariff Version</TableHead>
-                      <TableHead className="text-right">
-                        Base Rate (LKR)
-                      </TableHead>
-                      <TableHead className="text-right">
-                        Per Kg Rate (LKR)
-                      </TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Delivery zone</TableHead>
+                      {parcelSizes.map((size) => (
+                        <TableHead key={size}>{size}</TableHead>
+                      ))}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pricingQuery.data?.items.map((tier) => (
-                      <TableRow key={tier.id}>
-                        <TableCell className="font-medium">
-                          {tier.zoneName}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{tier.size}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className="font-mono text-xs"
+                    {tiers.data.items.map((zone) => (
+                      <Fragment key={zone.zoneId}>
+                        <TableRow>
+                          <TableCell className="min-w-48 max-w-72 whitespace-normal">
+                            <Button
+                              variant="ghost"
+                              className="h-auto max-w-full justify-start gap-2 px-2 py-2 text-left whitespace-normal"
+                              aria-label={`Show pricing versions for ${zone.zoneName}`}
+                              aria-expanded={expanded === zone.zoneId}
+                              aria-controls={`versions-${zone.zoneId}`}
+                              onClick={() =>
+                                setExpanded((current) =>
+                                  current === zone.zoneId ? null : zone.zoneId,
+                                )
+                              }
+                            >
+                              {expanded === zone.zoneId ? (
+                                <ChevronDown
+                                  className="shrink-0"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <ChevronRight
+                                  className="shrink-0"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="min-w-0 break-words font-medium">
+                                {zone.zoneName}
+                              </span>
+                            </Button>
+                            <div className="flex flex-wrap items-center gap-2 pl-8 text-xs text-muted-foreground">
+                              <span>{zone.tierCount} versions</span>
+                              {!zone.isZoneActive && (
+                                <Badge variant="outline">Zone inactive</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          {parcelSizes.map((size) => {
+                            const active = zone.activeTiers.find(
+                              (tier) => tier.size === size,
+                            );
+                            return (
+                              <TableCell key={size} className="min-w-36">
+                                {active ? (
+                                  <div className="space-y-1">
+                                    <p className="font-semibold tabular-nums">
+                                      {formatRate(active.baseRate)}
+                                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                        base
+                                      </span>
+                                    </p>
+                                    <p className="text-xs tabular-nums text-muted-foreground">
+                                      + {formatRate(active.perKgRate)} / kg
+                                      above 1 kg
+                                    </p>
+                                    <p className="max-w-36 break-all whitespace-normal text-xs text-muted-foreground">
+                                      {active.pricingVersion}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">
+                                    No active tier
+                                  </span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Add pricing tier for ${zone.zoneName}`}
+                              onClick={(event) =>
+                                openEditor(event.currentTarget, undefined, {
+                                  id: zone.zoneId,
+                                  name: zone.zoneName,
+                                })
+                              }
+                            >
+                              <Plus aria-hidden="true" />
+                              Add tier
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {expanded === zone.zoneId && (
+                          <TableRow
+                            id={`versions-${zone.zoneId}`}
+                            className="hover:bg-transparent"
                           >
-                            {tier.pricingVersion}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-medium">
-                          {tier.baseRate.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-medium">
-                          {tier.perKgRate.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={tier.isActive ? 'default' : 'secondary'}
-                          >
-                            {tier.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={toggleStatusMutation.isPending}
-                            onClick={() =>
-                              toggleStatusMutation.mutate({
-                                id: tier.id,
-                                isActive: !tier.isActive,
-                                expectedVersion: tier.version,
-                              })
-                            }
-                          >
-                            {tier.isActive ? 'Deactivate' : 'Activate'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className="whitespace-normal p-0"
+                            >
+                              <PricingVersions
+                                zone={zone}
+                                onNewVersion={(button, tier) =>
+                                  openEditor(button, tier)
+                                }
+                                onStatus={(button, tier) => {
+                                  opener.current = button;
+                                  status.reset();
+                                  setNotice('');
+                                  setStatusTier(tier);
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
                     ))}
                   </TableBody>
                 </Table>
               )}
-
-              {pricingQuery.data && pricingQuery.data.totalCount > 20 && (
-                <div className="flex items-center justify-between pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Page {page} of{' '}
+                  {Math.max(1, Math.ceil(tiers.data.totalCount / 20))}
+                </p>
+                <div className="flex gap-2">
                   <Button
-                    disabled={page <= 1}
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1 || tiers.isFetching}
+                    onClick={() => setPaging({ zoneId, page: page - 1 })}
                   >
                     Previous
                   </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Page {page} of{' '}
-                    {Math.ceil(pricingQuery.data.totalCount / 20)}
-                  </span>
                   <Button
-                    disabled={page * 20 >= pricingQuery.data.totalCount}
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => p + 1)}
+                    disabled={
+                      page * 20 >= tiers.data.totalCount || tiers.isFetching
+                    }
+                    onClick={() => setPaging({ zoneId, page: page + 1 })}
                   >
                     Next
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Dialog Modal for Adding Pricing Tier using shadcn Dialog */}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create Pricing Tier</DialogTitle>
-                <DialogDescription>
-                  Define base and incremental rates for a delivery zone and
-                  package size bracket.
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSave} className="space-y-4 py-2">
-                {errorMsg && (
-                  <Alert variant="destructive">
-                    <AlertTitle>Unable to save pricing tier</AlertTitle>
-                    <AlertDescription>{errorMsg}</AlertDescription>
-                  </Alert>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+      {editor && (
+        <PricingEditor
+          source={editor.source}
+          initialZone={editor.initialZone}
+          pending={create.isPending}
+          error={create.error}
+          onSave={(input) => create.mutate(input)}
+          onClose={() => {
+            setEditor(null);
+            restoreFocus();
+          }}
+        />
+      )}
+      <AlertDialog
+        open={!!statusTier}
+        onOpenChange={(open) => {
+          if (!open && !status.isPending) {
+            setStatusTier(null);
+            restoreFocus();
+          }
+        }}
+      >
+        <AlertDialogContent
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          onEscapeKeyDown={(event) => {
+            if (status.isPending) event.preventDefault();
+          }}
+          className="max-h-[calc(100svh-2rem)] overflow-y-auto"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {statusTier?.isActive
+                ? 'Deactivate pricing tier?'
+                : 'Activate pricing tier?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusTier?.isActive
+                ? 'New quotes will no longer use this tier. A replacement active tier is required for this zone and parcel size.'
+                : 'This tier will replace any active version for the same zone and parcel size.'}{' '}
+              Existing booking price snapshots are retained.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {statusTier && (
+            <div className="space-y-2 rounded-lg border bg-muted/20 p-4 text-sm">
+              <p className="break-words font-medium">{statusTier.zoneName}</p>
+              <p className="break-words text-muted-foreground">
+                {statusTier.size} / {statusTier.pricingVersion}
+              </p>
+              <p className="tabular-nums">
+                LKR {formatRate(statusTier.baseRate)} base +{' '}
+                {formatRate(statusTier.perKgRate)}/kg above 1 kg
+              </p>
+            </div>
+          )}
+          {status.isError && (
+            <Alert variant="destructive">
+              <AlertTitle>Availability was not changed</AlertTitle>
+              <AlertDescription>
+                {status.error.message}
+                {status.error instanceof AdminDeliveryError &&
+                  status.error.code === 'conflict' && (
+                    <p>
+                      Close this confirmation and refresh the list before trying
+                      again.
+                    </p>
+                  )}
+              </AlertDescription>
+            </Alert>
+          )}
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              disabled={status.isPending}
+              onClick={() => {
+                setStatusTier(null);
+                restoreFocus();
+              }}
+            >
+              Cancel
+            </Button>
+            {status.isError ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStatusTier(null);
+                  void queries.invalidateQueries({
+                    queryKey: ['admin-pricing', user!.id],
+                  });
+                  restoreFocus();
+                }}
+              >
+                Close and refresh
+              </Button>
+            ) : (
+              <Button
+                variant={statusTier?.isActive ? 'destructive' : 'default'}
+                disabled={status.isPending}
+                onClick={() => {
+                  if (statusTier) status.mutate(statusTier);
+                }}
+              >
+                {status.isPending && (
+                  <LoaderCircle className="animate-spin" aria-hidden="true" />
                 )}
-                <div className="space-y-1.5">
-                  <Label htmlFor="pricingZone">Delivery Zone *</Label>
-                  <NativeSelect
-                    id="pricingZone"
-                    value={formZoneId}
-                    onChange={(e) => setFormZoneId(e.target.value)}
-                    required
-                  >
-                    <NativeSelectOption value="">
-                      Select a zone...
-                    </NativeSelectOption>
-                    {zonesQuery.data?.items.map((z) => (
-                      <NativeSelectOption key={z.id} value={z.id}>
-                        {z.name} ({z.city ?? 'General'})
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricingSize">Parcel Size *</Label>
-                    <NativeSelect
-                      id="pricingSize"
-                      value={formSize}
-                      onChange={(e) =>
-                        setFormSize(e.target.value as ParcelSize)
-                      }
-                    >
-                      {parcelSizes.map((size) => (
-                        <NativeSelectOption key={size} value={size}>
-                          {size}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricingVersion">Pricing Version *</Label>
-                    <Input
-                      id="pricingVersion"
-                      value={formVersion}
-                      onChange={(e) => setFormVersion(e.target.value)}
-                      placeholder="e.g. v1, v2"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricingBase">Base Rate (LKR) *</Label>
-                    <Input
-                      id="pricingBase"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formBaseRate}
-                      onChange={(e) => setFormBaseRate(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pricingPerKg">Per Kg Rate (LKR) *</Label>
-                    <Input
-                      id="pricingPerKg"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formPerKgRate}
-                      onChange={(e) => setFormPerKgRate(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
-                    id="tierActive"
-                    checked={formIsActive}
-                    onCheckedChange={(checked) =>
-                      setFormIsActive(Boolean(checked))
-                    }
-                  />
-                  <Label
-                    htmlFor="tierActive"
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    Tier is active for new customer booking quotes
-                  </Label>
-                </div>
-
-                <DialogFooter className="pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    Create Tier
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </AdminWorkspace>
-      </Protected>
-    </IdentityShell>
+                {status.isPending
+                  ? 'Saving...'
+                  : statusTier?.isActive
+                    ? 'Deactivate tier'
+                    : 'Activate tier'}
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AdminWorkspace>
   );
 }
