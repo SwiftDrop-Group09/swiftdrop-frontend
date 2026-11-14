@@ -4,6 +4,10 @@
   "outputDirectory": "build/client",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/proxy"
+    },
+    {
       "source": "/((?!api/|graphql/).*)",
       "destination": "/index.html"
     }
