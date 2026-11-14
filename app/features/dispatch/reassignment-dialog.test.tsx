@@ -234,3 +234,28 @@ it('retains reason, body and key after an uncertain request and explains cancell
     writes.mock.calls[1]?.[0]?.headers,
   );
 });
+
+it('clears confirmation after a failed invalidation-driven refresh', async () => {
+  let fail = false;
+  const { user, queries, writes } = mount({
+    read: () =>
+      fail ? json({ code: 'delivery_unavailable' }, 503) : json(options),
+  });
+  await user.click(
+    await screen.findByRole('button', { name: `Select courier ${courierId}` }),
+  );
+  await user.type(
+    screen.getByRole('textbox', { name: 'Reassignment reason' }),
+    'Keep this draft',
+  );
+  fail = true;
+  await act(() =>
+    queries.invalidateQueries({ queryKey: ['dispatch-assignment-options'] }),
+  );
+  await screen.findByText('Available couriers could not be loaded');
+  expect(screen.queryByText(/Confirm TRK-1/)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Confirm reassignment' }),
+  ).toBeDisabled();
+  expect(writes).not.toHaveBeenCalled();
+});

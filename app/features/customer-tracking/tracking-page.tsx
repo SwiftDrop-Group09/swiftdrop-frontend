@@ -1,5 +1,6 @@
 import { WorkspacePage } from '~/shared/components/workspace-page';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import type { ParcelDetail } from './contracts';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
   ArrowLeft,
@@ -132,9 +133,11 @@ function TrackingHub() {
 export function ParcelLiveDetail({
   parcelId,
   operational = false,
+  renderActions,
 }: {
   parcelId: string;
   operational?: boolean;
+  renderActions?: (parcel: ParcelDetail) => ReactNode;
 }) {
   const { user } = useIdentity();
   const canDownload = !operational || !!user?.roles.includes('Admin');
@@ -215,16 +218,19 @@ export function ParcelLiveDetail({
             Booked {formatDateTime(parcel.createdAt)} · Version {parcel.version}
           </p>
         </div>
-        {parcel.status === 'Delivered' && canDownload && (
-          <Button asChild>
-            <Link
-              to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
-            >
-              <ReceiptText className="mr-2 size-4" />
-              View & Download Receipt
-            </Link>
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {renderActions?.(parcel)}
+          {parcel.status === 'Delivered' && canDownload && (
+            <Button asChild>
+              <Link
+                to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
+              >
+                <ReceiptText className="mr-2 size-4" />
+                View & Download Receipt
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>

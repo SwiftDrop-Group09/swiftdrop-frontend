@@ -55,7 +55,7 @@ Confirmed success invalidates the operational queue, parcel detail, all-date
 workload, operations assignment projection, eligibility and zone summary for the
 current account. Queue paging already corrects when assignments remove its last
 row. Focus returns to the original action, or queue Refresh when that row leaves.
-Reassignment remains a later feature.
+Reassignment is available from eligible Assigned parcel details.
 
 ## Verification
 
@@ -70,3 +70,39 @@ roles. Fixtures intercept all API traffic and establish UI behavior only.
 
 Exact tested bases, worktree fingerprints, full-check results and shared/startup
 acceptance limits are recorded in the EAD root DISPATCHER-PLAN.md.
+
+## Pre-pickup reassignment (P4)
+
+Dispatcher/Admin can open Reassign courier from an Assigned parcel with an Active,
+unpicked-up assignment. Workload drill-down already links to this detail route.
+The reused detail view has a generic action slot; Customer behavior and existing
+Admin-only proof/receipt permissions remain unchanged. The dialog remains mounted
+through parcel refreshes until dismissed, even if the original action disappears.
+Account changes remount the owning Dispatcher feature and discard late results.
+
+GET assignment-options uses reassign=true (strict lowercase boolean). Its response
+adds reassign and currentAssignment={courierId,serviceDate}; ordinary assignment
+returns false/null. Existing current courier is excluded. The default selected
+date keeps the scheduled date if today/future, or business today if overdue.
+The original date remains visible separately. Explicit dates use the existing
+Calendar/Popover; submitted dates are always explicit calendar strings.
+
+POST uses reassign=true and reason, trimmed and required at 1–500 characters.
+It confirms original/replacement courier, selected date and reason. Selecting the
+current courier is rejected by the server with 400 validation/errors.courierId.
+The server remains authoritative for status, version, eligibility and daily slots.
+
+Every draft options refresh clears courier selection and confirmation, including
+invalidation-driven refetch. Selection binds to one response object with structural
+sharing disabled. Submission also checks live query-cache identity/fetch status,
+preventing an event before a React rerender from pairing an old courier choice
+with a newer parcel version. The reason draft survives refresh; a fresh selection
+and confirmation are required. Once submitted, the original immutable request/key
+is separate from draft state and cannot be replaced by refreshed options.
+
+No automatic mutation retry is introduced. Explicit uncertain retry preserves the
+exact normalized reason/body/key and observes Retry-After. Cancelling a local
+request does not guarantee server rollback. If navigation/session change loses
+local attempt context, reload authoritative state before starting another write.
+All Dispatcher projections are invalidated after success. Real shared startup,
+existing migration rollout and operational Courier-data acceptance remain pending.

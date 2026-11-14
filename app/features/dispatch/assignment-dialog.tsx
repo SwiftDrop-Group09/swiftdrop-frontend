@@ -117,7 +117,10 @@ export function AssignmentDialog({
   const data = options.data;
   // A selection belongs to one response, never a newer version returned by refresh.
   const selected =
-    selection && !options.isFetching && selection.preview === data
+    selection &&
+    !options.isFetching &&
+    !options.isError &&
+    selection.preview === data
       ? selection.courier
       : undefined;
   if (selection && !selected) setSelection(undefined);
@@ -254,7 +257,10 @@ export function AssignmentDialog({
                 {reassign && data.currentAssignment && (
                   <p className="text-sm break-all">
                     Current courier {data.currentAssignment.courierId} ·
-                    scheduled {data.currentAssignment.serviceDate}
+                    scheduled{' '}
+                    <span className="whitespace-nowrap">
+                      {data.currentAssignment.serviceDate}
+                    </span>
                   </p>
                 )}
                 <Label htmlFor="assignment-service-date">Service date</Label>
