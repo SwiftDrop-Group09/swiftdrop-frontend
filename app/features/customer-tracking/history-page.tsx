@@ -1,3 +1,4 @@
+import { CustomerHistoryContent } from './customer-pages';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
@@ -81,7 +82,7 @@ export function OrderHistoryContent({
 
   return (
     <WorkspacePage
-      title={operational ? 'Parcel tracking & history' : 'Order History'}
+      title={operational ? 'Parcel tracking & history' : 'Delivery history'}
       description={
         operational
           ? 'Search all parcels and follow delivery progress across the network.'
@@ -119,7 +120,7 @@ export function OrderHistoryContent({
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Tracking # or recipient"
                   className="w-56 pl-8"
-                  aria-label="Search orders"
+                  aria-label="Search deliveries"
                 />
               </div>
               <Button type="submit" size="sm" variant="secondary">
@@ -145,7 +146,7 @@ export function OrderHistoryContent({
           ) : isError ? (
             <Alert variant="destructive">
               <AlertDescription>
-                Could not load your order history. Please try again shortly.
+                Could not load your delivery history. Please try again shortly.
               </AlertDescription>
             </Alert>
           ) : items.length === 0 ? (
@@ -288,7 +289,7 @@ export function OrderHistoryPage() {
   return (
     <IdentityShell>
       <Protected roles={['Customer']}>
-        <OrderHistoryContent />
+        <CustomerHistoryContent />
       </Protected>
     </IdentityShell>
   );

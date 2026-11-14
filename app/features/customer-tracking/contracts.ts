@@ -77,6 +77,16 @@ export type CustomerParcelQuery = {
   pageSize?: number;
 };
 
+export type CustomerDeliverySummary = {
+  totalCount: number;
+  activeCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  activeDeliveries: CustomerParcelListItem[];
+  recentDeliveries: CustomerParcelListItem[];
+};
+
 export type ParcelAssignment = {
   status: string;
   serviceDate: string;

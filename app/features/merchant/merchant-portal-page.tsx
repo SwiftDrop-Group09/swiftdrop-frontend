@@ -78,7 +78,7 @@ function StatusBadge({ status }: { status: BusinessStatus }) {
       return <Badge variant="destructive">Rejected</Badge>;
     case 'Suspended':
       return (
-        <Badge className="bg-rose-100 text-rose-800 border-rose-300">
+        <Badge className="bg-destructive/10 text-destructive border-destructive/25">
           Suspended
         </Badge>
       );

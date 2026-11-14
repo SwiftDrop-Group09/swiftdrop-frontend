@@ -232,6 +232,10 @@ Docker build and SPA deep-link/missing-asset checks passed against a local Linux
 
 ## Customer booking
 
+See [Customer delivery workspace](docs/customer-delivery-experience.md) for the
+four-step booking flow, dashboard summary, Delivery history filters, tabbed
+details/documents, safe return navigation and SSE-first owner tracking.
+
 `/customer/book` uses the shared Identity session and dashboard shell. Customers load
 active area IDs and names through `GET /api/v1/quotes/zones`, then request a quote
 and explicitly confirm it. Price tokens retain exact decimal text; an uncertain

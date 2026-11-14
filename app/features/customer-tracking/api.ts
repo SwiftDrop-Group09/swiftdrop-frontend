@@ -1,5 +1,6 @@
 import type { AuthenticatedRequest } from '~/features/identity/contracts';
 import type {
+  CustomerDeliverySummary,
   CustomerParcelPage,
   CustomerParcelQuery,
   ParcelDetail,
@@ -9,6 +10,19 @@ import type {
   ProofOfDeliveryInfo,
   PublicTrackingSummary,
 } from './contracts';
+
+export async function getCustomerSummary(
+  request: AuthenticatedRequest,
+  apiBase: string,
+  signal?: AbortSignal,
+): Promise<CustomerDeliverySummary> {
+  const response = await request(`${apiBase}/v1/parcels/summary`, {
+    signal,
+    cache: 'no-store',
+  });
+  if (!response.ok) throw await readError(response);
+  return (await response.json()) as CustomerDeliverySummary;
+}
 
 export class CustomerTrackingApiError extends Error {
   constructor(

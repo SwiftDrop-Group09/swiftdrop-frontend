@@ -72,7 +72,7 @@ function AdminStatusBadge({ status }: { status: BusinessStatus }) {
       return <Badge variant="destructive">Rejected</Badge>;
     case 'Suspended':
       return (
-        <Badge className="bg-rose-100 text-rose-800 border-rose-300">
+        <Badge className="bg-destructive/10 text-destructive border-destructive/25">
           Suspended
         </Badge>
       );
@@ -229,12 +229,12 @@ export function AdminMerchantsPage() {
             <Card className="border-border bg-muted/30">
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardDescription className="text-xs text-rose-800 font-medium">
+                  <CardDescription className="text-xs text-destructive font-medium">
                     Suspended / Rejected
                   </CardDescription>
-                  <ShieldBan className="h-4 w-4 text-rose-600" />
+                  <ShieldBan className="h-4 w-4 text-destructive" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-rose-900">
+                <CardTitle className="text-2xl font-bold text-destructive">
                   {suspendedCount}
                 </CardTitle>
               </CardHeader>
