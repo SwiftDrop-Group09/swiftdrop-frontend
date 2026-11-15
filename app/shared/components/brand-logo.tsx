@@ -9,13 +9,13 @@ export function BrandLogo({ className }: { className?: string }) {
         className,
       )}
     >
-      <span aria-hidden="true" className="text-primary">
+      <span aria-hidden="true" className="text-[var(--brand-primary)]">
         Swift
       </span>
       <span aria-hidden="true" className="text-foreground">
         Drop
       </span>
-      <span aria-hidden="true" className="text-primary">
+      <span aria-hidden="true" className="text-[var(--brand-primary)]">
         .
       </span>
     </span>

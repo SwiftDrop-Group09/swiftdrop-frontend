@@ -1,3 +1,4 @@
+import { deliveryFailureLabel } from '~/shared/delivery-failure';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import {
@@ -778,6 +779,18 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
               </p>
             </CardContent>
           </Card>
+          {data.status === 'Failed' && (
+            <WorkspaceNotice
+              destructive
+              title="Delivery failed"
+              description={(() => {
+                const event = data.history.findLast(
+                  (item) => item.toStatus === 'Failed',
+                );
+                return `${deliveryFailureLabel(event?.changeReason)}${event ? ` ? ${formatDateTime(event.timestamp)}` : ''}`;
+              })()}
+            />
+          )}
           <Tabs
             value={tab}
             onValueChange={(value) => {
@@ -927,7 +940,9 @@ export function CustomerDeliveryDetail({ parcelId }: { parcelId: string }) {
                             {formatDateTime(entry.timestamp)}
                           </p>
                           {entry.changeReason && (
-                            <p className="text-sm">{entry.changeReason}</p>
+                            <p className="text-sm">
+                              {deliveryFailureLabel(entry.changeReason)}
+                            </p>
                           )}
                           {entry.deliveryNote && (
                             <p className="text-sm text-muted-foreground">

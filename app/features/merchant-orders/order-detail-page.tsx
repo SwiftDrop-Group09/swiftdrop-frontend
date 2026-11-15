@@ -1,3 +1,4 @@
+import { deliveryFailureLabel } from '~/shared/delivery-failure';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -156,6 +157,13 @@ function ParcelSummary({ job }: { job: OrderJob }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {job.parcelStatus === 'Failed' && (
+          <WorkspaceNotice
+            destructive
+            title="Delivery failed"
+            description={`${deliveryFailureLabel(job.failureReason)} ? ${formatUtc(job.terminalAt ?? job.lastStatusChangedAt)}`}
+          />
+        )}
         {job.trackingNumber ? (
           <Facts>
             <Fact label="Tracking number">
@@ -259,7 +267,7 @@ function OrderTimeline({ job }: { job: OrderJob }) {
               ) : step.status === 'done' ? (
                 <CheckCircle2
                   aria-hidden="true"
-                  className="mt-0.5 size-5 shrink-0 text-emerald-600"
+                  className="mt-0.5 size-5 shrink-0 text-primary"
                 />
               ) : (
                 <Circle

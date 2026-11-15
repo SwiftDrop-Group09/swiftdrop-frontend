@@ -17,6 +17,22 @@ function apiReturning(response: Response | (() => Promise<Response>)) {
 }
 
 describe('MerchantOrdersApi', () => {
+  it('preserves Int64 parcel versions before floating point conversion', async () => {
+    const wire = JSON.stringify(createdOrder).replace(
+      '"parcelVersion":"4"',
+      '"parcelVersion":9223372036854775806',
+    );
+    const { api } = apiReturning(new Response(wire, { status: 200 }));
+    expect((await api.getOrder(createdOrder.id)).parcelVersion).toBe(
+      '9223372036854775806',
+    );
+  });
+  it('filters failed deliveries separately from order processing failures', async () => {
+    const { api, fetcher } = apiReturning(json(page([])));
+    await api.listOrders({ page: 1, pageSize: 20, parcelStatus: 'Failed' });
+    expect(fetcher.mock.calls[0]?.[0]).toContain('parcelStatus=Failed');
+    expect(fetcher.mock.calls[0]?.[0]).not.toContain('state=Failed');
+  });
   it('lists orders with paging and an optional state filter', async () => {
     const { api, fetcher } = apiReturning(
       json(page([acceptedOrder, createdOrder], 2)),

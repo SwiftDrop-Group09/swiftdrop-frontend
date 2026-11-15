@@ -27,7 +27,7 @@ export const createdOrder: OrderJob = {
   parcelId: '33333333-3333-4333-8333-333333333333',
   trackingNumber: 'SD-FICTION-01',
   parcelStatus: 'InTransit',
-  parcelVersion: 4,
+  parcelVersion: '4',
   lastStatusChangedAt: '2026-11-13T10:15:00+00:00',
   errorCode: null,
   lastRefreshedAt: '2026-11-13T10:20:00+00:00',

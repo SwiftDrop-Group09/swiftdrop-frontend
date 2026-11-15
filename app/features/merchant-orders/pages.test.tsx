@@ -21,6 +21,21 @@ const orderListCalls = (fetcher: Fetcher) =>
   requestedUrls(fetcher).filter((url) => url.includes('/v1/merchant/orders?'));
 
 describe('Merchant orders list', () => {
+  it('offers a separate Failed delivery filter and resets paging', async () => {
+    const user = userEvent.setup();
+    const { fetcher, router } = mount('/merchant/orders?page=2', (url) =>
+      url.includes('/v1/merchant/orders?') ? json(page([], 0)) : undefined,
+    );
+    await screen.findByLabelText('Delivery status');
+    await user.selectOptions(
+      screen.getByLabelText('Delivery status'),
+      'Failed',
+    );
+    await findText('No matching orders');
+    expect(router.state.location.search).toContain('parcelStatus=Failed');
+    expect(router.state.location.search).not.toContain('page=2');
+    expect(orderListCalls(fetcher).at(-1)).toContain('parcelStatus=Failed');
+  });
   it('shows each order with its state, tracking link and parcel status', async () => {
     mount('/merchant/orders', (url) =>
       url.includes('/v1/merchant/orders?')

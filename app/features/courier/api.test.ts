@@ -86,10 +86,9 @@ describe('Courier contract adapter', () => {
       );
     },
   );
-  it('rejects a skipped stage, blank note, long note and direct Delivered', () => {
+  it('rejects a skipped stage, long note and direct Delivered', () => {
     for (const [s, n] of [
       ['InTransit', 'note'],
-      ['PickedUp', ' '],
       ['PickedUp', 'x'.repeat(501)],
       ['Delivered', 'note'],
     ])
@@ -97,6 +96,14 @@ describe('Courier contract adapter', () => {
         CourierError,
       );
   });
+  it.each(['', ' ', '   '])(
+    'accepts an optional stage note and normalizes blank input %j',
+    (notes) => {
+      expect(
+        JSON.parse(statusAttempt(detail(), 'PickedUp', notes).body!),
+      ).toMatchObject({ notes: null });
+    },
+  );
   it('requires an explicit failure reason and retains optional notes', () => {
     expect(() => statusAttempt(detail(), 'Failed', '')).toThrow();
     const a = statusAttempt(

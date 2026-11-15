@@ -17,8 +17,18 @@ const AdminDashboard = lazy(
   () => import('~/features/admin-dashboard/admin-dashboard'),
 );
 
+const CourierDashboard = lazy(() => import('~/features/courier/dashboard'));
+
 export function RoleHome() {
   const { user } = useIdentity();
+  if (user?.roles[0] === 'Courier')
+    return (
+      <Suspense
+        fallback={<WorkspaceLoading label="Loading your day's work..." />}
+      >
+        <CourierDashboard />
+      </Suspense>
+    );
   if (user?.roles.length === 1 && user.roles[0] === 'Admin') {
     return (
       <Suspense

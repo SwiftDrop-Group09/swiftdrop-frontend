@@ -193,7 +193,9 @@ describe('Customer account screens', () => {
     },
   ])('shows the documented navigation for $role', async ({ role, groups }) => {
     const { user } = mount('/dashboard', { ...customer, roles: [role] });
-    await screen.findByRole('heading', { name: 'Dashboard' });
+    await screen.findByRole('heading', {
+      name: role === 'Courier' ? "Today's work" : 'Dashboard',
+    });
     expect(
       screen
         .getAllByRole('navigation')

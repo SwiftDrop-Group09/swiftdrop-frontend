@@ -1,3 +1,4 @@
+import { Progress } from '~/shared/components/ui/progress';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { ClipboardList, RefreshCw } from 'lucide-react';
@@ -395,17 +396,11 @@ function StatusBreakdown({
                   title={`${label}: ${count} (${share}%)`}
                 >
                   <span className="text-sm">{label}</span>
-                  <span
-                    aria-hidden="true"
-                    className="h-3 rounded-r bg-muted/40"
-                  >
-                    {count > 0 && (
-                      <span
-                        className="block h-full rounded-r bg-primary"
-                        style={{ width: `${(count / max) * 100}%` }}
-                      />
-                    )}
-                  </span>
+                  <Progress
+                    className="h-3"
+                    value={max ? (count / max) * 100 : 0}
+                    aria-label={`${label}: ${count} parcels (${share}%)`}
+                  />
                   <span className="text-right text-sm tabular-nums">
                     {count}
                     <span className="sr-only"> parcels</span>

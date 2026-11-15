@@ -58,7 +58,7 @@ const privateFields = {
   recipient: z.object({ name: z.string(), phoneNumber: z.string() }),
   packageDetails: z.object({ weightKg: numeric, size: z.string() }),
 };
-const assigned = summarySchema.extend({
+export const assigned = summarySchema.extend({
   ...privateFields,
   serviceDate: z.iso.date(),
   isOverdue: z.boolean(),
@@ -83,6 +83,19 @@ export const detailSchema = summarySchema.extend({
     }),
   ),
 });
+const historyDetailSchema = summarySchema.extend({
+  status: z.enum(['Delivered', 'Failed']),
+  pickupCity: z.string(),
+  deliveryCity: z.string(),
+  packageDetails: privateFields.packageDetails,
+  serviceDate: z.iso.date(),
+  assignedAt: z.iso.datetime({ offset: true }),
+  pickedUpAt: z.iso.datetime({ offset: true }).nullable(),
+  completedAt: z.iso.datetime({ offset: true }),
+  failureReason: z.enum(reasons).nullable(),
+  hasProof: z.boolean(),
+});
+export type HistoryDetail = z.infer<typeof historyDetailSchema>;
 const page = <T extends z.ZodType>(item: T) =>
   z.object({
     items: z.array(item),
@@ -90,6 +103,30 @@ const page = <T extends z.ZodType>(item: T) =>
     page: count.refine((n) => n >= 1),
     pageSize: count.refine((n) => n >= 1 && n <= 100),
   });
+const stageCounts = z.object({
+  assigned: count,
+  pickedUp: count,
+  inTransit: count,
+  outForDelivery: count,
+  delivered: count,
+  failed: count,
+  active: count,
+  completed: count,
+  total: count,
+});
+const workSummary = z.object({
+  serviceDate: z.iso.date(),
+  timeZone: z.string(),
+  day: stageCounts,
+  queues: stageCounts,
+  overdueCount: count,
+});
+export type WorkSummary = z.infer<typeof workSummary>;
+export type QueueFilters = {
+  status?: string;
+  search?: string;
+  overdueOnly?: boolean;
+};
 export type Summary = z.infer<typeof summarySchema>;
 export type Detail = z.infer<typeof detailSchema>;
 export type Assigned = z.infer<typeof assigned>;
@@ -168,8 +205,7 @@ export function statusAttempt(
       : nextStage[d.status] !== status)
   )
     throw new CourierError('validation_error', 400);
-  if (notes.length > 500 || (status !== 'Failed' && !notes.trim()))
-    throw new CourierError('validation_error', 400);
+  if (notes.length > 500) throw new CourierError('validation_error', 400);
   return Object.freeze({
     id: d.id,
     version: d.version,
@@ -274,20 +310,44 @@ export class CourierApi {
       throw new CourierError('invalid_response', 0);
     }
   }
-  manifest(date = '', includeOverdue = true, p = 1) {
+  manifest(
+    date = '',
+    includeOverdue = true,
+    p = 1,
+    filters: QueueFilters = {},
+  ) {
     const q = new URLSearchParams({
       includeOverdue: String(includeOverdue),
       page: String(p),
       pageSize: '20',
     });
     if (date) q.set('date', date);
+    if (filters.status) q.set('status', filters.status);
+    if (filters.search) q.set('search', filters.search);
+    if (filters.overdueOnly) q.set('overdueOnly', 'true');
     return this.read(`/couriers/me/assignments?${q}`, page(assigned));
   }
-  history(p = 1) {
-    return this.read(
-      `/couriers/me/history?page=${p}&pageSize=20`,
-      page(summarySchema),
-    );
+  summary(date = '', includeOverdue = true, filters: QueueFilters = {}) {
+    const q = new URLSearchParams({ includeOverdue: String(includeOverdue) });
+    if (date) q.set('date', date);
+    if (filters.search) q.set('search', filters.search);
+    if (filters.overdueOnly) q.set('overdueOnly', 'true');
+    return this.read(`/couriers/me/summary?${q}`, workSummary);
+  }
+  history(
+    p = 1,
+    filters: { status?: string; date?: string; search?: string } = {},
+  ) {
+    const q = new URLSearchParams({ page: String(p), pageSize: '20' });
+    if (filters.status) q.set('status', filters.status);
+    if (filters.date) q.set('date', filters.date);
+    if (filters.search) q.set('search', filters.search);
+    return this.read(`/couriers/me/history?${q}`, page(summarySchema));
+  }
+  historyDetail(id: string) {
+    if (!z.uuid().safeParse(id).success)
+      return Promise.reject(new CourierError('not_found', 404));
+    return this.read(`/couriers/me/history/${id}`, historyDetailSchema);
   }
   detail(id: string) {
     if (!z.uuid().safeParse(id).success)

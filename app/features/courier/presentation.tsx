@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import {
   ArrowRight,
   CalendarDays,
@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from '~/shared/components/ui/card';
 import { displayMoney } from '~/shared/exact-json';
+import { HistoryDetails } from './history-detail';
 import type { Assigned, Detail, Summary } from './api';
 export const statusLabel = (status: string) =>
   status.replace(/([a-z])([A-Z])/g, '$1 $2');
@@ -41,6 +42,10 @@ export function DeliveryStatus({ status }: { status: Summary['status'] }) {
   );
 }
 export function AssignmentCard({ delivery: d }: { delivery: Assigned }) {
+  const location = useLocation();
+  const returnTo = location.pathname + location.search;
+  const nextStop =
+    d.status === 'Assigned' ? d.pickupAddress : d.deliveryAddress;
   return (
     <Card className="flex h-full flex-col gap-0 overflow-hidden">
       <CardHeader className="space-y-3 p-4 pb-3 sm:p-5">
@@ -53,10 +58,17 @@ export function AssignmentCard({ delivery: d }: { delivery: Assigned }) {
             </Badge>
           )}
         </div>
+        <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{d.pickupAddress.city}</span>
+          <ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
+          <span className="sr-only">to</span>
+          <span>{d.deliveryAddress.city}</span>
+        </p>
         <CardTitle className="text-base">
           <Link
             className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             to={`/courier/parcels/${d.id}`}
+            state={{ returnTo }}
           >
             {d.trackingNumber}
           </Link>
@@ -79,9 +91,12 @@ export function AssignmentCard({ delivery: d }: { delivery: Assigned }) {
               aria-hidden="true"
             />
             <div className="min-w-0">
-              <p className="break-words">{d.deliveryAddress.street}</p>
+              <p className="mb-1 text-xs font-medium text-primary">
+                {d.status === 'Assigned' ? 'Pickup at' : 'Deliver to'}
+              </p>
+              <p className="break-words">{nextStop.street}</p>
               <p className="text-muted-foreground">
-                {d.deliveryAddress.city} {d.deliveryAddress.postalCode}
+                {nextStop.city} {nextStop.postalCode}
               </p>
             </div>
           </div>
@@ -110,7 +125,7 @@ export function AssignmentCard({ delivery: d }: { delivery: Assigned }) {
               </a>
             </Button>
             <Button asChild size="sm">
-              <Link to={`/courier/parcels/${d.id}`}>
+              <Link to={`/courier/parcels/${d.id}`} state={{ returnTo }}>
                 Open delivery
                 <ArrowRight aria-hidden="true" />
               </Link>
@@ -142,8 +157,9 @@ export function HistoryCard({ delivery: d }: { delivery: Summary }) {
         </div>
       </dl>
       <p className="mt-auto border-t pt-3 text-xs text-muted-foreground">
-        Version {d.version} | Pricing {d.priceSnapshot.pricingVersion}
+        Completed assignment
       </p>
+      <HistoryDetails delivery={d} />
     </Card>
   );
 }
@@ -174,7 +190,9 @@ export function StatusTimeline({ history }: { history: Detail['history'] }) {
                 {new Date(item.timestamp).toLocaleString()}
               </p>
               {item.changeReason && (
-                <p className="text-sm">Reason: {item.changeReason}</p>
+                <p className="text-sm">
+                  Reason: {statusLabel(item.changeReason)}
+                </p>
               )}
               {item.deliveryNote && (
                 <p className="break-words text-sm text-muted-foreground">

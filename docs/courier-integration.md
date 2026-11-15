@@ -1,4 +1,11 @@
-# Courier clients — Phase 7
+# Courier clients
+
+The current workspace refinement is documented in
+[Courier workspace experience](courier-workspace-experience.md). It adds a real
+day summary, server-filtered stage queues, filtered terminal history and focused
+confirmation/proof flows while retaining the original concurrency safeguards.
+The following Phase 7 handoff describes the original client foundation; its
+pagination-only read and pending-Identity statements are historical.
 
 The Courier workflow, Customer booking and shared shadcn/Identity workspace are
 merged into default branch `dev`. `/courier`, `/courier/parcels/:id` and
@@ -19,11 +26,11 @@ All requests use the existing same-origin API base, followed by `/v1`:
 | GET    | `/parcels/{id}`            | Active assigned private details and real server history                                                               |
 | PUT    | `/deliveries/{id}/status`  | Only the next stage, or Failed with an explicit canonical reason; version and Idempotency-Key                         |
 | POST   | `/deliveries/{id}/pod`     | OutForDelivery only; recipient name, version, photo or signature (both allowed) and Idempotency-Key                   |
-| GET    | `/couriers/me/history`     | Minimal terminal summaries, pagination only; no protected detail links                                                |
+| GET    | `/couriers/me/history`     | Minimal terminal summaries; paging, outcome/service-date/tracking filters; no protected detail links                  |
 
 Version tokens and monetary values are parsed before floating-point conversion.
 No price calculation or locally fabricated status history is used. Stage notes
-are nonblank and at most 500 UTF-16 code units. Failed reasons are exactly
+are optional and at most 500 UTF-16 code units; blank notes normalize to null. Failed reasons are exactly
 RecipientUnavailable, AddressUnreachable, Damaged or Other. Optional failure
 notes are transmitted without silently dropping the selected reason.
 
