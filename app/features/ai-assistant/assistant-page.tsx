@@ -108,7 +108,7 @@ export function AssistantPage() {
         </Button>
       }
     >
-      <Card className="flex flex-col rounded-xl border bg-card shadow-xs min-h-[640px] max-h-[820px] overflow-hidden">
+      <Card className="flex flex-col rounded-xl border bg-card shadow-xs h-[calc(100dvh-13.5rem)] min-h-[420px] overflow-hidden">
         {/* Section Header Matching Customer Dashboard Cards */}
         <CustomerSectionHeader
           icon={Sparkles}
@@ -124,7 +124,7 @@ export function AssistantPage() {
         />
 
         {/* Messages Stream */}
-        <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pt-0">
+        <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 pt-0">
           {messages.length === 0 ? (
             <div className="my-auto flex flex-col items-center justify-center py-6 text-center max-w-2xl mx-auto space-y-6">
               <Badge
@@ -270,7 +270,7 @@ export function AssistantPage() {
         </CardContent>
 
         {/* Docked Follow-Up Prompt Chips & Input Bar */}
-        <div className="border-t bg-background p-3 sm:p-4 space-y-2.5">
+        <div className="shrink-0 border-t bg-background p-3 sm:p-4 space-y-2.5">
           {activeSuggestedPrompts.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 px-1">
               <span className="text-[11px] text-muted-foreground mr-1">
