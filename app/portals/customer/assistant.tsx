@@ -1,5 +1,12 @@
 import { AssistantPage } from '~/features/ai-assistant/assistant-page';
+import { IdentityShell, Protected } from '~/features/identity/components';
 
 export default function CustomerAssistantPortal() {
-  return <AssistantPage />;
+  return (
+    <IdentityShell>
+      <Protected roles={['Customer']}>
+        <AssistantPage />
+      </Protected>
+    </IdentityShell>
+  );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
-  Bot,
   Calculator,
   Clock,
   CornerDownLeft,
@@ -12,17 +11,22 @@ import {
   SlidersHorizontal,
   Sparkles,
   Terminal,
+  X,
 } from 'lucide-react';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
+import { Card, CardContent } from '~/shared/components/ui/card';
+import { Input } from '~/shared/components/ui/input';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '~/shared/components/ui/sheet';
 import { WorkspacePage } from '~/shared/components/workspace-page';
+import { CustomerSectionHeader } from '~/features/customer-tracking/customer-presentation';
 import {
   ParcelListResultCard,
   QuoteResultCard,
@@ -103,8 +107,8 @@ export function AssistantPage() {
 
   return (
     <WorkspacePage
-      title="Delivery assistant"
-      description="Ask about your active deliveries, track a parcel, or get an instant rate estimate across Sri Lanka."
+      title="AI Delivery Assistant"
+      description="Ask questions about your active deliveries, track parcels, or get an instant shipping rate estimate across Sri Lanka."
       actions={
         <div className="flex items-center gap-2">
           <Button
@@ -114,7 +118,7 @@ export function AssistantPage() {
             onClick={() => setInspectorOpen(true)}
             className="text-xs gap-1.5"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+            <SlidersHorizontal className="size-3.5 text-muted-foreground" />
             <span>MCP Inspector</span>
           </Button>
           <Button
@@ -124,53 +128,50 @@ export function AssistantPage() {
             onClick={clearChat}
             className="text-xs gap-1.5"
           >
-            <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            <RotateCcw className="size-3.5 text-muted-foreground" />
             <span>Clear chat</span>
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col rounded-xl border bg-card shadow-xs min-h-[640px] max-h-[820px] overflow-hidden">
-        {/* Chat Stream Header */}
-        <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/20">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Bot className="h-4 w-4" />
+      <Card className="flex flex-col rounded-xl border bg-card shadow-xs min-h-[640px] max-h-[820px] overflow-hidden">
+        {/* Section Header Matching Customer Dashboard Cards */}
+        <CustomerSectionHeader
+          icon={Sparkles}
+          title="Assistant Conversation"
+          description="Model Context Protocol (MCP) tool grounded delivery assistant for real-time tracking and quotes."
+          action={
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs font-mono">
+                {isAuthenticated ? 'Authenticated Customer' : 'Public Guest'}
+              </Badge>
             </div>
-            <div>
-              <span className="text-sm font-semibold text-foreground">
-                Assistant Conversation
-              </span>
-            </div>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-          </div>
-          <Badge variant="outline" className="text-xs font-mono">
-            {isAuthenticated ? 'Authenticated Customer' : 'Public Guest'}
-          </Badge>
-        </div>
+          }
+        />
 
         {/* Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pt-0">
           {messages.length === 0 ? (
-            <div className="my-auto flex flex-col items-center justify-center py-8 text-center max-w-2xl mx-auto space-y-6">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <div className="space-y-1.5">
+            <div className="my-auto flex flex-col items-center justify-center py-6 text-center max-w-2xl mx-auto space-y-6">
+              <Badge
+                variant="outline"
+                className="size-14 justify-center rounded-2xl border-primary/15 bg-primary/5 p-0 text-primary"
+                aria-hidden="true"
+              >
+                <Sparkles className="size-7" />
+              </Badge>
+              <div className="max-w-md space-y-1.5">
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">
                   How can I help you today?
                 </h3>
-                <p className="text-sm text-muted-foreground max-w-md">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Choose a quick topic below or type your question to track
                   parcels, calculate shipping fees, or check coverage.
                 </p>
               </div>
 
               {/* 2x2 Clickable Starter Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full text-left">
                 {STARTER_PROMPTS.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -179,17 +180,21 @@ export function AssistantPage() {
                       type="button"
                       onClick={() => handlePromptClick(item.prompt)}
                       disabled={isSending}
-                      className="group flex items-start gap-3 rounded-lg border bg-card p-3.5 shadow-xs transition-all hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-left"
+                      className="group flex items-start gap-3.5 rounded-xl border border-border/80 bg-muted/20 p-4 shadow-xs transition-all hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-left"
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-1 font-medium text-sm text-foreground">
+                      <Badge
+                        variant="outline"
+                        className="size-10 shrink-0 justify-center rounded-xl border-primary/15 bg-primary/5 p-0 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        aria-hidden="true"
+                      >
+                        <Icon className="size-5" />
+                      </Badge>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
                           <span>{item.title}</span>
-                          <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
+                          <ArrowRight className="size-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1">
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                           {item.description}
                         </p>
                       </div>
@@ -288,7 +293,7 @@ export function AssistantPage() {
           )}
 
           <div ref={messagesEndRef} />
-        </div>
+        </CardContent>
 
         {/* Docked Follow-Up Prompt Chips & Input Bar */}
         <div className="border-t bg-background p-3 sm:p-4 space-y-2.5">
@@ -312,19 +317,18 @@ export function AssistantPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <input
+            <Input
               ref={inputRef}
-              type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Ask e.g. 'Where is my parcel?' or 'How much to send 2 kg to Kandy?'..."
               disabled={isSending}
-              className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-10 min-w-0 flex-1 bg-background"
             />
             <Button
               type="submit"
               disabled={!inputValue.trim() || isSending}
-              className="gap-1.5"
+              className="h-10 gap-1.5"
             >
               {isSending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -337,27 +341,41 @@ export function AssistantPage() {
             </Button>
           </form>
         </div>
-      </div>
+      </Card>
 
       {/* Slide-over Sheet for Evaluator MCP Inspector */}
       <Sheet open={inspectorOpen} onOpenChange={setInspectorOpen}>
         <SheetContent
           side="right"
+          showCloseButton={false}
           className="w-full sm:max-w-md overflow-y-auto p-0"
         >
           <SheetHeader className="border-b px-5 py-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Terminal className="h-4 w-4" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Terminal className="h-4 w-4" />
+                </div>
+                <div>
+                  <SheetTitle className="text-base font-bold">
+                    MCP Inspector & Verification
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    Inspect JSON-RPC 2.0 tools and run test prompts.
+                  </SheetDescription>
+                </div>
               </div>
-              <div>
-                <SheetTitle className="text-base font-bold">
-                  MCP Inspector & Verification
-                </SheetTitle>
-                <SheetDescription className="text-xs">
-                  Inspect JSON-RPC 2.0 tools and run test prompts.
-                </SheetDescription>
-              </div>
+              <SheetClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
+                  aria-label="Close inspector"
+                >
+                  <X className="size-4" />
+                </Button>
+              </SheetClose>
             </div>
           </SheetHeader>
 

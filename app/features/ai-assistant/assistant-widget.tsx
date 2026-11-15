@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
-import { CornerDownLeft, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { CornerDownLeft, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
 import { Button } from '~/shared/components/ui/button';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -124,6 +125,7 @@ export function AssistantWidget() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
+          showCloseButton={false}
           className="flex h-full w-full flex-col p-0 sm:max-w-lg md:max-w-xl"
         >
           {/* Header */}
@@ -143,18 +145,30 @@ export function AssistantWidget() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
                   onClick={clearChat}
-                  title="Clear chat history"
-                  aria-label="Clear chat history"
+                  title="Clear chat"
+                  aria-label="Clear chat"
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="size-4" />
                 </Button>
+                <SheetClose asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
+                    title="Close assistant"
+                    aria-label="Close assistant"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </SheetClose>
               </div>
             </div>
           </SheetHeader>
