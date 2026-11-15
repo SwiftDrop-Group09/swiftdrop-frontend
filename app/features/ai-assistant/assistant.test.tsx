@@ -140,8 +140,8 @@ describe('AI Delivery Assistant UI Components', () => {
 
     await waitFor(() => {
       expect(
-        screen.getAllByText(/estimate_delivery_fee/).length,
-      ).toBeGreaterThanOrEqual(1);
+        screen.getByText(/Sending a 2 kg parcel from Colombo to Kandy/),
+      ).toBeInTheDocument();
       expect(screen.getByText(/Book this delivery/i)).toBeInTheDocument();
       expect(screen.getByText('LKR 450.00')).toBeInTheDocument();
     });

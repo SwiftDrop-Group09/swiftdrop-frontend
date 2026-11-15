@@ -19,7 +19,6 @@ import { CustomerSectionHeader } from '~/features/customer-tracking/customer-pre
 import {
   ParcelListResultCard,
   QuoteResultCard,
-  ToolTraceBadge,
   TrackingResultCard,
   ZonesResultCard,
 } from './assistant-cards';
@@ -36,7 +35,7 @@ const STARTER_PROMPTS = [
   {
     title: 'Estimate delivery fee',
     description: 'Calculate instant rates across Sri Lankan zones',
-    prompt: 'How much to send 2 kg to Kandy?',
+    prompt: 'How much to send 2 kg from Colombo to Kandy?',
     icon: Calculator,
   },
   {
@@ -77,19 +76,6 @@ export function AssistantPage() {
     if (isSending) return;
     void sendMessage(prompt);
   };
-
-  // Get suggested prompts from the latest message only (up to 3)
-  const latestAssistantMessage = [...messages]
-    .reverse()
-    .find(
-      (m) =>
-        m.role === 'assistant' &&
-        m.suggestedPrompts &&
-        m.suggestedPrompts.length > 0,
-    );
-  const activeSuggestedPrompts = (
-    latestAssistantMessage?.suggestedPrompts ?? []
-  ).slice(0, 3);
 
   return (
     <WorkspacePage
@@ -213,18 +199,6 @@ export function AssistantPage() {
                     )}
                   </div>
 
-                  {/* Collapsible MCP Tool Trace */}
-                  {msg.toolCalls && msg.toolCalls.length > 0 && (
-                    <div className="w-full max-w-[95%]">
-                      {msg.toolCalls.map((trace, idx) => (
-                        <ToolTraceBadge
-                          key={`${trace.toolName}-${idx}`}
-                          trace={trace}
-                        />
-                      ))}
-                    </div>
-                  )}
-
                   {/* Rich UI Cards */}
                   {msg.cards?.tracking && (
                     <div className="w-full max-w-[95%]">
@@ -269,27 +243,8 @@ export function AssistantPage() {
           <div ref={messagesEndRef} />
         </CardContent>
 
-        {/* Docked Follow-Up Prompt Chips & Input Bar */}
-        <div className="shrink-0 border-t bg-background p-3 sm:p-4 space-y-2.5">
-          {activeSuggestedPrompts.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 px-1">
-              <span className="text-[11px] text-muted-foreground mr-1">
-                Suggested:
-              </span>
-              {activeSuggestedPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => handlePromptClick(prompt)}
-                  disabled={isSending}
-                  className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          )}
-
+        {/* Input Bar */}
+        <div className="shrink-0 border-t bg-background p-3 sm:p-4">
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
             <Input
               ref={inputRef}

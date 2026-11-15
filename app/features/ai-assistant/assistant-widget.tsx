@@ -13,7 +13,6 @@ import {
 import {
   ParcelListResultCard,
   QuoteResultCard,
-  ToolTraceBadge,
   TrackingResultCard,
   ZonesResultCard,
 } from './assistant-cards';
@@ -82,24 +81,6 @@ export function AssistantWidget() {
     setInputValue('');
     void sendMessage(text);
   };
-
-  const handlePromptClick = (prompt: string) => {
-    if (isSending) return;
-    void sendMessage(prompt);
-  };
-
-  // Get suggested prompts from the latest message
-  const latestAssistantMessage = [...messages]
-    .reverse()
-    .find(
-      (m) =>
-        m.role === 'assistant' &&
-        m.suggestedPrompts &&
-        m.suggestedPrompts.length > 0,
-    );
-  const activeSuggestedPrompts = (
-    latestAssistantMessage?.suggestedPrompts ?? []
-  ).slice(0, 3);
 
   return (
     <>
@@ -221,18 +202,6 @@ export function AssistantWidget() {
                       )}
                     </div>
 
-                    {/* Tool Execution Traces */}
-                    {msg.toolCalls && msg.toolCalls.length > 0 && (
-                      <div className="w-full max-w-[95%]">
-                        {msg.toolCalls.map((trace, idx) => (
-                          <ToolTraceBadge
-                            key={`${trace.toolName}-${idx}`}
-                            trace={trace}
-                          />
-                        ))}
-                      </div>
-                    )}
-
                     {/* Rich Result Cards */}
                     {msg.cards?.tracking && (
                       <div className="w-full max-w-[95%]">
@@ -278,23 +247,7 @@ export function AssistantWidget() {
           </div>
 
           {/* Footer Input Bar */}
-          <div className="border-t bg-background p-3 sm:p-4 space-y-2">
-            {activeSuggestedPrompts.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 px-1">
-                {activeSuggestedPrompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => handlePromptClick(prompt)}
-                    disabled={isSending}
-                    className="rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            )}
-
+          <div className="border-t bg-background p-3 sm:p-4">
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <input
                 ref={inputRef}
