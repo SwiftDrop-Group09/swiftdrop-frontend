@@ -39,6 +39,7 @@ describe('Calendar reporting periods', () => {
         <ReportPeriod
           allowAllDates
           inputMode="calendar"
+          showTimeZone={false}
           value={value}
           onChange={(next) => {
             setValue(next);
@@ -52,7 +53,7 @@ describe('Calendar reporting periods', () => {
     const period = screen.getByRole('button', { name: 'Reporting period' });
     expect(period).toHaveTextContent('All booking dates');
     await user.click(period);
-    for (const label of ['From (UTC)', 'Through (UTC)']) {
+    for (const label of ['From', 'Through']) {
       const trigger = screen.getByRole('button', { name: label });
       await user.click(trigger);
       const today = screen.getByRole('button', {

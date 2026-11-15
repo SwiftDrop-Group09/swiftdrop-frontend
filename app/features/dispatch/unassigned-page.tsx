@@ -192,7 +192,7 @@ function UnassignedParcelsContent() {
         <CardHeader>
           <CardTitle>Filter parcels</CardTitle>
           <CardDescription>
-            Filter parcels awaiting courier assignment. Booking dates use UTC.
+            Filter parcels awaiting courier assignment.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -255,7 +255,7 @@ function UnassignedParcelsContent() {
               </Field>
               <Field className="min-w-0" data-invalid={Boolean(dateError)}>
                 <Label id="unassigned-from-label" htmlFor="unassigned-from">
-                  Booked from (UTC)
+                  Booked from
                 </Label>
                 <BookingDatePicker
                   id="unassigned-from"
@@ -272,7 +272,7 @@ function UnassignedParcelsContent() {
                   id="unassigned-through-label"
                   htmlFor="unassigned-through"
                 >
-                  Booked through (UTC)
+                  Booked through
                 </Label>
                 <BookingDatePicker
                   triggerRef={throughTrigger}

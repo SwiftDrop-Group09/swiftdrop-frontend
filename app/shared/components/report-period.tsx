@@ -28,6 +28,7 @@ export type ReportDates = { startDate: string; endDate: string };
 type ReportPeriodProps = {
   onDraftChange?: (dirty: boolean) => void;
   inputMode?: 'native' | 'calendar';
+  showTimeZone?: boolean;
 } & (
   | {
       allowAllDates?: false;
@@ -50,7 +51,13 @@ export function formatReportDate(value: string) {
   }).format(new Date(value + 'T00:00:00Z'));
 }
 export function ReportPeriod(props: ReportPeriodProps) {
-  const { value, onChange, onDraftChange, inputMode = 'native' } = props;
+  const {
+    value,
+    onChange,
+    onDraftChange,
+    inputMode = 'native',
+    showTimeZone = true,
+  } = props;
   const id = useId();
   const [open, setOpen] = useState(false);
   const emptyDates = { startDate: '', endDate: '' };
@@ -95,7 +102,9 @@ export function ReportPeriod(props: ReportPeriodProps) {
               ? `${formatReportDate(value.startDate)} - ${formatReportDate(value.endDate)}`
               : 'All booking dates'}
           </span>
-          <span className="text-xs text-muted-foreground">UTC</span>
+          {showTimeZone && (
+            <span className="text-xs text-muted-foreground">UTC</span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -107,7 +116,8 @@ export function ReportPeriod(props: ReportPeriodProps) {
         <PopoverHeader>
           <PopoverTitle id={`${id}-title`}>Reporting period</PopoverTitle>
           <PopoverDescription id={`${id}-help`}>
-            Inclusive UTC dates. Maximum {maxDeliveryReportDays} days.
+            Inclusive {showTimeZone ? 'UTC ' : ''}dates. Maximum{' '}
+            {maxDeliveryReportDays} days.
           </PopoverDescription>
         </PopoverHeader>
         <div className="flex flex-wrap gap-2" aria-label="Date presets">
@@ -143,7 +153,7 @@ export function ReportPeriod(props: ReportPeriodProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="min-w-0 space-y-2">
               <Label id={`${id}-from-label`} htmlFor={`${id}-from`}>
-                From (UTC)
+                From{showTimeZone && ' (UTC)'}
               </Label>
               {inputMode === 'calendar' ? (
                 <PeriodDatePicker
@@ -168,7 +178,7 @@ export function ReportPeriod(props: ReportPeriodProps) {
             </div>
             <div className="min-w-0 space-y-2">
               <Label id={`${id}-through-label`} htmlFor={`${id}-through`}>
-                Through (UTC)
+                Through{showTimeZone && ' (UTC)'}
               </Label>
               {inputMode === 'calendar' ? (
                 <PeriodDatePicker

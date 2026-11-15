@@ -50,7 +50,7 @@ function ZoneSummaryContent() {
       ),
   });
   const scope = period
-    ? `Bookings from ${formatReportDate(period.startDate)} through ${formatReportDate(period.endDate)} (UTC).`
+    ? `Bookings from ${formatReportDate(period.startDate)} through ${formatReportDate(period.endDate)}.`
     : 'All booking dates.';
   return (
     <WorkspacePage
@@ -60,6 +60,7 @@ function ZoneSummaryContent() {
           <ReportPeriod
             allowAllDates
             inputMode="calendar"
+            showTimeZone={false}
             value={period}
             onChange={setPeriod}
           />

@@ -258,12 +258,12 @@ describe('Dispatcher zone summary', () => {
     const { user, reads, queries } = mount();
     await loaded();
     await openPeriod(user);
-    await selectDate(user, 'From (UTC)', 13);
-    expect(screen.getByRole('button', { name: 'From (UTC)' })).toHaveFocus();
-    await selectDate(user, 'Through (UTC)', 14);
+    await selectDate(user, 'From', 13);
+    expect(screen.getByRole('button', { name: 'From' })).toHaveFocus();
+    await selectDate(user, 'Through', 14);
     expect(reads).toHaveBeenCalledTimes(1);
     expect(
-      screen.queryByLabelText('From (UTC)', { selector: 'input' }),
+      screen.queryByLabelText('From', { selector: 'input' }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Apply dates' }));
     await waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
@@ -294,28 +294,28 @@ describe('Dispatcher zone summary', () => {
     const { user, reads } = mount();
     await loaded();
     await openPeriod(user);
-    await selectDate(user, 'From (UTC)', 14);
+    await selectDate(user, 'From', 14);
     await user.click(screen.getByRole('button', { name: 'Apply dates' }));
     expect(screen.getByText('Invalid reporting period')).toBeInTheDocument();
-    await selectDate(user, 'Through (UTC)', 13);
+    await selectDate(user, 'Through', 13);
     await user.click(screen.getByRole('button', { name: 'Apply dates' }));
     expect(screen.getByText('Invalid reporting period')).toBeInTheDocument();
     expect(reads).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await openPeriod(user);
-    expect(
-      screen.getByRole('button', { name: 'From (UTC)' }),
-    ).toHaveTextContent('Pick a date');
-    expect(
-      screen.getByRole('button', { name: 'Through (UTC)' }),
-    ).toHaveTextContent('Pick a date');
+    expect(screen.getByRole('button', { name: 'From' })).toHaveTextContent(
+      'Pick a date',
+    );
+    expect(screen.getByRole('button', { name: 'Through' })).toHaveTextContent(
+      'Pick a date',
+    );
   });
 
   it('supports keyboard calendar selection, Escape and focus restoration', async () => {
     const { user, reads } = mount();
     await loaded();
     await openPeriod(user);
-    const trigger = screen.getByRole('button', { name: 'From (UTC)' });
+    const trigger = screen.getByRole('button', { name: 'From' });
     trigger.focus();
     await user.keyboard('{Enter}');
     await waitFor(() =>

@@ -14,6 +14,9 @@ Through are inclusive UTC calendar days. Custom drafts require Apply, both
 dates, Through on or after From, and at most 366 inclusive days. Cancel, Escape
 and outside dismissal discard drafts. Clear dates restores All booking dates.
 
+Dispatcher date controls omit the UTC badge and label suffixes. This changes
+display text only; booking ranges and presets continue to use UTC boundaries.
+
 Requests send From midnight as inclusive `from` and the midnight after Through
 as exclusive `to`, independently of the browser timezone. The period filters
 booking creation time; the counts show current parcel statuses grouped by
@@ -54,8 +57,22 @@ authorization. See `swiftdrop-backend/docs/dispatcher-zone-summary.md`. Release
 the backend's strict date validation before relying on it from the period UI.
 No schema, response-shape, migration or zone-administration changes are needed.
 
-Shared acceptance remains pending: compare real authorized API/page output
-against a known persisted zone/status/date dataset and record Docker startup
-acceptance for the reviewed source. Isolated fixtures do not establish shared
-identity, audit/schema readiness or live data correctness. Shared migrations,
-provisioning, deployment and existing-service restarts remain deferred.
+## Shared acceptance — 15 November 2026
+
+Canonical Docker build/startup passed at backend `706cfd1` and frontend
+`3930c1c`: all seven containers used the expected images, six defined health
+checks passed, web/gateway/bootstrap returned 200 and anonymous summary reads
+returned 401. Before/after Identity, Delivery and Merchant migration histories
+matched; no test accounts, roles or parcels were created for acceptance.
+
+Following manual sign-in, user-saved API response bodies matched independent
+read-only SQL for every zone ID/name, total and status count: 25 zones / 268
+parcels for all booking dates, and 25 zones / 33 parcels for 14 November UTC
+(`from` 14 November inclusive, `to` 15 November exclusive). The user confirmed
+that Clear dates and Refresh restored the displayed all-date sample totals
+(Ampara 13, Anuradhapura 12) without errors. Browser actions are user-reported
+manual evidence; the response/SQL comparisons were checked independently.
+
+These observations apply to those tested revisions. Later integration changes
+require relevant regression and Docker checks; this does not establish the
+entire booking/assignment/Courier workflow or authorize provisioning/deployment.
