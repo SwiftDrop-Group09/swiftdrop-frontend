@@ -1,4 +1,9 @@
-# Dispatcher unassigned parcels integration
+# Dispatcher integration
+
+P1–P5 queue, workload, initial assignment, pre-pickup reassignment and zone summary
+are implemented. The sections recording 14 November checks below are historical;
+current whole-workflow verification and remaining live acceptance appear in the
+P6 section at the end. Use the linked owning feature contracts for current behavior.
 
 The `/dispatch/unassigned` page is available to Dispatcher and Admin. It reuses
 the existing dashboard shell, sidebar, top bar, breadcrumbs, account menu and
@@ -61,8 +66,10 @@ FR-D03 workload monitoring is now integrated at `/dispatch/workload`; see
 [workload integration](dispatcher-workload.md) for the fleet and active-assignment
 read contracts. Initial FR-D02/TC-D02 assignment is now implemented through the
 confirmed dialog; see [assignment integration](dispatcher-assignment.md).
-FR-D04 reassignment remains a separate milestone. Existing operations detail and Admin-only receipt/proof rules
-are preserved. Customer reads remain unchanged and owner-scoped by the backend.
+FR-D04 pre-pickup reassignment is implemented from authorized Assigned parcel
+details; its contract and retained retry behavior are in the assignment integration
+handoff. Existing operations detail and Admin-only receipt/proof rules are preserved.
+Customer reads remain unchanged and owner-scoped by the backend.
 
 Earlier queue verification deferred shared database migrations. The workspace previously recorded
 an audit-schema dependency affecting authenticated Delivery reads; source and
@@ -140,3 +147,57 @@ the fixed test listeners. The infra runner built both `web` and `delivery-servic
 images successfully. Shared migrations remain deferred. The synced runner applies
 migrations on `up`, so Docker startup remains pending; the existing host stack also
 owns ports 5000 and 5173. No shared migrations or deployment were performed.
+
+## Whole Dispatcher integration (P6) — 15 November 2026
+
+Test commit `bac38e8`, based on current shared frontend `45c0dc6`, adds a combined
+queue/detail/workload/summary journey for Dispatcher and Admin. It uses the real
+application QueryClient and default freshness policies with isolated authenticated
+HTTP fixtures. It primes both Courier assignment lists, parcel detail and a dated
+summary before assignment, then verifies actual reads and visible rows after
+initial assignment and replacement. Dated/undated summaries and both Courier
+caches refresh; another account's queries and the Customer query scope remain
+untouched. Each new action uses its own key and current preview version/date.
+Existing suites retain uncertain-write exact retry, role/account changes,
+cancellation, stale-preview and failed-refresh coverage.
+
+The standard `npm run check` passes formatting, lint, TypeScript, **735 tests in
+49 files** and production SPA generation on Node 24.16.0/npm 11.13.0. The initial
+baseline hit the historically recorded Identity lazy sign-in heading timeout;
+that focused test and the subsequent full standard check passed without changing
+Identity source, test assertions or global test settings. The paired backend
+workflow tests exercise actual HTTP handlers and disposable PostgreSQL through
+booking, proof completion and reassignment/failure; see its assignment handoff.
+
+Production Chrome fixture checks pass **49 groups**: queue/date controls 4,
+initial assignment 9, reassignment 10, workload 9, summary 13 and the combined
+cached workflow 4. Responsive groups cover 1280/768/390/320px and Light/Dark/Device;
+additional groups cover denied roles, empty/error/retry states and exact write
+recovery. Keyboard/focus, contained table scrolling, Calendar bounds and UTC
+periods pass; representative desktop/tablet/mobile screenshots were inspected.
+The combined journey uses actual SPA navigation and changes both Couriers' cached
+workload/active-parcel views after replacement. All browser API traffic is isolated
+test data, never shared-account authentication or live workflow evidence.
+The canonical infra runner built all six current application images successfully;
+the startup gate below remains separate.
+
+P6 adds no UI primitive, runtime dependency, public API or schema change. Existing
+shadcn controls, Calendar/Popover, shared shell, neutral primary action tokens,
+UTC booking periods and business-date assignment policy remain authoritative.
+Central contract gaps and draft capacity/event-reason discrepancies are owner
+handoffs documented in the backend assignment handoff, not new frontend behavior.
+
+Real user-assisted acceptance must use agreed test parcels and existing accounts:
+booking → Created queue → assignment → Courier manifest/stages/proof → workload
+release/Delivered summary; and assignment → pre-pickup replacement → new-Courier
+failure → workload release/Failed summary. Compare rendered/API counts against
+independent read-only persistence. The user or workflow owner performs shared-data
+actions; no fixture principal is used against a shared API. Other-role client,
+proof-storage and broker gaps remain owner dependencies.
+
+Read-only readiness found no pending Identity/Delivery/Merchant migrations and nine
+active/on-duty Courier profiles with zones. This supersedes historical schema
+readiness notes, but does not establish whole-workflow acceptance. The running
+host stack is preserved. Canonical startup runs migration tasks and still requires
+task-specific authorization. Current-revision Docker startup and real shared
+workflow acceptance remain pending; fixtures and image builds cannot replace them.
