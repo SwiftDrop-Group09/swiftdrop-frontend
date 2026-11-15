@@ -6,36 +6,15 @@ import type { ChatMessage } from './contracts';
 
 const STORAGE_KEY = 'swiftdrop_assistant_history_v1';
 
-const INITIAL_MESSAGE: ChatMessage = {
-  id: 'welcome-msg',
-  role: 'assistant',
-  content:
-    'Hello! I am your **SwiftDrop AI Delivery Assistant**, powered by backend **Model Context Protocol (MCP)** tools.\n\n' +
-    'Ask me questions like:\n' +
-    '- 📦 *"Where is my parcel?"* or *"Track SD-2026-0001"*\n' +
-    '- 💰 *"How much to send 2 kg to Kandy?"*\n' +
-    '- 📋 *"List my active deliveries"*\n' +
-    '- 🗺️ *"What delivery zones do you cover?"*',
-  timestamp: new Date().toISOString(),
-  suggestedPrompts: [
-    'Where is my parcel?',
-    'How much to send 2 kg to Kandy?',
-    'What delivery zones do you cover?',
-    'List my recent deliveries',
-  ],
-};
-
 function loadStoredMessages(): ChatMessage[] {
-  if (typeof window === 'undefined') return [INITIAL_MESSAGE];
+  if (typeof window === 'undefined') return [];
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [INITIAL_MESSAGE];
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as ChatMessage[];
-    return Array.isArray(parsed) && parsed.length > 0
-      ? parsed
-      : [INITIAL_MESSAGE];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return [INITIAL_MESSAGE];
+    return [];
   }
 }
 
@@ -58,7 +37,7 @@ export function useAssistantChat() {
   }, [messages]);
 
   const clearChat = useCallback(() => {
-    setMessages([INITIAL_MESSAGE]);
+    setMessages([]);
     if (typeof window !== 'undefined') {
       window.sessionStorage.removeItem(STORAGE_KEY);
     }

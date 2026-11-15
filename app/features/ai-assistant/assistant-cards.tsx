@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -11,7 +10,7 @@ import {
   Package,
   Receipt,
   ShieldCheck,
-  Zap,
+  Terminal,
 } from 'lucide-react';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
@@ -28,6 +27,10 @@ import {
   formatDateTime,
   formatMoney,
 } from '~/features/customer-tracking/components';
+import {
+  CustomerJourney,
+  DeliveryRoute,
+} from '~/features/customer-tracking/customer-presentation';
 import type { ParcelStatus } from '~/features/customer-tracking/contracts';
 import type {
   AssistantToolCallTrace,
@@ -45,20 +48,22 @@ export function ToolTraceBadge({ trace }: { trace: AssistantToolCallTrace }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="my-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs transition-all">
+    <div className="my-1.5 rounded-md border border-border/60 bg-muted/20 text-xs transition-colors">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between gap-2 text-left font-mono font-medium text-primary hover:opacity-80"
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground hover:text-foreground"
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-1.5 overflow-hidden">
-          <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500 fill-amber-500" />
+          <Terminal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="truncate">
-            MCP Tool:{' '}
-            <strong className="font-semibold">{trace.toolName}</strong>
+            tool:{' '}
+            <strong className="font-semibold text-foreground">
+              {trace.toolName}
+            </strong>
           </span>
-          <span className="text-muted-foreground font-normal">
+          <span className="text-muted-foreground/70 font-normal">
             ({trace.durationMs}ms)
           </span>
         </div>
@@ -67,8 +72,8 @@ export function ToolTraceBadge({ trace }: { trace: AssistantToolCallTrace }) {
             variant="outline"
             className={
               trace.status === 'success'
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] px-1.5 py-0'
-                : 'border-destructive/30 bg-destructive/10 text-destructive text-[10px] px-1.5 py-0'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] px-1.5 py-0 font-sans'
+                : 'border-destructive/30 bg-destructive/10 text-destructive text-[10px] px-1.5 py-0 font-sans'
             }
           >
             {trace.status}
@@ -82,7 +87,7 @@ export function ToolTraceBadge({ trace }: { trace: AssistantToolCallTrace }) {
       </button>
 
       {expanded && (
-        <div className="mt-2.5 space-y-2 border-t border-primary/10 pt-2 text-foreground">
+        <div className="border-t border-border/40 px-3 py-2 space-y-2 text-foreground">
           {trace.arguments ? (
             <div>
               <p className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider mb-1">
@@ -123,8 +128,8 @@ export function TrackingResultCard({ data }: { data: TrackingCardData }) {
     : `/track?code=${encodeURIComponent(data.trackingNumber)}`;
 
   return (
-    <Card className="my-3 overflow-hidden border-border/80 shadow-sm transition-all hover:border-primary/40">
-      <CardHeader className="bg-muted/40 p-3.5 sm:p-4 pb-3">
+    <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs transition-all hover:border-primary/40">
+      <CardHeader className="bg-muted/30 p-3.5 sm:p-4 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-primary" />
@@ -134,63 +139,29 @@ export function TrackingResultCard({ data }: { data: TrackingCardData }) {
           </div>
           <StatusBadge status={data.status as ParcelStatus} />
         </div>
-        <CardDescription className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-          <MapPin className="h-3 w-3 text-muted-foreground" />
-          <span>{data.originCity}</span>
-          <ArrowRight className="h-3 w-3" />
-          <span>{data.destinationCity}</span>
-          <span className="mx-1">•</span>
-          <Clock className="h-3 w-3" />
-          <span>{formatDateTime(data.lastUpdatedAt)}</span>
-        </CardDescription>
+        <div className="pt-2">
+          <DeliveryRoute
+            pickup={data.originCity}
+            delivery={data.destinationCity}
+            compact
+          />
+        </div>
       </CardHeader>
 
-      <CardContent className="p-3.5 sm:p-4 pt-3">
-        {/* Milestone Steps Stepper */}
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Delivery Milestones
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {data.steps.map((step) => (
-              <div
-                key={step.status}
-                className={`flex flex-col rounded-md border p-2 text-xs transition-colors ${
-                  step.current
-                    ? 'border-primary bg-primary/10 text-primary font-medium'
-                    : step.completed
-                      ? 'border-emerald-500/30 bg-emerald-500/5 text-foreground'
-                      : 'border-muted bg-muted/20 text-muted-foreground opacity-60'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2
-                    className={`h-3 w-3 shrink-0 ${
-                      step.completed
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                  <span className="truncate text-[11px] font-semibold">
-                    {step.label}
-                  </span>
-                </div>
-                {step.timestamp && (
-                  <span className="mt-1 text-[10px] text-muted-foreground truncate">
-                    {formatDateTime(step.timestamp)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+      <CardContent className="p-3.5 sm:p-4 pt-3 space-y-3">
+        {/* Customer Progress Bar Journey */}
+        <CustomerJourney status={data.status as ParcelStatus} compact />
       </CardContent>
 
-      <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 p-3 sm:px-4">
-        <div className="text-[11px] text-muted-foreground">
-          {data.parcelId
-            ? 'Verified customer owner'
-            : 'Public tracking summary'}
+      <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/10 p-3 sm:px-4">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>Updated {formatDateTime(data.lastUpdatedAt)}</span>
+          {data.isPublic && (
+            <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px]">
+              Public tracking view
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {data.canViewReceipt && isDelivered && (
@@ -208,7 +179,7 @@ export function TrackingResultCard({ data }: { data: TrackingCardData }) {
           )}
           <Button asChild size="sm" className="h-8 text-xs gap-1">
             <Link to={detailUrl}>
-              <span>Open Live Tracker</span>
+              <span>Open live tracker</span>
               <ExternalLink className="h-3 w-3" />
             </Link>
           </Button>
@@ -224,21 +195,16 @@ export function TrackingResultCard({ data }: { data: TrackingCardData }) {
 
 export function QuoteResultCard({ data }: { data: QuoteCardData }) {
   return (
-    <Card className="my-3 overflow-hidden border-border/80 shadow-sm transition-all hover:border-primary/40">
-      <CardHeader className="bg-primary/5 p-3.5 sm:p-4 pb-3">
+    <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs transition-all hover:border-primary/40">
+      <CardHeader className="bg-muted/30 p-3.5 sm:p-4 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs">
-              LKR
-            </div>
-            <div>
-              <CardTitle className="text-sm sm:text-base font-bold">
-                {data.pickupCity} → {data.deliveryCity}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {data.weightKg} kg · {data.size} Tier
-              </CardDescription>
-            </div>
+          <div>
+            <CardTitle className="text-sm sm:text-base font-bold">
+              {data.pickupCity} → {data.deliveryCity}
+            </CardTitle>
+            <CardDescription className="text-xs mt-0.5">
+              {data.weightKg} kg · {data.size} Tier
+            </CardDescription>
           </div>
           <Badge
             variant="outline"
@@ -253,7 +219,7 @@ export function QuoteResultCard({ data }: { data: QuoteCardData }) {
         <div className="flex items-baseline justify-between rounded-lg bg-muted/40 p-3">
           <div>
             <p className="text-xs text-muted-foreground font-medium">
-              Estimated Delivery Total
+              Estimated Total
             </p>
             <p className="text-2xl font-bold tracking-tight text-foreground">
               {formatMoney(data.total, data.currency)}
@@ -275,7 +241,7 @@ export function QuoteResultCard({ data }: { data: QuoteCardData }) {
         </div>
         <Button asChild size="sm" className="h-8 text-xs gap-1 font-semibold">
           <Link to={data.bookingDeepLink}>
-            <span>Proceed to Book This Parcel</span>
+            <span>Book this delivery</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
@@ -296,7 +262,7 @@ export function ParcelListResultCard({
   onSelectParcel?: (trackingNumber: string) => void;
 }) {
   return (
-    <Card className="my-3 overflow-hidden border-border/80 shadow-sm">
+    <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs">
       <CardHeader className="bg-muted/30 p-3.5 pb-2 sm:p-4 sm:pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">
@@ -372,13 +338,14 @@ export function ParcelListResultCard({
 
 export function ZonesResultCard({ data }: { data: ZonesCardData }) {
   return (
-    <Card className="my-3 overflow-hidden border-border/80 shadow-sm">
+    <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs">
       <CardHeader className="bg-muted/30 p-3.5 pb-2 sm:p-4 sm:pb-3">
         <CardTitle className="text-sm font-semibold">
           SwiftDrop Delivery Service Zones ({data.zones.length})
         </CardTitle>
         <CardDescription className="text-xs">
-          Active geographic coverage for standard and express delivery.
+          Active geographic coverage for standard and express delivery across
+          Sri Lanka.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-3.5 sm:p-4">

@@ -48,6 +48,7 @@ export interface TrackingCardData {
   steps: MilestoneStep[];
   canViewReceipt: boolean;
   parcelId?: string | null;
+  isPublic?: boolean;
 }
 
 export interface ParcelSummaryItem {
@@ -99,7 +100,7 @@ export interface AssistantCards {
 
 export interface AssistantChatResponse {
   reply: string;
-  mode: 'mcp-local-agent' | 'llm-tool-calling';
+  mode: string;
   toolCalls: AssistantToolCallTrace[];
   cards?: AssistantCards | null;
   suggestedPrompts?: string[] | null;
