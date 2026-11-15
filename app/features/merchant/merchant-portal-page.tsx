@@ -9,9 +9,13 @@ import {
   Check,
   Copy,
   KeyRound,
+  Package,
   Plus,
+  RefreshCw,
   ShieldAlert,
   Store,
+  TrendingUp,
+  Truck,
   Webhook,
 } from 'lucide-react';
 import { apiKeyScopes, registerMerchantSchema } from './contracts';
@@ -584,6 +588,294 @@ function ApiKeyManager({ businessId }: { businessId: string }) {
   );
 }
 
+// ── Merchant Analytics Dashboard Component ──────────────────────────────────
+
+type RangeOption = '7d' | '30d' | '90d' | 'today';
+
+function computeDateRange(option: RangeOption): { from: string; to: string } {
+  const now = new Date();
+  const todayStart = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    ),
+  );
+  const todayEnd = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      0,
+      0,
+      0,
+      0,
+    ),
+  );
+
+  if (option === 'today') {
+    return { from: todayStart.toISOString(), to: todayEnd.toISOString() };
+  }
+
+  const days = option === '7d' ? 7 : option === '30d' ? 30 : 90;
+  const fromDate = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - days,
+      0,
+      0,
+      0,
+      0,
+    ),
+  );
+
+  return { from: fromDate.toISOString(), to: todayEnd.toISOString() };
+}
+
+export function MerchantDashboardOverview() {
+  const api = useMerchantApi();
+  const [selectedRange, setSelectedRange] = useState<RangeOption>('30d');
+
+  const {
+    data: dashboard,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['merchant-dashboard', selectedRange],
+    queryFn: () => api.getDashboard(computeDateRange(selectedRange)),
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">
+            Business Overview
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Delivery metrics and dispatch performance for your merchant
+            business.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border p-1 bg-muted/40 text-xs">
+            {(
+              [
+                ['today', 'Today'],
+                ['7d', '7 Days'],
+                ['30d', '30 Days'],
+                ['90d', '90 Days'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedRange(key)}
+                className={`px-3 py-1 font-medium rounded-sm transition-colors ${
+                  selectedRange === key
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-label="Refresh dashboard metrics"
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
+            />
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse p-6">
+              <div className="h-4 bg-muted rounded w-1/2 mb-3" />
+              <div className="h-8 bg-muted rounded w-3/4" />
+            </Card>
+          ))}
+        </div>
+      ) : isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Dashboard Error</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error
+              ? error.message
+              : 'Failed to load dashboard metrics.'}
+          </AlertDescription>
+        </Alert>
+      ) : dashboard ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Total Dispatched
+                </CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {dashboard.totalOrders}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Orders created in selected period
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Active in Transit
+                </CardTitle>
+                <Truck className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">
+                  {dashboard.activeCount}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Currently out for delivery
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Delivered
+                </CardTitle>
+                <Check className="h-4 w-4 text-emerald-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">
+                  {dashboard.terminalDeliveredCount}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Successfully completed deliveries
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Success Rate
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(dashboard.successRate * 100).toFixed(1)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {dashboard.terminalFailedCount > 0
+                    ? `${dashboard.terminalFailedCount} failed terminal outcome(s)`
+                    : '100% completion rate'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">
+                Recent Dispatched Orders
+              </CardTitle>
+              <CardDescription>
+                Latest orders processed under your merchant credentials.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {dashboard.recentOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No orders dispatched in this time window.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>External Order ID</TableHead>
+                        <TableHead>Tracking Number</TableHead>
+                        <TableHead>State</TableHead>
+                        <TableHead>Parcel Status</TableHead>
+                        <TableHead>Created At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dashboard.recentOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-mono text-xs font-medium">
+                            {order.externalOrderId}
+                          </TableCell>
+                          <TableCell>
+                            {order.trackingNumber ? (
+                              <Link
+                                to={`/track?number=${encodeURIComponent(
+                                  order.trackingNumber,
+                                )}`}
+                                className="font-mono text-xs text-primary hover:underline"
+                              >
+                                {order.trackingNumber}
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                —
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {order.state}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {order.parcelStatus ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {order.parcelStatus}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                —
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(order.createdAt).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 // ── Main Merchant Portal Component ──────────────────────────────────────────
 
 export function MerchantPortalPage() {
@@ -766,7 +1058,10 @@ export function MerchantPortalPage() {
               </Card>
 
               {business.status === 'Approved' ? (
-                <ApiKeyManager businessId={business.id} />
+                <>
+                  <MerchantDashboardOverview />
+                  <ApiKeyManager businessId={business.id} />
+                </>
               ) : (
                 <Card className="border-dashed">
                   <CardHeader>

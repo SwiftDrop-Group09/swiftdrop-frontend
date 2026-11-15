@@ -3,12 +3,14 @@ import { z } from 'zod';
 import {
   apiKeyResponseSchema,
   businessResponseSchema,
+  merchantDashboardResponseSchema,
   oneTimeApiKeyResponseSchema,
 } from './contracts';
 import type {
   ApiKeyResponse,
   BusinessResponse,
   CreateApiKeyInput,
+  MerchantDashboardResponse,
   OneTimeApiKeyResponse,
   RegisterMerchantInput,
   SetMerchantStatusInput,
@@ -235,6 +237,27 @@ export class MerchantApi {
       undefined,
       token,
     );
+  }
+
+  // ── Dashboard Overview ───────────────────────────────────────────────────────
+
+  async getDashboard(
+    range?: { from: string; to: string },
+    token?: string,
+  ): Promise<MerchantDashboardResponse> {
+    const query = new URLSearchParams();
+    if (range?.from && range?.to) {
+      query.set('from', range.from);
+      query.set('to', range.to);
+    }
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const response = await this.request(
+      `/v1/merchants/me/dashboard${qs}`,
+      'GET',
+      undefined,
+      token,
+    );
+    return merchantDashboardResponseSchema.parse(await response.json());
   }
 }
 
