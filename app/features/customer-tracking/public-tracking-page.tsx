@@ -1,7 +1,14 @@
 import { BrandLogo } from '~/shared/components/brand-logo';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeft, Clock, MapPin, Radio, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  Clock,
+  MapPin,
+  Radio,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -26,7 +33,9 @@ export function PublicTrackingPage() {
   const activeCode = searchParams.get('code') ?? '';
   const [inputCode, setInputCode] = useState(activeCode);
 
-  const { data, isLoading, isError } = usePublicTracking(activeCode || null);
+  const { data, isLoading, isError, refetch, isFetching } = usePublicTracking(
+    activeCode || null,
+  );
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -34,6 +43,11 @@ export function PublicTrackingPage() {
     if (!trimmed) return;
     setSearchParams({ code: trimmed });
   };
+
+  const isTerminal =
+    data?.status === 'Delivered' ||
+    data?.status === 'Failed' ||
+    data?.status === 'Cancelled';
 
   return (
     <div className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6">
@@ -107,14 +121,30 @@ export function PublicTrackingPage() {
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {data.status !== 'Delivered' &&
-                    data.status !== 'Failed' &&
-                    data.status !== 'Cancelled' && (
-                      <Badge variant="outline" className="gap-1.5 text-xs">
-                        <Radio className="size-3 animate-pulse text-emerald-600" />
-                        Live auto-refresh (every 4s)
-                      </Badge>
-                    )}
+                  {!isTerminal && (
+                    <Badge variant="outline" className="gap-1.5 text-xs">
+                      <Radio className="size-3 animate-pulse text-emerald-600" />
+                      Auto-refreshing every 4 seconds
+                    </Badge>
+                  )}
+                  {isTerminal && (
+                    <Badge variant="secondary" className="text-xs">
+                      Delivery finalized
+                    </Badge>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 px-2 text-xs"
+                    onClick={() => void refetch()}
+                    disabled={isFetching || isTerminal}
+                    aria-label="Refresh tracking status"
+                  >
+                    <RefreshCw
+                      className={`size-3 ${isFetching ? 'animate-spin' : ''}`}
+                    />
+                    Refresh Now
+                  </Button>
                   <StatusBadge status={data.status} />
                 </div>
               </div>

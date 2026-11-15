@@ -108,3 +108,37 @@ export const oneTimeApiKeyResponseSchema = z.object({
 });
 
 export type OneTimeApiKeyResponse = z.infer<typeof oneTimeApiKeyResponseSchema>;
+
+// ── Dashboard schemas ────────────────────────────────────────────────────────
+
+export const dashboardRecentOrderSchema = z.object({
+  id: z.string(),
+  externalOrderId: z.string(),
+  trackingNumber: z.string().nullable().optional(),
+  state: z.string(),
+  parcelStatus: z.string().nullable().optional(),
+  createdAt: z.string(),
+});
+
+export type DashboardRecentOrder = z.infer<typeof dashboardRecentOrderSchema>;
+
+export const merchantDashboardResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  totalOrders: z.number().int(),
+  pendingCount: z.number().int(),
+  failedJobs: z.number().int(),
+  statusCounts: z.record(z.string(), z.number().int()),
+  activeCount: z.number().int(),
+  terminalDeliveredCount: z.number().int(),
+  terminalFailedCount: z.number().int(),
+  terminalCancelledCount: z.number().int(),
+  successRate: z.number(),
+  failureRate: z.number(),
+  lastRefreshedAt: z.string().nullable().optional(),
+  recentOrders: z.array(dashboardRecentOrderSchema),
+});
+
+export type MerchantDashboardResponse = z.infer<
+  typeof merchantDashboardResponseSchema
+>;
