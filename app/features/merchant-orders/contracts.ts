@@ -29,10 +29,18 @@ export const orderJobSchema = z.object({
   parcelId: z.string().uuid().nullable(),
   trackingNumber: z.string().nullable(),
   parcelStatus: z.enum(PARCEL_STATUSES).nullable(),
-  parcelVersion: z.number().int().positive().nullable(),
+  parcelVersion: z
+    .string()
+    .regex(/^[1-9]\d*$/)
+    .refine((v) => BigInt(v) <= 9223372036854775807n)
+    .nullable(),
   lastStatusChangedAt: timestamp.nullable(),
   terminalAt: timestamp.nullable(),
   errorCode: z.string().nullable(),
+  failureReason: z
+    .enum(['RecipientUnavailable', 'AddressUnreachable', 'Damaged', 'Other'])
+    .nullable()
+    .optional(),
   lastRefreshedAt: timestamp.nullable(),
   createdAt: timestamp,
 });
@@ -50,6 +58,7 @@ export type OrderListQuery = {
   page: number;
   pageSize: number;
   state?: OrderState;
+  parcelStatus?: (typeof PARCEL_STATUSES)[number];
 };
 
 /**

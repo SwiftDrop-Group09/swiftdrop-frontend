@@ -25,20 +25,17 @@ export const ORDER_STATE_DESCRIPTIONS: Record<OrderState, string> = {
     'SwiftDrop could not create a parcel for this order. Fix the cause and submit a new order.',
 };
 
-const STATE_STYLES: Record<OrderState, string> = {
-  Accepted:
-    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
-  Retrying:
-    'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300',
-  Created:
-    'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300',
-  Failed:
-    'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-300',
-};
-
 export function OrderStateBadge({ state }: { state: OrderState }) {
   return (
-    <Badge variant="outline" className={STATE_STYLES[state]}>
+    <Badge
+      variant={
+        state === 'Failed'
+          ? 'destructive'
+          : state === 'Created'
+            ? 'secondary'
+            : 'outline'
+      }
+    >
       {ORDER_STATE_LABELS[state]}
     </Badge>
   );

@@ -63,8 +63,11 @@ describe('Role-aware workspaces', () => {
     'does not request Customer data on a %s dashboard',
     async (role) => {
       const reads = mount(role, '/dashboard', <CustomerDashboardWorkspace />);
-      await screen.findByRole('heading', { level: 1, name: 'Dashboard' });
-      if (role === 'Admin') {
+      await screen.findByRole('heading', {
+        level: 1,
+        name: role === 'Courier' ? "Today's work" : 'Dashboard',
+      });
+      if (role === 'Admin' || role === 'Courier') {
         expect(
           reads.mock.calls.every(
             ([path]) =>
@@ -100,7 +103,7 @@ describe('Role-aware workspaces', () => {
     async (role) => {
       const reads = mount(role, '/dispatch/zones', <ZoneSummaryPage />);
       if (role === 'Dispatcher' || role === 'Admin') {
-        await screen.findByText('No zone activity yet');
+        await screen.findByText('No delivery zones configured');
         await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
       } else {
         await screen.findByRole('heading', { name: 'Access denied' });

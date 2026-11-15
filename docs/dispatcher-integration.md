@@ -32,6 +32,8 @@ Popover and Calendar, with formatted selected dates and a Pick a date placeholde
 The calendar supports keyboard selection, Escape/focus return and deselecting an
 optional date. Clear filters resets both selections. Selected calendar days are
 converted to UTC boundaries independently of the browser's timezone.
+The visible date labels are Booked from and Booked through, without timezone
+suffixes; this display choice does not change those query boundaries.
 
 Filters apply on submission, reset pagination and can be cleared. Draft edits
 do not change the active query. Filters and pages are local to the mounted page;

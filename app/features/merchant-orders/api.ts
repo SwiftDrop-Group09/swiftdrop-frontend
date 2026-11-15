@@ -1,3 +1,9 @@
+import {
+  JsonNumber,
+  decimalText,
+  parseExactJson,
+  type JsonValue,
+} from '~/shared/exact-json';
 import { useMemo } from 'react';
 import { z } from 'zod';
 import { useIdentity } from '../identity/session';
@@ -68,6 +74,7 @@ export class MerchantOrdersApi {
       pageSize: String(query.pageSize),
     });
     if (query.state) params.set('state', query.state);
+    if (query.parcelStatus) params.set('parcelStatus', query.parcelStatus);
     return this.read(
       `/v1/merchant/orders?${params.toString()}`,
       orderJobPageSchema,
@@ -118,10 +125,12 @@ export class MerchantOrdersApi {
     }
 
     if (!response.ok) throw await toError(response);
+    if (response.status !== 200)
+      throw new MerchantOrdersError('invalid_response', response.status);
 
     let body: unknown;
     try {
-      body = await response.json();
+      body = decodeRead(parseExactJson(await response.text()));
     } catch {
       throw new MerchantOrdersError('invalid_response', response.status);
     }
@@ -159,4 +168,21 @@ export function useMerchantOrdersApi(): MerchantOrdersApi {
     () => new MerchantOrdersApi(session.authenticatedRequest),
     [session],
   );
+}
+
+/** Keep Int64 versions exact; dashboard counts/rates remain validated numeric read values. */
+function decodeRead(value: JsonValue, key = ''): unknown {
+  if (value instanceof JsonNumber)
+    return key === 'parcelVersion'
+      ? decimalText(value.source)
+      : Number(value.source);
+  if (Array.isArray(value)) return value.map((item) => decodeRead(item));
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([name, item]) => [
+        name,
+        decodeRead(item, name),
+      ]),
+    );
+  return value;
 }

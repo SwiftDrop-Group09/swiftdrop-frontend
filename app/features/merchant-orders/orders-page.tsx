@@ -1,6 +1,10 @@
 import { Link, useSearchParams } from 'react-router';
 import { KeyRound, RefreshCw } from 'lucide-react';
 import { IdentityShell, Protected } from '../identity/components';
+import {
+  PARCEL_STATUSES,
+  PARCEL_STATUS_LABELS,
+} from '../customer-tracking/contracts';
 import { StatusBadge } from '../customer-tracking/components';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import {
@@ -52,7 +56,11 @@ function readQuery(params: URLSearchParams): OrderListQuery {
   const page = Number(params.get('page'));
   const pageSize = Number(params.get('pageSize'));
   const state = params.get('state');
+  const parcelStatus = PARCEL_STATUSES.find(
+    (status) => status === params.get('parcelStatus'),
+  );
   return {
+    parcelStatus,
     page: Number.isInteger(page) && page >= 1 ? page : 1,
     pageSize: (pageSizes as readonly number[]).includes(pageSize)
       ? pageSize
@@ -92,6 +100,7 @@ function OrdersContent() {
     if (next.pageSize !== defaultPageSize)
       search.set('pageSize', String(next.pageSize));
     if (next.state) search.set('state', next.state);
+    if (next.parcelStatus) search.set('parcelStatus', next.parcelStatus);
     setParams(search);
   }
 
@@ -131,6 +140,30 @@ function OrdersContent() {
               ))}
             </NativeSelect>
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="merchant-parcel-status">Delivery status</Label>
+            <NativeSelect
+              id="merchant-parcel-status"
+              value={query.parcelStatus ?? ''}
+              onChange={(e) =>
+                update({
+                  parcelStatus: PARCEL_STATUSES.find(
+                    (s) => s === e.target.value,
+                  ),
+                  page: 1,
+                })
+              }
+            >
+              <NativeSelectOption value="">
+                All delivery states
+              </NativeSelectOption>
+              {PARCEL_STATUSES.map((s) => (
+                <NativeSelectOption key={s} value={s}>
+                  {PARCEL_STATUS_LABELS[s]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
           <Button
             variant="outline"
             disabled={orders.isFetching}
@@ -153,7 +186,9 @@ function OrdersContent() {
             pending={orders.isFetching}
           />
         ) : orders.data.items.length === 0 ? (
-          <EmptyOrders filtered={!!query.state || query.page > 1} />
+          <EmptyOrders
+            filtered={!!query.state || !!query.parcelStatus || query.page > 1}
+          />
         ) : (
           <>
             <p role="status" className="text-sm text-muted-foreground">

@@ -1,34 +1,26 @@
-# Brand color and shadcn tokens
+# Brand and neutral action tokens
 
-Change the single `:root --brand-primary` value in `app/styles/app.css` to change
-SwiftDrop's brand color. It currently uses `#dc2626`. Concrete CSS hex, named,
-RGB/HSL or OKLCH colors are supported.
+Ordinary controls use shadcn's neutral `primary`: near-black in Light and
+near-white in Dark, with contrasting `primary-foreground`. Buttons, links and
+other actions use the normal component variants and semantic tokens. This
+separates ordinary actions from red failure and warning states.
 
-Components use existing shadcn tokens: `text-primary`, `bg-primary` and
-`border-primary` for brand decoration and the text logo; `destructive` for
-failure states; `chart-1` through `chart-5` for chart series. Opacity utilities
-provide subtle backgrounds and borders. Do not introduce independent red/rose
-palette classes or brand-specific component tokens.
+The single `:root --brand-primary` value in `app/styles/app.css` controls the
+red logo artwork, generated favicon, destructive states and red chart shades.
+These colors remain independent of the neutral primary action palette. Change
+that one brand value to recolor brand artwork and its derived shades.
 
-The one underlying base variable is needed to derive both light and dark primary
-colors without duplicating an editable color. Light mode uses the base directly;
-dark mode lightens it with `color-mix`. Primary foregrounds retain contrast in
-each theme. Destructive colors and chart shades derive from the themed primary.
-Changing the base therefore updates the logo, controls, accents, status/error
-styles and chart palette together while retaining their semantic shadcn names.
+`BrandLogo` uses the existing brand token through Tailwind; this is a brand
+artwork exception. Other feature UI uses `primary`, `destructive`, `muted`,
+`border` and `chart-*` tokens. Do not introduce independent red/rose literals,
+feature CSS or a second component palette. Native signature/proof surfaces retain
+their necessary white background.
 
-Vite serves `/favicon.svg` from the same base during development and emits it
-into the production build. A normal page refresh requests the current favicon
-after editing the theme; rebuilding produces the updated production asset.
-There is no separately maintained `public/favicon.svg` color. The wordmark's
-neutral text remains foreground-colored in the UI and black on the favicon.
+Vite generates `/favicon.svg` in development and production from the same brand
+value using `createBrandFavicon`. Do not add a separately colored static favicon.
+The neutral Drop text remains foreground-colored in the UI and black in the
+favicon. Device theme follows the system through the shared switch.
 
-`allowImportingTsExtensions` permits the native-compatible `.ts` import used by
-the Vite configuration; it does not change application output or route behavior.
-
-Validated on 15 November 2026 with all 627 frontend tests, the production build
-and browser checks in both themes. Replacing only the base with an alternate blue
-updated the logo, primary controls, accents, destructive color and all five chart
-shades; the neutral wordmark stayed unchanged. Primary control text contrast
-exceeded 4.5:1 for both tested colors/themes. Development and production favicon
-generation and responsive Customer workflows were also checked with isolated APIs.
+Browser verification covers neutral primary controls in both themes, red brand
+artwork/destructive states, generated favicon consistency, priority-card contrast
+and responsive Courier flows.

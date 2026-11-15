@@ -43,13 +43,13 @@
 }
 
 :root {
-  /* Single editable brand value; shadcn tokens below derive every red shade. */
+  /* Brand artwork, charts and destructive states share this red; controls use neutral shadcn primary. */
   --brand-primary: #dc2626;
-  --chart-1: var(--primary);
-  --chart-2: color-mix(in oklch, var(--primary) 72%, white);
-  --chart-3: color-mix(in oklch, var(--primary) 45%, white);
-  --chart-4: color-mix(in oklch, var(--primary) 85%, black);
-  --chart-5: color-mix(in oklch, var(--primary) 65%, white);
+  --chart-1: var(--brand-primary);
+  --chart-2: color-mix(in oklch, var(--chart-1) 72%, white);
+  --chart-3: color-mix(in oklch, var(--chart-1) 45%, white);
+  --chart-4: color-mix(in oklch, var(--chart-1) 85%, black);
+  --chart-5: color-mix(in oklch, var(--chart-1) 65%, white);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -66,7 +66,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: var(--brand-primary);
+  --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -74,7 +74,7 @@
   --muted-foreground: oklch(0.45 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: var(--primary);
+  --destructive: var(--brand-primary);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -82,11 +82,11 @@
 }
 
 .dark {
-  --chart-1: var(--primary);
-  --chart-2: color-mix(in oklch, var(--primary) 70%, white);
-  --chart-3: color-mix(in oklch, var(--primary) 45%, white);
-  --chart-4: color-mix(in oklch, var(--primary) 90%, black);
-  --chart-5: color-mix(in oklch, var(--primary) 60%, white);
+  --chart-1: color-mix(in oklch, var(--brand-primary) 85%, white);
+  --chart-2: color-mix(in oklch, var(--chart-1) 70%, white);
+  --chart-3: color-mix(in oklch, var(--chart-1) 45%, white);
+  --chart-4: color-mix(in oklch, var(--chart-1) 90%, black);
+  --chart-5: color-mix(in oklch, var(--chart-1) 60%, white);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.922 0 0);
@@ -102,7 +102,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: color-mix(in oklch, var(--brand-primary) 85%, white);
+  --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -110,7 +110,7 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: var(--primary);
+  --destructive: color-mix(in oklch, var(--brand-primary) 85%, white);
   --destructive-foreground: var(--primary-foreground);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);

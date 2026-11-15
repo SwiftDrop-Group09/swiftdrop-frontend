@@ -1,3 +1,4 @@
+import { deliveryFailureLabel } from '~/shared/delivery-failure';
 import { CustomerDeliveryDetail, CustomerTrackingHub } from './customer-pages';
 import { type ReactNode } from 'react';
 import type { ParcelDetail } from './contracts';
@@ -240,7 +241,7 @@ export function ParcelLiveDetail({
                 </div>
                 {entry.changeReason && (
                   <p className="text-xs text-muted-foreground">
-                    Reason: {entry.changeReason}
+                    Reason: {deliveryFailureLabel(entry.changeReason)}
                   </p>
                 )}
               </li>
