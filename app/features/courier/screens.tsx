@@ -116,7 +116,7 @@ export function ParcelDetails() {
           </h2>
           <p className="text-sm text-muted-foreground">
             {state.receipt.status === 'Delivered'
-              ? 'The recipient and proof have been recorded. Your day?s work has been updated.'
+              ? 'The recipient and proof have been recorded. Your daily work has been updated.'
               : 'The failure has been recorded and is visible to the booking customer or merchant after their status refresh.'}
           </p>
           <div className="flex flex-wrap gap-2">
