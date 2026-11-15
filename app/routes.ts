@@ -32,6 +32,7 @@ export default [
     route('history', 'portals/courier/history.tsx'),
   ]),
   route('customer/book', 'portals/customer/booking.tsx'),
+  route('customer/assistant', 'portals/customer/assistant.tsx'),
   route('customer/tracking', 'portals/customer/tracking.tsx'),
   route('customer/history', 'portals/customer/history.tsx'),
   route('customer/receipts', 'portals/customer/receipt.tsx'),

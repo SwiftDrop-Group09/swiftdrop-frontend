@@ -33,6 +33,7 @@ export const routePermissions: readonly {
   })),
   ...[
     'book',
+    'assistant',
     'tracking',
     'history',
     'receipts',

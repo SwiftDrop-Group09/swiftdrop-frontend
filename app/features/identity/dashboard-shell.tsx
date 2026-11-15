@@ -41,6 +41,7 @@ import {
 import { useIdentity } from './session';
 import { IdentityError } from './api';
 import { getWorkspaceNavigation } from './workspace-navigation';
+import { AssistantWidget } from '~/features/ai-assistant/assistant-widget';
 
 function AccountSidebar() {
   const { user, session } = useIdentity();
@@ -208,6 +209,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       '/401': 'Sign in required',
       '/403': 'Access denied',
       '/customer/book': 'Book a delivery',
+      '/customer/assistant': 'AI Delivery Assistant',
       '/customer/tracking': 'Track a delivery',
       '/customer/history': 'Delivery history',
       '/customer/receipts': 'Receipts',
@@ -289,6 +291,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         >
           {children}
         </div>
+        <AssistantWidget />
       </SidebarInset>
     </SidebarProvider>
   );
