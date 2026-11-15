@@ -179,7 +179,7 @@ The combined journey uses actual SPA navigation and changes both Couriers' cache
 workload/active-parcel views after replacement. All browser API traffic is isolated
 test data, never shared-account authentication or live workflow evidence.
 The canonical infra runner built all six current application images successfully;
-the startup gate below remains separate.
+authorized startup and restoration evidence follows below.
 
 P6 adds no UI primitive, runtime dependency, public API or schema change. Existing
 shadcn controls, Calendar/Popover, shared shell, neutral primary action tokens,
@@ -196,8 +196,21 @@ actions; no fixture principal is used against a shared API. Other-role client,
 proof-storage and broker gaps remain owner dependencies.
 
 Read-only readiness found no pending Identity/Delivery/Merchant migrations and nine
-active/on-duty Courier profiles with zones. This supersedes historical schema
-readiness notes, but does not establish whole-workflow acceptance. The running
-host stack is preserved. Canonical startup runs migration tasks and still requires
-task-specific authorization. Current-revision Docker startup and real shared
-workflow acceptance remain pending; fixtures and image builds cannot replace them.
+active/on-duty Courier profiles with zones. After task-specific user authorization,
+canonical `run.sh up --mode docker --build` passed on frontend `6b33c39`, backend
+`9e5a2ba` and infra `785f0dc`. All seven expected containers used the expected
+images, and the six configured container health checks were healthy. Dispatcher
+deep pages, Identity bootstrap and internal trusted JWKS returned 200; anonymous
+private reads and assignment/Courier-status/proof writes returned 401.
+
+The original non-watch host mode was restored through the canonical runner. All
+six service health probes, the workload deep page and CSRF bootstrap returned 200;
+anonymous summary returned 401. Before/during/after migration histories matched:
+Identity 5/5, Delivery 11/11, Merchant 7/7, with no pending versions. No shared
+test-parcel mutation, account provisioning, schema reset or downgrade was performed.
+These results supersede historical startup/schema deferrals above.
+
+The user explicitly chose to leave the two-parcel signed-in live workflow pending.
+P6 remains incomplete until that user-assisted acceptance is recorded. Startup,
+anonymous authorization refusal and fixtures do not prove signed-in workflow
+behavior, shared proof storage, Flutter or broker delivery. Nothing was pushed.
