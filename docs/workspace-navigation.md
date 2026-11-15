@@ -4,11 +4,15 @@
 
 See [role workspace review](role-workspace-review.md) for the current route and
 API matrix, approved access rules and remaining backend gaps. Operational tracking
-at /dispatch/parcels and zone summary at /dispatch/zones are available to Dispatcher
-and Admin. Receipts and proof in the operations view require Admin. Private URLs
+at /dispatch/parcels, the unassigned queue at /dispatch/unassigned, and zone summary
+at /dispatch/zones and courier workload at /dispatch/workload are available to Dispatcher and Admin. See
+[Dispatcher integration](dispatcher-integration.md) for queue behavior and remaining
+assignment contracts and [workload integration](dispatcher-workload.md) for the
+implemented fleet and active-assignment reads. Receipts and proof in the operations view require Admin. Private URLs
 show /401 for signed-out visitors and /403 for accounts without a required role.
-Customer-only pages remain role-specific, and onboarding accepts any authenticated
-applicant. Non-Customer dashboards display their authorized workspace links.
+Customer-only pages remain role-specific, and onboarding accepts Customer
+applicants. Non-Customer dashboards display their authorized workspace links;
+Admin has the delivery-performance and operations dashboard.
 
 The current user's name and email appear in the sidebar footer. Selecting this
 control opens a shadcn dropdown containing My profile and Sign out, available to
@@ -26,16 +30,15 @@ documents identify themselves as a proposed baseline; this change implements the
 navigation without claiming that all underlying features are complete.
 
 `app/features/identity/workspace-navigation.ts` defines the groups. Visibility
-uses only the roles returned in the authenticated Identity profile. Multiple
-assigned roles produce the union of the relevant groups, once each. Dashboard,
-My profile and Business registration are shared. Business registration is
-available to an authenticated applicant under the documented authorization rule;
-it must not require an already assigned Merchant role.
+uses the single enum role returned in the authenticated Identity profile.
+Dashboard and the footer profile menu are shared. Business registration is
+Customer-only; the Merchant portal also permits Merchant owners to manage their
+business. Navigation never unions permissions across multiple roles.
 
 | Group          | Menu items                                                                                           | Documentation                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | Workspace      | Dashboard; My profile; Business registration                                                         | Authenticated shell; FR-C03; FR-M01/M02            |
-| Customer       | Book a delivery; Track a parcel; Delivery history; Receipts                                          | FR-C04/C05; FR-C06; FR-C07; FR-C08                 |
+| Customer       | Book a delivery; Track a delivery; Delivery history (documents within each delivery)                 | FR-C04/C05; FR-C06; FR-C07; FR-C08                 |
 | Courier        | Assigned deliveries; Delivery history                                                                | FR-R01 through FR-R04; FR-R05                      |
 | Merchant       | Business overview; Orders; API keys; Webhooks                                                        | FR-M06; FR-M04/M07; FR-M03; FR-M05                 |
 | Dispatch       | Unassigned parcels; Courier workload; Zone summary                                                   | FR-D01/D02/D04; FR-D03; FR-D05                     |
@@ -59,19 +62,24 @@ owning service when its screens are implemented.
 
 ## Current destinations
 
+Customer history, detail tabs, documents, origin-aware Back links and legacy
+receipt redirects are documented in [Customer delivery workspace](customer-delivery-experience.md).
+
 The current route matrix is maintained in [role workspace review](role-workspace-review.md).
 Administration includes users, audit, merchant approvals, zones, pricing and reports.
 Audit uses /admin/audit; the legacy user-management audit fragment redirects there.
 User management defaults to Customers, with other role tabs and an All users view.
 
-Customer booking, tracking, history and receipts and Courier assignment/history/detail
-routes remain role-specific. Merchant registration is shared; webhooks require Merchant
-and approved ownership. Dispatch has real tracking/history and zone-summary pages.
+Customer booking, tracking, history and delivery details and Courier assignment/history/detail
+routes remain role-specific. Merchant registration is Customer-only; webhooks require Merchant
+and approved ownership. Dispatch has real tracking/history, unassigned-queue,
+courier-workload and zone-summary pages.
 
-Unassigned-workflow/assignment, workload and Merchant overview/order screens
+Initial assignment is available from the unassigned queue through its confirmed
+service-date/courier dialog. Reassignment and Merchant overview/order screens
 remain disabled with accessible Soon explanations. Backend dev now includes scoped
 Merchant order intake and owner reads; its web workspace is still unimplemented.
-Assignment, workload and business-statistics endpoints remain gaps. See the current
+Reassignment and business-statistics integration remain gaps. See the current
 review before enabling a destination and preserve its API ownership contract. Desktop collapse, mobile drawer navigation, role changes, theme settings
 and sign-out remain part of the shared shell.
 

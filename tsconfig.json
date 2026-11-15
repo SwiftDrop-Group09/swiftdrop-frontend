@@ -1,6 +1,7 @@
 {
   "include": [
     "app/**/*",
+    "api/**/*",
     "test-harness/**/*",
     ".react-router/types/**/*",
     "*.ts"
@@ -23,6 +24,7 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   }
 }

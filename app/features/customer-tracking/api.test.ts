@@ -47,6 +47,19 @@ describe('customer-tracking api', () => {
     });
   });
 
+  it('serializes an optional delivery zone alongside the Created queue filter', () => {
+    const zoneId = '00000000-0000-4000-8000-000000000010';
+    const params = new URLSearchParams(
+      buildParcelQueryString({ status: 'Created', zoneId }).slice(1),
+    );
+    expect(Object.fromEntries(params)).toEqual({ status: 'Created', zoneId });
+    expect(
+      new URLSearchParams(
+        buildParcelQueryString({ status: 'Created' }).slice(1),
+      ).has('zoneId'),
+    ).toBe(false);
+  });
+
   it('surfaces ProblemDetails errors cleanly', async () => {
     const mockRequest = vi
       .fn()
@@ -94,5 +107,44 @@ describe('customer-tracking api', () => {
       expect.objectContaining({ cache: 'no-store' }),
     );
     fetchSpy.mockRestore();
+  });
+
+  it('triggers receipt pdf download with custom or fallback filename', async () => {
+    const mockBlob = new Blob(['%PDF-1.4 mock content'], {
+      type: 'application/pdf',
+    });
+    const mockRequest = vi.fn().mockResolvedValue(
+      new Response(mockBlob, {
+        status: 200,
+        headers: { 'Content-Type': 'application/pdf' },
+      }),
+    );
+
+    const createObjectURL = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:mock-url');
+    const revokeObjectURL = vi
+      .spyOn(URL, 'revokeObjectURL')
+      .mockImplementation(() => {});
+
+    const appendChild = vi.spyOn(document.body, 'appendChild');
+
+    const { downloadReceiptPdf } = await import('./api');
+    await downloadReceiptPdf(mockRequest, '/api', 'parcel-uuid-1', 'TRK-12345');
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/api/v1/parcels/parcel-uuid-1/receipt?format=pdf',
+      expect.objectContaining({
+        headers: { Accept: 'application/pdf' },
+        cache: 'no-store',
+      }),
+    );
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(appendChild).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+    appendChild.mockRestore();
   });
 });

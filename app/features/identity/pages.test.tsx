@@ -209,34 +209,34 @@ describe('Customer account screens', () => {
     ).toHaveAttribute('href', '/profile');
   });
 
-  it('keeps unimplemented screens disabled instead of linking to missing routes', async () => {
-    const { user, router } = mount('/dashboard', {
-      ...customer,
-      roles: ['Dispatcher'],
-    });
-    await screen.findByRole('heading', { name: 'Dashboard' });
-    const dispatchNav = within(
-      screen.getByRole('navigation', { name: 'Dispatch navigation' }),
-    );
-    for (const label of ['Unassigned parcels', 'Courier workload']) {
-      const item = dispatchNav.getByRole('button', { name: label });
-      expect(item).toBeDisabled();
-      expect(item).toHaveAccessibleDescription(
-        'Items marked Soon will be available in a future update.',
+  it.each(['Dispatcher', 'Admin'] as const)(
+    'links both implemented dispatch features for %s',
+    async (role) => {
+      mount('/dashboard', {
+        ...customer,
+        roles: [role],
+      });
+      await screen.findByRole('heading', { name: 'Dashboard' });
+      const dispatchNav = within(
+        screen.getByRole('navigation', { name: 'Dispatch navigation' }),
       );
-      await user.click(item);
-      expect(router.state.location.pathname).toBe('/dashboard');
-    }
-    expect(
-      dispatchNav.getByRole('link', { name: 'Zone summary' }),
-    ).toHaveAttribute('href', '/dispatch/zones');
-    expect(
-      screen.queryByRole('navigation', { name: 'Customer navigation' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Business registration' }),
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        dispatchNav.getByRole('link', { name: 'Courier workload' }),
+      ).toHaveAttribute('href', '/dispatch/workload');
+      expect(
+        dispatchNav.getByRole('link', { name: 'Unassigned parcels' }),
+      ).toHaveAttribute('href', '/dispatch/unassigned');
+      expect(
+        dispatchNav.getByRole('link', { name: 'Zone summary' }),
+      ).toHaveAttribute('href', '/dispatch/zones');
+      expect(
+        screen.queryByRole('navigation', { name: 'Customer navigation' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Business registration' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('rejects ambiguous multi-role profiles before restoring private navigation', async () => {
     mount('/dashboard', { ...customer, roles: ['Customer', 'Admin'] });
@@ -542,12 +542,19 @@ describe('Customer account screens', () => {
     ).toBeInTheDocument();
   });
   it('signs out and removes private cached data', async () => {
-    const { user, queries, session } = mount('/profile', customer, (path) =>
-      path.endsWith('/auth/logout')
-        ? new Response(null, { status: 204 })
-        : undefined,
+    const { user, queries, session, router } = mount(
+      '/profile',
+      customer,
+      (path) =>
+        path.endsWith('/auth/logout')
+          ? new Response(null, { status: 204 })
+          : undefined,
     );
     await screen.findByDisplayValue(customer.fullName);
+    const visited: string[] = [];
+    const unsubscribe = router.subscribe((state) =>
+      visited.push(state.location.pathname),
+    );
     queries.setQueryData(['private-parcels'], ['secret']);
     await user.click(screen.getByRole('button', { name: 'Open account menu' }));
     await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
@@ -556,6 +563,9 @@ describe('Customer account screens', () => {
     ).toBeInTheDocument();
     expect(session.getSnapshot().user).toBeNull();
     expect(queries.getQueryData(['private-parcels'])).toBeUndefined();
+    expect(visited).not.toContain('/401');
+    expect(router.state.location.pathname).toBe('/login');
+    unsubscribe();
   });
   it('shows unconfirmed server logout instead of claiming successful revocation', async () => {
     const { user } = mount('/profile', customer);

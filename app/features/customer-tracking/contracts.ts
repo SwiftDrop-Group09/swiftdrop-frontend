@@ -68,12 +68,23 @@ export type CustomerParcelPage = {
 };
 
 export type CustomerParcelQuery = {
+  zoneId?: string;
   status?: ParcelStatus;
   from?: string;
   to?: string;
   search?: string;
   page?: number;
   pageSize?: number;
+};
+
+export type CustomerDeliverySummary = {
+  totalCount: number;
+  activeCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  activeDeliveries: CustomerParcelListItem[];
+  recentDeliveries: CustomerParcelListItem[];
 };
 
 export type ParcelAssignment = {

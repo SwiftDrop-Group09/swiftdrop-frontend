@@ -1,12 +1,13 @@
 import { BrandLogo } from '~/shared/components/brand-logo';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ArrowLeft, Clock, MapPin, Search } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Radio, Search } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from '~/shared/components/ui/alert';
+import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
 import {
   Card,
@@ -105,7 +106,17 @@ export function PublicTrackingPage() {
                     {data.originCity} → {data.destinationCity}
                   </CardDescription>
                 </div>
-                <StatusBadge status={data.status} />
+                <div className="flex flex-wrap items-center gap-2">
+                  {data.status !== 'Delivered' &&
+                    data.status !== 'Failed' &&
+                    data.status !== 'Cancelled' && (
+                      <Badge variant="outline" className="gap-1.5 text-xs">
+                        <Radio className="size-3 animate-pulse text-emerald-600" />
+                        Live auto-refresh (every 4s)
+                      </Badge>
+                    )}
+                  <StatusBadge status={data.status} />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">

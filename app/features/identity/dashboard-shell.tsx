@@ -90,11 +90,7 @@ function AccountSidebar() {
                           </SidebarMenuButton>
                         ) : (
                           <>
-                            <SidebarMenuButton
-                              disabled
-                              className="pr-12"
-                              aria-describedby="navigation-availability"
-                            >
+                            <SidebarMenuButton disabled className="pr-12">
                               <Icon aria-hidden="true" />
                               <span>{label}</span>
                             </SidebarMenuButton>
@@ -114,12 +110,6 @@ function AccountSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-        <p
-          id="navigation-availability"
-          className="px-4 pb-3 text-xs leading-relaxed text-muted-foreground"
-        >
-          Items marked Soon will be available in a future update.
-        </p>
       </SidebarContent>
       <SidebarFooter className="mt-auto p-4">
         <SidebarMenu>
@@ -212,11 +202,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       '/admin/pricing': 'Pricing tiers',
       '/admin/reports': 'Delivery reports',
       '/dispatch/zones': 'Zone summary',
+      '/dispatch/workload': 'Courier workload',
+      '/dispatch/unassigned': 'Unassigned parcels',
       '/dispatch/parcels': 'Parcel tracking & history',
       '/401': 'Sign in required',
       '/403': 'Access denied',
       '/customer/book': 'Book a delivery',
-      '/customer/tracking': 'Track a parcel',
+      '/customer/tracking': 'Track a delivery',
       '/customer/history': 'Delivery history',
       '/customer/receipts': 'Receipts',
       '/courier': 'Assigned deliveries',
@@ -228,7 +220,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (/^\/(customer|dispatch)\/parcels\/[^/]+(?:\/receipt)?\/?$/.test(pathname)
       ? pathname.endsWith('/receipt')
         ? 'Parcel receipt'
-        : 'Parcel tracking'
+        : pathname.startsWith('/customer/')
+          ? 'Delivery details'
+          : 'Parcel tracking'
       : undefined);
   const sectionName = pathname.startsWith('/admin/')
     ? 'Administration'

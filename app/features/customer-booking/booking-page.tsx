@@ -1,3 +1,13 @@
+import {
+  Check,
+  CircleCheck,
+  ClipboardCheck,
+  MapPin,
+  Package,
+  UserRound,
+  Wallet,
+} from 'lucide-react';
+import { Progress } from '~/shared/components/ui/progress';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { Button } from '~/shared/components/ui/button';
 import { Card } from '~/shared/components/ui/card';
@@ -24,7 +34,7 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -64,7 +74,17 @@ export function BookingEnvironmentProvider({
 
 export function CustomerBookingPage({
   environment,
+  profile,
+  navigationGuard,
+  viewDelivery,
 }: {
+  profile?: {
+    fullName: string;
+    phoneNumber: string | null;
+    address: string | null;
+  };
+  navigationGuard?: (unfinished: boolean, discard: () => void) => ReactNode;
+  viewDelivery?: (id: string) => void;
   environment?: BookingEnvironment;
 }) {
   const supplied = useContext(Environment);
@@ -83,6 +103,9 @@ export function CustomerBookingPage({
     if (oldActor && oldActor !== actor) {
       dependencies.attempts.clear(oldActor);
       queryClient.removeQueries({ queryKey: ['customer-booking', oldActor] });
+      queryClient.removeQueries({
+        queryKey: ['customer-booking-draft', oldActor],
+      });
       const cache = queryClient.getMutationCache();
       cache
         .findAll({ mutationKey: ['customer-booking', oldActor] })
@@ -108,7 +131,14 @@ export function CustomerBookingPage({
           </p>
         </Card>
       ) : (
-        <BookingFlow key={actor} actor={actor} environment={dependencies} />
+        <BookingFlow
+          key={actor}
+          actor={actor}
+          environment={dependencies}
+          profile={profile}
+          navigationGuard={navigationGuard}
+          viewDelivery={viewDelivery}
+        />
       )}
     </WorkspacePage>
   );
@@ -148,8 +178,18 @@ function errorMessage(error: BookingApiError): string {
 function BookingFlow({
   actor,
   environment,
+  profile,
+  navigationGuard,
+  viewDelivery,
 }: {
   actor: string;
+  profile?: {
+    fullName: string;
+    phoneNumber: string | null;
+    address: string | null;
+  };
+  navigationGuard?: (unfinished: boolean, discard: () => void) => ReactNode;
+  viewDelivery?: (id: string) => void;
   environment: BookingEnvironment;
 }) {
   const queryClient = useQueryClient();
@@ -159,8 +199,65 @@ function BookingFlow({
   );
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
-    defaultValues: emptyBookingForm,
+    defaultValues:
+      queryClient.getQueryData<BookingFormValues>([
+        'customer-booking-draft',
+        actor,
+      ]) ?? emptyBookingForm,
   });
+  const [step, setStep] = useState(() =>
+    environment.attempts.read(actor) ? 3 : 0,
+  );
+  const [unfinished, setUnfinished] = useState(
+    () => !!queryClient.getQueryData(['customer-booking-draft', actor]),
+  );
+  const steps = ['Pickup', 'Delivery & recipient', 'Parcel', 'Review & price'];
+  const stepFields: (keyof BookingFormValues)[][] = [
+    ['pickupStreet', 'pickupCity', 'pickupPostalCode', 'pickupZoneId'],
+    [
+      'deliveryStreet',
+      'deliveryCity',
+      'deliveryPostalCode',
+      'deliveryZoneId',
+      'recipientName',
+      'recipientPhone',
+    ],
+    ['weightKg', 'size'],
+  ];
+  const values = useWatch({ control: form.control });
+  useEffect(() => {
+    return form.subscribe({
+      formState: { values: true },
+      callback: ({ values: value }) => {
+        const dirty =
+          JSON.stringify(value) !== JSON.stringify(emptyBookingForm);
+        setUnfinished(dirty);
+        if (dirty)
+          queryClient.setQueryData(['customer-booking-draft', actor], {
+            ...value,
+          });
+        else
+          queryClient.removeQueries({
+            queryKey: ['customer-booking-draft', actor],
+          });
+      },
+    });
+  }, [actor, form, queryClient]);
+  function applyProfile(kind: 'pickup' | 'recipient') {
+    if (!profile || attemptRef.current) return;
+    revision.current++;
+    setQuote(null);
+    if (kind === 'pickup')
+      form.setValue('pickupStreet', profile.address ?? '', {
+        shouldDirty: true,
+      });
+    else {
+      form.setValue('recipientName', profile.fullName, { shouldDirty: true });
+      form.setValue('recipientPhone', profile.phoneNumber ?? '', {
+        shouldDirty: true,
+      });
+    }
+  }
   const [quote, setQuote] = useState<Quote | null>(null);
   const [attempt, setAttempt] = useState<PendingAttempt | null>(() =>
     environment.attempts.read(actor),
@@ -178,6 +275,16 @@ function BookingFlow({
   const revision = useRef(0);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  const hasUnsavedWork = !receipt && (unfinished || !!attempt);
+  useEffect(() => {
+    if (!hasUnsavedWork) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsavedWork]);
   const zones = useQuery({
     queryKey: ['customer-booking', actor, 'zones'],
     queryFn: ({ signal }) => environment.zones.load(signal),
@@ -273,6 +380,16 @@ function BookingFlow({
       setAttempt(null);
       setQuote(null);
       setReceipt(result);
+      setUnfinished(false);
+      queryClient.removeQueries({
+        queryKey: ['customer-booking-draft', actor],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['customer-parcels', actor],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['customer-delivery-summary', actor],
+      });
     } catch (failure) {
       if (!mounted.current) return;
       const problem =
@@ -313,26 +430,28 @@ function BookingFlow({
   if (receipt)
     return (
       <Card
-        className="max-w-2xl space-y-4 p-6 sm:p-8"
+        className="space-y-4 border-primary/20 p-4 sm:p-6"
         aria-labelledby="booked-title"
       >
-        <span
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-2xl text-primary"
+        <Badge
+          variant="outline"
+          className="size-14 justify-center rounded-2xl border-primary/20 bg-primary/5 p-0 text-primary"
           aria-hidden="true"
         >
-          ✓
-        </span>
-        <p className="mt-5 text-xs font-bold uppercase tracking-widest text-primary">
-          Confirmed
-        </p>
+          <CircleCheck className="size-7" />
+        </Badge>
+        <Badge variant="secondary" className="w-fit">
+          Booking confirmed
+        </Badge>
         <h2 id="booked-title" className="mt-2 text-2xl font-bold">
           Your delivery is booked
         </h2>
         <p className="mt-3 text-muted-foreground">
-          Keep this tracking number for your parcel.
+          Your booking is confirmed. Follow your parcel with the tracking number
+          below.
         </p>
         <p
-          className="mt-4 break-all rounded-xl bg-muted p-4 font-mono text-lg font-semibold"
+          className="mt-4 break-all rounded-xl border border-primary/15 bg-primary/5 p-4 font-mono text-lg font-semibold"
           aria-label="Tracking number"
         >
           {receipt.trackingNumber}
@@ -352,10 +471,17 @@ function BookingFlow({
             <dd className="mt-1 font-semibold">{receipt.status}</dd>
           </div>
         </dl>
+        {viewDelivery && (
+          <Button onClick={() => viewDelivery(receipt.id)}>
+            View delivery details
+          </Button>
+        )}
         <Button
+          variant="outline"
           className="mt-3 w-full sm:w-auto"
           onClick={() => {
             form.reset(emptyBookingForm);
+            setStep(0);
             setReceipt(null);
             setNotice('');
             setError(null);
@@ -367,233 +493,455 @@ function BookingFlow({
     );
 
   return (
-    <div className="mt-9 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <form
-        onChange={() => {
-          if (attemptRef.current) return;
-          revision.current++;
-          setQuote(null);
-          setNotice('');
-          setError(null);
-        }}
-        onSubmit={(event) => {
-          void form.handleSubmit(requestQuote)(event);
-        }}
-        noValidate
-        className="space-y-5"
-      >
-        <FieldSet
-          disabled={!!attempt}
-          className="space-y-5 disabled:opacity-70"
-        >
-          <AddressFields
-            prefix="pickup"
-            title="Pickup address"
-            step="01"
-            register={form.register}
-            errors={form.formState.errors}
-            zones={zones.data ?? []}
-          />
-          <AddressFields
-            prefix="delivery"
-            title="Delivery address"
-            step="02"
-            register={form.register}
-            errors={form.formState.errors}
-            zones={zones.data ?? []}
-          />
-          <Card className="space-y-4 p-6">
-            <SectionTitle step="03" title="Recipient & parcel" />
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <BookingInput
-                name="recipientName"
-                label="Recipient name"
-                register={form.register}
-                errors={form.formState.errors}
-                autoComplete="name"
-              />
-              <BookingInput
-                name="recipientPhone"
-                label="Recipient phone number"
-                register={form.register}
-                errors={form.formState.errors}
-                type="tel"
-                autoComplete="tel"
-              />
-              <BookingInput
-                name="weightKg"
-                label="Weight (kg)"
-                register={form.register}
-                errors={form.formState.errors}
-                inputMode="decimal"
-                hint="Greater than 0, up to 30 kg"
-              />
-              <Label className="block text-sm font-medium">
-                Parcel size
-                <NativeSelect {...form.register('size')} className="mt-2">
-                  <NativeSelectOption>Small</NativeSelectOption>
-                  <NativeSelectOption>Medium</NativeSelectOption>
-                  <NativeSelectOption>Large</NativeSelectOption>
-                </NativeSelect>
-              </Label>
+    <div className="space-y-6">
+      {navigationGuard?.(unfinished || !!attempt, () => {
+        queryClient.removeQueries({
+          queryKey: ['customer-booking-draft', actor],
+        });
+      })}
+      <Card className="border-primary/20">
+        <div className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium">Let's get your parcel moving</p>
+              <p className="text-sm text-muted-foreground">
+                {
+                  [
+                    'Start with where we should collect your parcel.',
+                    'Choose its destination and who will receive it.',
+                    'A few parcel details help us calculate the right price.',
+                    'Check your details, review the price, then confirm when you are ready.',
+                  ][step]
+                }
+              </p>
             </div>
-          </Card>
-        </FieldSet>
-        {zones.isPending && (
-          <p role="status" className="text-sm text-muted-foreground">
-            Loading delivery areas…
-          </p>
-        )}
-        {zones.isError && (
-          <Alert variant="destructive">
-            Delivery areas are unavailable.{' '}
-            <Button
-              type="button"
-              className="mt-3 w-full sm:w-auto"
-              onClick={() => {
-                void zones.refetch();
-              }}
-            >
-              Try again
-            </Button>
-          </Alert>
-        )}
-        {zones.isSuccess && zones.data.length === 0 && (
-          <Alert>
-            No delivery areas are available yet. Please try again later.
-          </Alert>
-        )}
-        {!attempt && (
-          <Button
-            type="submit"
-            disabled={
-              busy || zones.isPending || zones.isError || !zones.data?.length
-            }
-            className="mt-3 w-full sm:w-auto"
-          >
-            {estimate.isPending ? 'Getting your quote…' : 'Get delivery quote'}
-          </Button>
-        )}
-      </form>
-      <Card
-        className="min-w-0 space-y-4 p-6 lg:sticky lg:top-6"
-        aria-labelledby="quote-title"
+            <Badge variant="outline" className="shrink-0">
+              Step {step + 1} of {steps.length}
+            </Badge>
+          </div>
+          <Progress
+            value={((step + 1) / steps.length) * 100}
+            aria-label="Booking progress"
+            aria-valuetext={`Step ${step + 1} of ${steps.length}: ${steps[step]}`}
+            className="h-1.5 bg-primary/10 [&>div]:bg-primary"
+          />
+          <nav aria-label="Booking steps">
+            <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {steps.map((label, index) => (
+                <li key={label}>
+                  <Button
+                    className={`h-full min-h-12 w-full justify-start whitespace-normal px-3 py-3 text-left ${step === index ? 'border border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10' : ''}`}
+                    variant={step === index ? 'secondary' : 'ghost'}
+                    disabled={index > step || !!attempt || busy}
+                    aria-current={step === index ? 'step' : undefined}
+                    onClick={() => setStep(index)}
+                  >
+                    <Badge
+                      variant="outline"
+                      className="size-6 shrink-0 justify-center rounded-full p-0"
+                    >
+                      {index < step ? (
+                        <>
+                          <Check
+                            className="size-3.5 text-primary"
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">{index + 1}</span>
+                        </>
+                      ) : (
+                        index + 1
+                      )}
+                    </Badge>
+                    {label}
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
+      </Card>
+      <div
+        className={
+          step === 3 || attempt
+            ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]'
+            : 'grid items-start gap-6'
+        }
       >
-        <h2 id="quote-title" className="text-lg font-bold">
-          Your delivery quote
-        </h2>
-        {!quote && !attempt && (
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Complete your delivery details to see the price. Requesting a quote
-            does not book a parcel.
-          </p>
-        )}
-        {quote && (
-          <>
-            <p
-              className="mt-6 break-all text-3xl font-bold tracking-tight"
-              aria-label="Quoted total"
-            >
-              {displayMoney(quote.total, quote.currency)}
-            </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {expired && !attempt
-                ? 'Quote expired — request a new quote.'
-                : `Quote expires ${new Date(quote.expiresAt).toLocaleTimeString()}`}
-            </p>
-            {!attempt && (
-              <>
-                <p className="mt-5 text-sm leading-6 text-muted-foreground">
-                  By confirming, you accept this quoted total for the delivery
-                  details above.
-                </p>
-                <Button
-                  type="button"
-                  disabled={busy || expired}
-                  onClick={() => {
-                    void confirmQuote();
-                  }}
-                  className="mt-3 w-full sm:w-auto"
-                >
-                  Confirm & book delivery
-                </Button>
+        <form
+          onChange={() => {
+            if (attemptRef.current) return;
+            revision.current++;
+            setQuote(null);
+            setNotice('');
+            setError(null);
+          }}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (step < 3) {
+              void form
+                .trigger(stepFields[step], { shouldFocus: true })
+                .then((valid) => {
+                  if (valid) setStep((current) => current + 1);
+                });
+            } else
+              void form.handleSubmit(requestQuote, (errors) => {
+                const first = stepFields.findIndex((fields) =>
+                  fields.some((field) => errors[field]),
+                );
+                if (first >= 0) setStep(first);
+              })(event);
+          }}
+          noValidate
+          className="space-y-5"
+        >
+          <FieldSet
+            disabled={!!attempt}
+            className="space-y-5 disabled:opacity-70"
+          >
+            <div hidden={step !== 0} className="space-y-4">
+              {profile?.address && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setQuote(null);
-                    setNotice('Quote declined. No delivery was booked.');
-                  }}
-                  className="mt-3 w-full sm:w-auto"
+                  onClick={() => applyProfile('pickup')}
                 >
-                  Decline quote
+                  Use my profile address for pickup
                 </Button>
-              </>
-            )}
-          </>
-        )}
-        {attempt && (
-          <>
-            <p className="mt-5 text-sm leading-6 text-muted-foreground">
-              {confirm.isPending
-                ? 'Confirming your delivery. Please keep this screen open.'
-                : 'The booking outcome is not verified yet. Your original confirmation is retained so a retry cannot create a second parcel.'}
-            </p>
-            <Button
-              type="button"
-              disabled={busy || now < retryAt || !!blockedRetry}
-              onClick={() => {
-                void confirmQuote();
-              }}
-              className="mt-3 w-full sm:w-auto"
-            >
-              {confirm.isPending
-                ? 'Confirming…'
-                : now < retryAt
-                  ? 'Please wait before retrying'
-                  : 'Retry original confirmation'}
-            </Button>
-          </>
-        )}
-        {error && (
-          <Alert variant="destructive" className="mt-5">
-            {attempt ||
-            [
-              'quote_expired',
-              'price_mismatch',
-              'unsupported_zone',
-              'pricing_unavailable',
-            ].includes(error.code)
-              ? errorMessage(error)
-              : 'We could not get a quote. Check your details and connection, then try again.'}
-            {Object.entries(error.fieldErrors).map(([field, messages]) => (
-              <p key={field} className="mt-2">
-                {messages.join(' ')}
+              )}
+              <AddressFields
+                prefix="pickup"
+                title="Pickup address"
+                step="01"
+                register={form.register}
+                errors={form.formState.errors}
+                zones={zones.data ?? []}
+              />
+              <p className="text-sm text-muted-foreground">
+                Confirm the city, postal code and service area even when using
+                your profile address.
               </p>
-            ))}
-          </Alert>
-        )}
-        {notice && (
-          <p
-            role="status"
-            className="mt-4 text-sm leading-6 text-muted-foreground"
+            </div>
+            <div hidden={step !== 1} className="space-y-4">
+              <AddressFields
+                prefix="delivery"
+                title="Delivery address"
+                step="02"
+                register={form.register}
+                errors={form.formState.errors}
+                zones={zones.data ?? []}
+              />
+              <Card className="space-y-4 p-4 sm:p-6">
+                <SectionTitle step="02" title="Recipient" />
+                {profile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => applyProfile('recipient')}
+                  >
+                    Use my details as recipient
+                  </Button>
+                )}
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <BookingInput
+                    name="recipientName"
+                    label="Recipient name"
+                    register={form.register}
+                    errors={form.formState.errors}
+                    autoComplete="name"
+                  />
+                  <BookingInput
+                    name="recipientPhone"
+                    label="Recipient phone number"
+                    register={form.register}
+                    errors={form.formState.errors}
+                    type="tel"
+                    autoComplete="tel"
+                  />
+                </div>
+              </Card>
+            </div>
+            <div hidden={step !== 2}>
+              <Card className="space-y-4 p-4 sm:p-6">
+                <SectionTitle step="03" title="Parcel" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <BookingInput
+                    name="weightKg"
+                    label="Weight (kg)"
+                    register={form.register}
+                    errors={form.formState.errors}
+                    inputMode="decimal"
+                    hint="Greater than 0, up to 30 kg"
+                  />
+                  <FormField>
+                    <Label htmlFor="size">Parcel size</Label>
+                    <NativeSelect id="size" {...form.register('size')}>
+                      <NativeSelectOption>Small</NativeSelectOption>
+                      <NativeSelectOption>Medium</NativeSelectOption>
+                      <NativeSelectOption>Large</NativeSelectOption>
+                    </NativeSelect>
+                  </FormField>
+                </div>
+              </Card>
+            </div>
+            <div hidden={step !== 3}>
+              <Card className="space-y-5 p-4 sm:p-6">
+                <SectionTitle step="04" title="Review your delivery" />
+                {[
+                  [
+                    'Pickup',
+                    `${values.pickupStreet}, ${values.pickupCity} ${values.pickupPostalCode}`,
+                    zones.data?.find((zone) => zone.id === values.pickupZoneId)
+                      ?.name,
+                    0,
+                  ],
+                  [
+                    'Delivery & recipient',
+                    `${values.deliveryStreet}, ${values.deliveryCity} ${values.deliveryPostalCode}`,
+                    `${values.recipientName} · ${values.recipientPhone}`,
+                    1,
+                  ],
+                  [
+                    'Parcel',
+                    `${values.size} · ${values.weightKg} kg`,
+                    'Price is based on the delivery address zone.',
+                    2,
+                  ],
+                ].map(([title, detail, extra, targetStep]) => (
+                  <div
+                    key={title}
+                    className="flex items-start justify-between gap-3 border-b pb-4 last:border-0"
+                  >
+                    <div className="min-w-0 space-y-1 text-sm">
+                      <h3 className="font-medium">{title}</h3>
+                      <p className="break-words">{detail}</p>
+                      <p className="text-muted-foreground">{extra}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Edit ${title}`}
+                      disabled={!!attempt}
+                      onClick={() => setStep(Number(targetStep))}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                ))}
+              </Card>
+            </div>
+          </FieldSet>
+          {zones.isPending && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Loading delivery areas…
+            </p>
+          )}
+          {zones.isError && (
+            <Alert variant="destructive">
+              Delivery areas are unavailable.{' '}
+              <Button
+                type="button"
+                className="mt-3 w-full sm:w-auto"
+                onClick={() => {
+                  void zones.refetch();
+                }}
+              >
+                Try again
+              </Button>
+            </Alert>
+          )}
+          {zones.isSuccess && zones.data.length === 0 && (
+            <Alert>
+              No delivery areas are available yet. Please try again later.
+            </Alert>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {step > 0 && !attempt && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setStep((current) => current - 1)}
+              >
+                Back
+              </Button>
+            )}
+            {step < 3 && !attempt && (
+              <Button
+                type="submit"
+                disabled={
+                  busy ||
+                  zones.isPending ||
+                  zones.isError ||
+                  !zones.data?.length
+                }
+              >
+                Continue
+              </Button>
+            )}
+            {step === 3 && !attempt && (
+              <Button
+                type="submit"
+                disabled={
+                  busy ||
+                  zones.isPending ||
+                  zones.isError ||
+                  !zones.data?.length
+                }
+                className="w-full sm:w-auto"
+              >
+                {estimate.isPending
+                  ? 'Getting your quote…'
+                  : 'Get delivery quote'}
+              </Button>
+            )}
+          </div>
+        </form>
+        <Card
+          hidden={step !== 3 && !attempt}
+          className="min-w-0 space-y-4 border-primary/20 p-4 sm:p-6 xl:sticky xl:top-6"
+          aria-labelledby="quote-title"
+        >
+          <h2
+            id="quote-title"
+            className="flex items-center gap-3 text-lg font-semibold"
           >
-            {notice}
-          </p>
-        )}
-        <div className="mt-7 border-t border-border pt-5 text-xs leading-5 text-muted-foreground">
-          You stay in control. A delivery is created only after you explicitly
-          confirm a valid quote.
-        </div>
-      </Card>
+            <Badge
+              variant="outline"
+              className="size-9 justify-center rounded-xl border-primary/20 bg-primary/5 p-0 text-primary"
+              aria-hidden="true"
+            >
+              <Wallet className="size-4" />
+            </Badge>
+            Your delivery quote
+          </h2>
+          {!quote && !attempt && (
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Complete your delivery details to see the price. Requesting a
+              quote does not book a parcel.
+            </p>
+          )}
+          {quote && (
+            <>
+              <p
+                className="mt-6 break-all text-3xl font-bold tracking-tight"
+                aria-label="Quoted total"
+              >
+                {displayMoney(quote.total, quote.currency)}
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {expired && !attempt
+                  ? 'Quote expired — request a new quote.'
+                  : `Quote expires ${new Date(quote.expiresAt).toLocaleTimeString()}`}
+              </p>
+              {!attempt && (
+                <>
+                  <p className="mt-5 text-sm leading-6 text-muted-foreground">
+                    By confirming, you accept this quoted total for the delivery
+                    details above.
+                  </p>
+                  <Button
+                    type="button"
+                    disabled={busy || expired}
+                    onClick={() => {
+                      void confirmQuote();
+                    }}
+                    className="mt-3 w-full sm:w-auto"
+                  >
+                    Confirm & book delivery
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setQuote(null);
+                      setNotice('Quote declined. No delivery was booked.');
+                    }}
+                    className="mt-3 w-full sm:w-auto"
+                  >
+                    Decline quote
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+          {attempt && (
+            <>
+              <p className="mt-5 text-sm leading-6 text-muted-foreground">
+                {confirm.isPending
+                  ? 'Confirming your delivery. Please keep this screen open.'
+                  : 'The booking outcome is not verified yet. Your original confirmation is retained so a retry cannot create a second parcel.'}
+              </p>
+              <Button
+                type="button"
+                disabled={busy || now < retryAt || !!blockedRetry}
+                onClick={() => {
+                  void confirmQuote();
+                }}
+                className="mt-3 w-full sm:w-auto"
+              >
+                {confirm.isPending
+                  ? 'Confirming…'
+                  : now < retryAt
+                    ? 'Please wait before retrying'
+                    : 'Retry original confirmation'}
+              </Button>
+            </>
+          )}
+          {error && (
+            <Alert variant="destructive" className="mt-5">
+              {attempt ||
+              [
+                'quote_expired',
+                'price_mismatch',
+                'unsupported_zone',
+                'pricing_unavailable',
+              ].includes(error.code)
+                ? errorMessage(error)
+                : 'We could not get a quote. Check your details and connection, then try again.'}
+              {Object.entries(error.fieldErrors).map(([field, messages]) => (
+                <p key={field} className="mt-2">
+                  {messages.join(' ')}
+                </p>
+              ))}
+            </Alert>
+          )}
+          {notice && (
+            <p
+              role="status"
+              className="mt-4 text-sm leading-6 text-muted-foreground"
+            >
+              {notice}
+            </p>
+          )}
+          <div className="mt-7 border-t border-border pt-5 text-xs leading-5 text-muted-foreground">
+            You stay in control. A delivery is created only after you explicitly
+            confirm a valid quote.
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
 
 function SectionTitle({ step, title }: { step: string; title: string }) {
+  const Icon =
+    title === 'Recipient'
+      ? UserRound
+      : step === '03'
+        ? Package
+        : step === '04'
+          ? ClipboardCheck
+          : MapPin;
   return (
-    <h2 className="flex items-center gap-3 font-bold">
-      <Badge variant="secondary">{step}</Badge>
+    <h2 className="flex items-center gap-3 font-semibold">
+      <Badge
+        variant="outline"
+        className="size-9 shrink-0 justify-center rounded-xl border-primary/15 bg-primary/5 p-0 text-primary"
+        aria-hidden="true"
+      >
+        <Icon className="size-4" />
+      </Badge>
       {title}
     </h2>
   );
@@ -656,7 +1004,7 @@ function AddressFields({
 }) {
   const zone = `${prefix}ZoneId` as const;
   return (
-    <Card className="space-y-4 p-6">
+    <Card className="space-y-4 p-4 sm:p-6">
       <SectionTitle step={step} title={title} />
       <div className="mt-5 space-y-4">
         <BookingInput

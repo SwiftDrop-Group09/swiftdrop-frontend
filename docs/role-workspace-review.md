@@ -12,21 +12,20 @@ Reviewed on 13 November 2026 against the SRS, security/authorization.md, fronten
 
 ## Implemented role-to-page mapping
 
-| Pages                                                               | Required role               | Additional server boundary                                                       |
-| ------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------- |
-| Dashboard, profile                                                  | Any authenticated account   | Current subject; non-Customer dashboards do not request Customer parcels         |
-| Business registration (/merchant)                                   | Any authenticated applicant | Own application; keys require approved business ownership                        |
-| Merchant webhooks                                                   | Merchant                    | Approved business owner; scoped business membership                              |
-| Merchant orders list and order detail (read-only)                   | Merchant                    | Approved business owner; foreign or missing orders return 404                    |
-| Merchant business overview (/merchant/overview)                     | Merchant                    | Approved owner JWT only; figures from the business's own orders                  |
-| Customer booking                                                    | Customer                    | Authenticated owner; quote/confirmation validation                               |
-| Customer tracking, history, receipts and parcel details             | Customer                    | Own parcel; foreign or missing resources retain 404 semantics                    |
-| Courier manifest, history and parcel details                        | Courier                     | Current assignment; state/version/proof rules still apply                        |
-| Dispatch zone summary                                               | Dispatcher or Admin         | Operations read policy                                                           |
-| Dispatch parcel list, history and live detail                       | Dispatcher or Admin         | Existing GET /api/v1/parcels and parcel detail/events APIs                       |
-| Dispatch parcel receipt/proof controls                              | Admin                       | Admin read scope; Dispatcher pages never request proof or show download controls |
-| User management, audit, merchant approvals, zones, pricing, reports | Admin                       | Live Admin check for Identity administration; last-active-Admin protection       |
-| Public tracking, authentication, 401, 403 and missing-page screens  | Public                      | Public tracking returns a limited summary                                        |
+| Pages                                                               | Required role               | Additional server boundary                                                            |
+| ------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| Dashboard, profile                                                  | Any authenticated account   | Current subject; non-Customer dashboards do not request Customer parcels              |
+| Business registration (/merchant)                                   | Any authenticated applicant | Own application; keys require approved business ownership                             |
+| Merchant webhooks                                                   | Merchant                    | Approved business owner; scoped business membership                                   |
+| Customer booking                                                    | Customer                    | Authenticated owner; quote/confirmation validation                                    |
+| Customer tracking, history, receipts and parcel details             | Customer                    | Own parcel; foreign or missing resources retain 404 semantics                         |
+| Courier manifest, history and parcel details                        | Courier                     | Current assignment; state/version/proof rules still apply                             |
+| Dispatch zone summary                                               | Dispatcher or Admin         | Operations read policy                                                                |
+| Dispatch parcel list, history and live detail                       | Dispatcher or Admin         | Existing GET /api/v1/parcels and parcel detail/events APIs                            |
+| Dispatch unassigned queue (/dispatch/unassigned)                    | Dispatcher or Admin         | GET /api/v1/parcels with status=Created; delivery-zone/search/date filters and paging |
+| Dispatch parcel receipt/proof controls                              | Admin                       | Admin read scope; Dispatcher pages never request proof or show download controls      |
+| User management, audit, merchant approvals, zones, pricing, reports | Admin                       | Live Admin check for Identity administration; last-active-Admin protection            |
+| Public tracking, authentication, 401, 403 and missing-page screens  | Public                      | Public tracking returns a limited summary                                             |
 
 Route access is centralized in app/features/identity/route-access.tsx. Feature guards retain the same restrictions for standalone composition. Query keys include the user identity; operational parcel queries have a separate scope. Business and webhook queries wait for the appropriate role/approval. Accounts with multiple roles receive the union of permitted navigation, without granting ownership or assignment bypasses.
 
@@ -42,16 +41,13 @@ Shadcn tabs, row dropdowns and account/role/status dialogs replace the persisten
 
 ## Workflows still awaiting implementation
 
-| Workflow                                                           | Current gap                                                             | UI behavior                                                                             |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Unassigned work queue and assignment/reassignment (FR-D01/D02/D04) | No exposed assignment command or dedicated unassigned-workflow endpoint | Remains disabled; operations tracking is enabled separately using its existing read API |
-| Courier workload/capacity (FR-D03)                                 | No exposed workload/capacity endpoint                                   | Remains disabled                                                                        |
+| Workflow                                       | Current gap                                                                                                                  | UI behavior                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Reassignment (FR-D04)                          | Initial assignment is implemented; reassign=true remains rejected                                                            | Reassignment controls remain deferred |
+| Merchant business overview/statistics (FR-M06) | No business statistics endpoint; owned order reads are now available                                                         | Remains disabled; no invented totals  |
+| Merchant orders (FR-M04/M07)                   | Backend dev now exposes scoped POST/GET /api/v1/merchant/orders and GET by ID; the web order workspace remains unimplemented | Remains disabled                      |
 
-Backend PRs #23 and #24 added Merchant API-key authentication, scoped order intake and owner reads after the initial review. The Merchant Orders workspace is now enabled at /merchant/orders: a read-only list (state filter, paging, tracking links) and order detail (progress, failure reason, parcel status with refresh age). Orders are still submitted only by the merchant's systems through the API; there is no web order form.
-
-Business overview (FR-M06) is enabled at /merchant/overview and reads GET /api/v1/merchants/me/dashboard. It shows orders received in the chosen UTC period, deliveries finished in it with success and failure rates (Cancelled excluded), parcels by status, recent orders and when parcel statuses were last refreshed; data that was already more than 15 minutes old when loaded is labelled. All figures come from the server; the page computes no totals of its own.
-
-Assignment and workload gaps remain. The role review does not fabricate endpoints or enable unavailable workflows.
+Backend PRs #23 and #24 added Merchant API-key authentication, scoped order intake and owner reads after the initial review. Merchant Orders stays disabled until its separate web workspace is implemented. Initial assignment is implemented in the queue (see [assignment integration](dispatcher-assignment.md)); reassignment and business-statistics integration remain gaps. Courier workload monitoring is now implemented for Dispatcher and Admin at `/dispatch/workload`, including active-assignment reads; see [workload integration](dispatcher-workload.md). The role review does not fabricate endpoints or enable unavailable workflows.
 
 ## Validation
 

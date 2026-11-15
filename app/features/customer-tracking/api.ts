@@ -1,5 +1,6 @@
 import type { AuthenticatedRequest } from '~/features/identity/contracts';
 import type {
+  CustomerDeliverySummary,
   CustomerParcelPage,
   CustomerParcelQuery,
   ParcelDetail,
@@ -9,6 +10,19 @@ import type {
   ProofOfDeliveryInfo,
   PublicTrackingSummary,
 } from './contracts';
+
+export async function getCustomerSummary(
+  request: AuthenticatedRequest,
+  apiBase: string,
+  signal?: AbortSignal,
+): Promise<CustomerDeliverySummary> {
+  const response = await request(`${apiBase}/v1/parcels/summary`, {
+    signal,
+    cache: 'no-store',
+  });
+  if (!response.ok) throw await readError(response);
+  return (await response.json()) as CustomerDeliverySummary;
+}
 
 export class CustomerTrackingApiError extends Error {
   constructor(
@@ -47,6 +61,7 @@ async function readError(
 export function buildParcelQueryString(query: CustomerParcelQuery): string {
   const params = new URLSearchParams();
   if (query.status) params.set('status', query.status);
+  if (query.zoneId) params.set('zoneId', query.zoneId);
   if (query.from) params.set('from', query.from);
   if (query.to) params.set('to', query.to);
   if (query.search?.trim()) params.set('search', query.search.trim());
@@ -137,7 +152,7 @@ export async function downloadReceiptPdf(
   request: AuthenticatedRequest,
   apiBase: string,
   parcelId: string,
-  trackingNumber: string,
+  trackingNumber?: string,
   signal?: AbortSignal,
 ): Promise<void> {
   const response = await request(
@@ -154,7 +169,7 @@ export async function downloadReceiptPdf(
   try {
     const link = document.createElement('a');
     link.href = url;
-    link.download = `swiftdrop-receipt-${trackingNumber}.pdf`;
+    link.download = `swiftdrop-receipt-${trackingNumber || parcelId}.pdf`;
     document.body.appendChild(link);
     link.click();
     link.remove();

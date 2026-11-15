@@ -1,24 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIdentity } from '~/features/identity/session';
 import {
+  downloadReceiptPdf,
   getCustomerParcel,
+  getCustomerSummary,
   getParcelProof,
   getParcelReceipt,
   getPublicTracking,
   listCustomerParcels,
   subscribeParcelEvents,
 } from './api';
-import type { CustomerParcelQuery, ParcelEventSnapshot } from './contracts';
+import type {
+  CustomerParcelPage,
+  CustomerDeliverySummary,
+  CustomerParcelQuery,
+  ParcelDetail,
+  ParcelEventSnapshot,
+  ParcelReceipt,
+  ProofOfDeliveryInfo,
+  PublicTrackingSummary,
+} from './contracts';
+
+export function useCustomerSummary() {
+  const { session, user, restoring } = useIdentity();
+  return useQuery<CustomerDeliverySummary>({
+    queryKey: ['customer-delivery-summary', user?.id],
+    enabled: !restoring && !!user?.roles.includes('Customer'),
+    queryFn: ({ signal }) =>
+      getCustomerSummary(
+        session.authenticatedRequest,
+        session.api.base,
+        signal,
+      ),
+  });
+}
 
 export function useCustomerParcels(
   query: CustomerParcelQuery,
   operational = false,
+  enabled = true,
 ) {
   const { session, user, restoring } = useIdentity();
-  return useQuery({
+  return useQuery<CustomerParcelPage>({
     queryKey: ['customer-parcels', user?.id, operational, query],
     enabled:
+      enabled &&
       !restoring &&
       !!user &&
       (operational
@@ -37,9 +64,10 @@ export function useCustomerParcels(
 export function useCustomerParcel(
   parcelId: string | undefined,
   operational = false,
+  pollIntervalMs: number | false = 4000,
 ) {
   const { session, user, restoring } = useIdentity();
-  return useQuery({
+  return useQuery<ParcelDetail>({
     queryKey: ['customer-parcel', parcelId, user?.id, operational],
     enabled:
       !restoring &&
@@ -48,6 +76,18 @@ export function useCustomerParcel(
         ? user.roles.some((role) => role === 'Admin' || role === 'Dispatcher')
         : user.roles.includes('Customer')) &&
       Boolean(parcelId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (
+        !status ||
+        status === 'Delivered' ||
+        status === 'Failed' ||
+        status === 'Cancelled'
+      ) {
+        return false;
+      }
+      return pollIntervalMs;
+    },
     queryFn: ({ signal }) =>
       getCustomerParcel(
         session.authenticatedRequest,
@@ -58,11 +98,27 @@ export function useCustomerParcel(
   });
 }
 
-export function usePublicTracking(trackingNumber: string | null) {
+export function usePublicTracking(
+  trackingNumber: string | null,
+  pollIntervalMs = 4000,
+) {
   const { session } = useIdentity();
-  return useQuery({
+  return useQuery<PublicTrackingSummary>({
     queryKey: ['public-tracking', trackingNumber],
     enabled: Boolean(trackingNumber?.trim()),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (
+        !status ||
+        status === 'Delivered' ||
+        status === 'Failed' ||
+        status === 'Cancelled'
+      ) {
+        return false;
+      }
+      return pollIntervalMs;
+    },
+    refetchIntervalInBackground: false,
     queryFn: ({ signal }) =>
       getPublicTracking(session.api.base, trackingNumber!, signal),
     retry: false,
@@ -74,7 +130,7 @@ export function useParcelReceipt(
   operational = false,
 ) {
   const { session, user, restoring } = useIdentity();
-  return useQuery({
+  return useQuery<ParcelReceipt>({
     queryKey: ['parcel-receipt', parcelId, user?.id, operational],
     enabled:
       !restoring &&
@@ -97,7 +153,7 @@ export function useParcelProof(
   operational = false,
 ) {
   const { session, user, restoring } = useIdentity();
-  return useQuery({
+  return useQuery<ProofOfDeliveryInfo>({
     queryKey: ['parcel-proof', parcelId, user?.id, operational],
     enabled:
       !restoring &&
@@ -115,13 +171,52 @@ export function useParcelProof(
   });
 }
 
+export function useDownloadReceiptPdf() {
+  const { session } = useIdentity();
+  const [downloadingParcelId, setDownloadingParcelId] = useState<string | null>(
+    null,
+  );
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const download = useCallback(
+    async (parcelId: string, trackingNumber?: string) => {
+      setDownloadingParcelId(parcelId);
+      setDownloadError(null);
+      try {
+        await downloadReceiptPdf(
+          session.authenticatedRequest,
+          session.api.base,
+          parcelId,
+          trackingNumber,
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Unable to download PDF receipt right now. Please try again.';
+        setDownloadError(message);
+        throw err;
+      } finally {
+        setDownloadingParcelId(null);
+      }
+    },
+    [session],
+  );
+
+  return {
+    downloadReceiptPdf: download,
+    downloadingParcelId,
+    downloadError,
+  };
+}
+
 export type LiveConnectionState = 'connecting' | 'live' | 'polling' | 'closed';
 
 export function useLiveParcelTracking(
   parcelId: string | undefined,
   active: boolean,
 ) {
-  const { session } = useIdentity();
+  const { session, user } = useIdentity();
   const queryClient = useQueryClient();
   const [connectionState, setConnectionState] =
     useState<LiveConnectionState>('connecting');
@@ -137,15 +232,33 @@ export function useLiveParcelTracking(
     const controller = new AbortController();
     let fallbackTimer: ReturnType<typeof setInterval> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastVersion = 0;
+    setLatestSnapshot(null);
+    let lastVersion =
+      queryClient.getQueryData<ParcelDetail>([
+        'customer-parcel',
+        parcelId,
+        user?.id,
+        false,
+      ])?.version ?? 0;
 
     const handleSnapshot = (snapshot: ParcelEventSnapshot) => {
+      if (controller.signal.aborted || snapshot.id !== parcelId) return;
       setConnectionState('live');
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer);
+        fallbackTimer = null;
+      }
       if (snapshot.version > lastVersion) {
         lastVersion = snapshot.version;
         setLatestSnapshot(snapshot);
         void queryClient.invalidateQueries({
           queryKey: ['customer-parcel', parcelId],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['customer-parcels', user?.id],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ['customer-delivery-summary', user?.id],
         });
       }
     };
@@ -154,15 +267,35 @@ export function useLiveParcelTracking(
       setConnectionState('polling');
       if (fallbackTimer) return;
       fallbackTimer = setInterval(() => {
-        void queryClient.invalidateQueries({
-          queryKey: ['customer-parcel', parcelId],
-        });
-      }, 8000);
+        void queryClient
+          .invalidateQueries({
+            queryKey: ['customer-parcel', parcelId],
+          })
+          .then(() => {
+            if (controller.signal.aborted) return;
+            const version =
+              queryClient.getQueryData<ParcelDetail>([
+                'customer-parcel',
+                parcelId,
+                user?.id,
+                false,
+              ])?.version ?? 0;
+            if (version > lastVersion) {
+              lastVersion = version;
+              void queryClient.invalidateQueries({
+                queryKey: ['customer-parcels', user?.id],
+              });
+              void queryClient.invalidateQueries({
+                queryKey: ['customer-delivery-summary', user?.id],
+              });
+            }
+          });
+      }, 4000);
     };
 
     const connect = async () => {
       try {
-        setConnectionState('connecting');
+        if (!fallbackTimer) setConnectionState('connecting');
         await subscribeParcelEvents(
           session.authenticatedRequest,
           session.api.base,
@@ -174,14 +307,14 @@ export function useLiveParcelTracking(
           startPollingFallback();
           reconnectTimer = setTimeout(() => {
             if (!controller.signal.aborted) void connect();
-          }, 5000);
+          }, 4000);
         }
       } catch {
         if (!controller.signal.aborted) {
           startPollingFallback();
           reconnectTimer = setTimeout(() => {
             if (!controller.signal.aborted) void connect();
-          }, 8000);
+          }, 4000);
         }
       }
     };
@@ -193,7 +326,7 @@ export function useLiveParcelTracking(
       if (fallbackTimer) clearInterval(fallbackTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [parcelId, active, session, queryClient]);
+  }, [parcelId, active, session, user?.id, queryClient]);
 
   return { connectionState, latestSnapshot };
 }

@@ -1,3 +1,4 @@
+import { CustomerHistoryContent } from './customer-pages';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { useIdentity } from '~/features/identity/session';
 import { useState } from 'react';
@@ -5,6 +6,7 @@ import { Link } from 'react-router';
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   MapPin,
   Package,
   ReceiptText,
@@ -27,7 +29,7 @@ import {
 } from '~/shared/components/ui/table';
 import { formatDateTime, formatMoney, StatusBadge } from './components';
 import type { ParcelStatus } from './contracts';
-import { useCustomerParcels } from './hooks';
+import { useCustomerParcels, useDownloadReceiptPdf } from './hooks';
 
 type FilterTab = 'All' | 'InTransit' | 'Delivered' | 'Cancelled' | 'Failed';
 
@@ -65,6 +67,8 @@ export function OrderHistoryContent({
     },
     operational,
   );
+  const { downloadReceiptPdf, downloadingParcelId, downloadError } =
+    useDownloadReceiptPdf();
 
   const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -78,7 +82,7 @@ export function OrderHistoryContent({
 
   return (
     <WorkspacePage
-      title={operational ? 'Parcel tracking & history' : 'Order History'}
+      title={operational ? 'Parcel tracking & history' : 'Delivery history'}
       description={
         operational
           ? 'Search all parcels and follow delivery progress across the network.'
@@ -116,7 +120,7 @@ export function OrderHistoryContent({
                   onChange={(e) => setSearchInput(e.target.value)}
                   placeholder="Tracking # or recipient"
                   className="w-56 pl-8"
-                  aria-label="Search orders"
+                  aria-label="Search deliveries"
                 />
               </div>
               <Button type="submit" size="sm" variant="secondary">
@@ -126,6 +130,13 @@ export function OrderHistoryContent({
           </div>
         </CardHeader>
         <CardContent>
+          {downloadError && (
+            <div className="mb-4">
+              <Alert variant="destructive">
+                <AlertDescription>{downloadError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-12 w-full" />
@@ -135,7 +146,7 @@ export function OrderHistoryContent({
           ) : isError ? (
             <Alert variant="destructive">
               <AlertDescription>
-                Could not load your order history. Please try again shortly.
+                Could not load your delivery history. Please try again shortly.
               </AlertDescription>
             </Alert>
           ) : items.length === 0 ? (
@@ -197,6 +208,22 @@ export function OrderHistoryContent({
                             </Button>
                             {canDownload && parcel.status === 'Delivered' && (
                               <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={downloadingParcelId === parcel.id}
+                                  onClick={() =>
+                                    void downloadReceiptPdf(
+                                      parcel.id,
+                                      parcel.trackingNumber,
+                                    ).catch(() => {})
+                                  }
+                                >
+                                  <Download className="mr-1 size-3.5" />
+                                  {downloadingParcelId === parcel.id
+                                    ? 'Downloading…'
+                                    : 'Download PDF Receipt'}
+                                </Button>
                                 <Button size="sm" variant="secondary" asChild>
                                   <Link
                                     to={`${basePath}/parcels/${parcel.id}/receipt`}
@@ -262,7 +289,7 @@ export function OrderHistoryPage() {
   return (
     <IdentityShell>
       <Protected roles={['Customer']}>
-        <OrderHistoryContent />
+        <CustomerHistoryContent />
       </Protected>
     </IdentityShell>
   );

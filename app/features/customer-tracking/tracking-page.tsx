@@ -1,6 +1,7 @@
-import { WorkspacePage } from '~/shared/components/workspace-page';
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { CustomerDeliveryDetail, CustomerTrackingHub } from './customer-pages';
+import { type ReactNode } from 'react';
+import type { ParcelDetail } from './contracts';
+import { Link, useParams } from 'react-router';
 import {
   ArrowLeft,
   Clock,
@@ -8,7 +9,6 @@ import {
   Package,
   Radio,
   ReceiptText,
-  Search,
 } from 'lucide-react';
 import { IdentityShell, Protected } from '~/features/identity/components';
 import { useIdentity } from '~/features/identity/session';
@@ -22,11 +22,9 @@ import { Button } from '~/shared/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '~/shared/components/ui/card';
-import { Input } from '~/shared/components/ui/input';
 import { Skeleton } from '~/shared/components/ui/skeleton';
 import {
   DeliveryStepper,
@@ -38,103 +36,18 @@ import {
 import { PARCEL_STATUS_LABELS } from './contracts';
 import {
   useCustomerParcel,
-  useCustomerParcels,
   useLiveParcelTracking,
   useParcelProof,
 } from './hooks';
 
-function TrackingHub() {
-  const navigate = useNavigate();
-  const [trackingCode, setTrackingCode] = useState('');
-  const { data, isLoading } = useCustomerParcels({ page: 1, pageSize: 6 });
-
-  const handleLookup = (event: React.FormEvent) => {
-    event.preventDefault();
-    const trimmed = trackingCode.trim();
-    if (!trimmed) return;
-    void navigate(`/track?code=${encodeURIComponent(trimmed)}`);
-  };
-
-  return (
-    <WorkspacePage
-      title={<>Track a Parcel</>}
-      description="Select one of your active bookings below or look up any tracking number."
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Track by Tracking Number</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={handleLookup}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={trackingCode}
-                onChange={(e) => setTrackingCode(e.target.value)}
-                placeholder="Enter tracking number (e.g. TRK-...)"
-                className="pl-9"
-              />
-            </div>
-            <Button type="submit">Track</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Recent Parcels</CardTitle>
-          <CardDescription>
-            Click any parcel to open its live SSE tracking timeline.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : !data?.items.length ? (
-            <p className="text-sm text-muted-foreground">
-              You have no bookings yet.
-            </p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {data.items.map((item) => (
-                <Card
-                  key={item.id}
-                  className="transition-colors hover:bg-muted/40"
-                >
-                  <Link
-                    to={`/customer/parcels/${item.id}`}
-                    className="flex items-center justify-between gap-3 p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <div className="min-w-0 space-y-1">
-                      <p className="font-mono text-sm font-semibold">
-                        {item.trackingNumber}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {item.pickupCity} → {item.deliveryCity} ·{' '}
-                        {item.recipientName}
-                      </p>
-                    </div>
-                    <StatusBadge status={item.status} />
-                  </Link>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </WorkspacePage>
-  );
-}
-
 export function ParcelLiveDetail({
   parcelId,
   operational = false,
+  renderActions,
 }: {
   parcelId: string;
   operational?: boolean;
+  renderActions?: (parcel: ParcelDetail) => ReactNode;
 }) {
   const { user } = useIdentity();
   const canDownload = !operational || !!user?.roles.includes('Admin');
@@ -186,7 +99,9 @@ export function ParcelLiveDetail({
           <Button variant="ghost" size="sm" className="-ml-2" asChild>
             <Link to={operational ? '/dispatch/parcels' : '/customer/history'}>
               <ArrowLeft className="mr-1.5 size-4" />
-              {operational ? 'Back to parcel history' : 'Back to Order History'}
+              {operational
+                ? 'Back to parcel history'
+                : 'Back to Delivery history'}
             </Link>
           </Button>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -215,16 +130,19 @@ export function ParcelLiveDetail({
             Booked {formatDateTime(parcel.createdAt)} · Version {parcel.version}
           </p>
         </div>
-        {parcel.status === 'Delivered' && canDownload && (
-          <Button asChild>
-            <Link
-              to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
-            >
-              <ReceiptText className="mr-2 size-4" />
-              View & Download Receipt
-            </Link>
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {renderActions?.(parcel)}
+          {parcel.status === 'Delivered' && canDownload && (
+            <Button asChild>
+              <Link
+                to={`${operational ? '/dispatch' : '/customer'}/parcels/${parcel.id}/receipt`}
+              >
+                <ReceiptText className="mr-2 size-4" />
+                View & Download Receipt
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -339,7 +257,11 @@ export function CustomerTrackingPage() {
   return (
     <IdentityShell>
       <Protected roles={['Customer']}>
-        {id ? <ParcelLiveDetail parcelId={id} /> : <TrackingHub />}
+        {id ? (
+          <CustomerDeliveryDetail parcelId={id} />
+        ) : (
+          <CustomerTrackingHub />
+        )}
       </Protected>
     </IdentityShell>
   );

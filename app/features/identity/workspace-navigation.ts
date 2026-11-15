@@ -8,7 +8,6 @@ import {
   Map,
   MapPin,
   PackagePlus,
-  ReceiptText,
   ScrollText,
   ShieldCheck,
   SlidersHorizontal,
@@ -58,9 +57,8 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Customer'],
     items: [
       { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
-      { label: 'Track a parcel', icon: MapPin, to: '/customer/tracking' },
+      { label: 'Track a delivery', icon: MapPin, to: '/customer/tracking' },
       { label: 'Delivery history', icon: History, to: '/customer/history' },
-      { label: 'Receipts', icon: ReceiptText, to: '/customer/receipts' },
     ],
   },
   {
@@ -99,8 +97,12 @@ const navigation: readonly NavigationGroup[] = [
         icon: History,
         to: '/dispatch/parcels',
       },
-      { label: 'Unassigned parcels', icon: ClipboardList },
-      { label: 'Courier workload', icon: Users },
+      {
+        label: 'Unassigned parcels',
+        icon: ClipboardList,
+        to: '/dispatch/unassigned',
+      },
+      { label: 'Courier workload', icon: Users, to: '/dispatch/workload' },
       { label: 'Zone summary', icon: Map, to: '/dispatch/zones' },
     ],
   },
