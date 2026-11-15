@@ -63,8 +63,11 @@ describe('Role-aware workspaces', () => {
     'does not request Customer data on a %s dashboard',
     async (role) => {
       const reads = mount(role, '/dashboard', <CustomerDashboardWorkspace />);
-      await screen.findByRole('heading', { level: 1, name: 'Dashboard' });
-      if (role === 'Admin') {
+      await screen.findByRole('heading', {
+        level: 1,
+        name: role === 'Courier' ? "Today's work" : 'Dashboard',
+      });
+      if (role === 'Admin' || role === 'Courier') {
         expect(
           reads.mock.calls.every(
             ([path]) =>

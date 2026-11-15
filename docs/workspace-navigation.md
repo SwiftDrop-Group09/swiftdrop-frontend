@@ -11,10 +11,11 @@ assignment contracts and [workload integration](dispatcher-workload.md) for the
 implemented fleet and active-assignment reads. Receipts and proof in the operations view require Admin. Private URLs
 show /401 for signed-out visitors and /403 for accounts without a required role.
 Customer-only pages remain role-specific, and onboarding accepts Customer
-applicants. Non-Customer dashboards display their authorized workspace links;
-Admin has the delivery-performance and operations dashboard.
+applicants. Courier has a service-day dashboard with real queue totals and
+separate overdue work; Admin has the delivery-performance and operations
+dashboard. Other roles retain their authorized workspace links.
 
-The current user's name and email appear in the sidebar footer. Selecting this
+The current user's name and role appear in the sidebar footer. Selecting this
 control opens a shadcn dropdown containing My profile and Sign out, available to
 every role. Profile is no longer duplicated in the navigation groups. The menu
 supports keyboard navigation and closes the mobile drawer when opening profile.
@@ -48,9 +49,10 @@ The Courier assignment workflow owns status changes, proof upload and failure
 reporting; these are contextual actions on an assigned delivery, not separate
 global actions. Fee estimation belongs to booking before confirmation. Merchant
 order submission remains a scoped API integration, rather than a fabricated web
-order form. Business overview is reserved for actual owned-business statistics;
-the current empty dashboard does not pretend to show them. Delivery reports do
-not introduce revenue or payment features.
+order form; the Orders page is a read-only view of what those systems submitted.
+Business overview shows only server-computed statistics for the owned business
+(the merchant dashboard endpoint) and labels how fresh its parcel data is.
+Delivery reports do not introduce revenue or payment features.
 
 Dispatch navigation is visible to Dispatcher and Admin because authorization
 explicitly permits both to assign/reassign parcels and read operations data.
