@@ -27,6 +27,7 @@ import { Input } from '~/shared/components/ui/input';
 import { Skeleton } from '~/shared/components/ui/skeleton';
 import { DeliveryStepper, StatusBadge, formatDateTime } from './components';
 import { usePublicTracking } from './hooks';
+import { AssistantWidget } from '~/features/ai-assistant/assistant-widget';
 
 export function PublicTrackingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -175,6 +176,7 @@ export function PublicTrackingPage() {
           </Card>
         )}
       </div>
+      <AssistantWidget />
     </div>
   );
 }
