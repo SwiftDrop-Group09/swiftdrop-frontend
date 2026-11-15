@@ -244,8 +244,8 @@ describe('Dispatcher unassigned queue', () => {
       screen.getByLabelText('Tracking number or recipient'),
       ' TRK-1 ',
     );
-    await selectBookingDate(user, 'Booked from (UTC)', 13);
-    await selectBookingDate(user, 'Booked through (UTC)', 13);
+    await selectBookingDate(user, 'Booked from', 13);
+    await selectBookingDate(user, 'Booked through', 13);
     await chooseZone(user, 'Colombo');
     expect(reads).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', { name: 'Apply filters' }));
@@ -272,10 +272,10 @@ describe('Dispatcher unassigned queue', () => {
     expect(screen.getByLabelText('Tracking number or recipient')).toHaveValue(
       '',
     );
-    expect(screen.getByLabelText('Booked from (UTC)')).toHaveTextContent(
+    expect(screen.getByLabelText('Booked from')).toHaveTextContent(
       'Pick a date',
     );
-    expect(screen.getByLabelText('Booked through (UTC)')).toHaveTextContent(
+    expect(screen.getByLabelText('Booked through')).toHaveTextContent(
       'Pick a date',
     );
     expect(
@@ -386,13 +386,13 @@ describe('Dispatcher unassigned queue', () => {
   it('rejects reversed dates inline without changing the requested filters', async () => {
     const { reads, user } = mount();
     await loaded();
-    await selectBookingDate(user, 'Booked from (UTC)', 14);
-    await selectBookingDate(user, 'Booked through (UTC)', 13);
+    await selectBookingDate(user, 'Booked from', 14);
+    await selectBookingDate(user, 'Booked through', 13);
     await user.click(screen.getByRole('button', { name: 'Apply filters' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The through date must be on or after the from date.',
     );
-    expect(screen.getByLabelText('Booked through (UTC)')).toHaveFocus();
+    expect(screen.getByLabelText('Booked through')).toHaveFocus();
     expect(reads).toHaveBeenCalledTimes(1);
   });
 
@@ -403,7 +403,7 @@ describe('Dispatcher unassigned queue', () => {
       await loaded();
       await selectBookingDate(
         user,
-        bound === 'from' ? 'Booked from (UTC)' : 'Booked through (UTC)',
+        bound === 'from' ? 'Booked from' : 'Booked through',
         31,
         9,
       );
@@ -425,7 +425,7 @@ describe('Dispatcher unassigned queue', () => {
   it('supports keyboard date selection, restores trigger focus, and clears a selected day', async () => {
     const { reads, user } = mount();
     await loaded();
-    const trigger = screen.getByRole('button', { name: 'Booked from (UTC)' });
+    const trigger = screen.getByRole('button', { name: 'Booked from' });
     trigger.focus();
     await user.keyboard('{Enter}');
     const today = screen.getByRole('button', {

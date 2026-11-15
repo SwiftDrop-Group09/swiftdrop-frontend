@@ -103,7 +103,7 @@ describe('Role-aware workspaces', () => {
     async (role) => {
       const reads = mount(role, '/dispatch/zones', <ZoneSummaryPage />);
       if (role === 'Dispatcher' || role === 'Admin') {
-        await screen.findByText('No zone activity yet');
+        await screen.findByText('No delivery zones configured');
         await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
       } else {
         await screen.findByRole('heading', { name: 'Access denied' });

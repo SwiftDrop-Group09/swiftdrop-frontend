@@ -14,6 +14,53 @@ function setup(response: Response) {
 }
 
 describe('real Delivery administration transport', () => {
+  it('encodes summary UTC bounds and forwards cancellation without changing the response', async () => {
+    const { api, request } = setup(Response.json({ zones: [] }));
+    const cancellation = new AbortController();
+    await expect(
+      api.getZoneSummary(
+        '2026-11-14T00:00:00+00:00',
+        '2026-11-15T00:00:00Z',
+        cancellation.signal,
+      ),
+    ).resolves.toEqual({ zones: [] });
+    const [path, init] = request.mock.calls[0]!;
+    const url = new URL(
+      typeof path === 'string'
+        ? path
+        : path instanceof URL
+          ? path.href
+          : path.url,
+      'https://example.test',
+    );
+    expect(url.pathname).toBe('/custom-api/v1/zones/summary');
+    expect(url.searchParams.get('from')).toBe('2026-11-14T00:00:00+00:00');
+    expect(url.searchParams.get('to')).toBe('2026-11-15T00:00:00Z');
+    expect(init?.signal).toBe(cancellation.signal);
+  });
+
+  it('preserves the undated summary call for zone catalog consumers', async () => {
+    const { api, request } = setup(Response.json({ zones: [] }));
+    await api.getZoneSummary();
+    expect(request).toHaveBeenCalledWith(
+      '/custom-api/v1/zones/summary',
+      undefined,
+    );
+  });
+
+  it('retains summary date-validation field errors', async () => {
+    const errors = { to: ['Both UTC bounds are required.'] };
+    const { api } = setup(
+      Response.json({ code: 'invalid_date_range', errors }, { status: 400 }),
+    );
+    await expect(
+      api.getZoneSummary('2026-11-14T00:00:00Z'),
+    ).rejects.toMatchObject({
+      code: 'invalid_date_range',
+      status: 400,
+      errors,
+    });
+  });
   it('requires filter-capable response metadata when searching to avoid silently unfiltered results', async () => {
     const { api } = setup(
       Response.json({ items: [], totalCount: 0, page: 1, pageSize: 20 }),
