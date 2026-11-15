@@ -79,8 +79,7 @@ describe('AI Delivery Assistant UI Components', () => {
     });
   });
 
-  it('renders AssistantPage with initial welcome starter cards and MCP Inspector button', async () => {
-    const user = userEvent.setup();
+  it('renders AssistantPage with initial welcome starter cards and Clear chat button', () => {
     renderWithProviders(<AssistantPage />, '/customer/assistant');
 
     expect(
@@ -92,17 +91,10 @@ describe('AI Delivery Assistant UI Components', () => {
     expect(screen.getByText('Service zones & coverage')).toBeInTheDocument();
     expect(screen.getByText('My recent deliveries')).toBeInTheDocument();
 
-    // Open MCP Inspector
-    const inspectorButton = screen.getByRole('button', {
-      name: /MCP Inspector/i,
+    const clearButton = screen.getByRole('button', {
+      name: /Clear chat/i,
     });
-    expect(inspectorButton).toBeInTheDocument();
-    await user.click(inspectorButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('track_parcel')).toBeInTheDocument();
-      expect(screen.getByText('estimate_delivery_fee')).toBeInTheDocument();
-    });
+    expect(clearButton).toBeInTheDocument();
   });
 
   it('sends fee query and renders QuoteResultCard with booking action', async () => {
