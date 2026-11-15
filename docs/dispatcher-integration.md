@@ -214,3 +214,43 @@ The user explicitly chose to leave the two-parcel signed-in live workflow pendin
 P6 remains incomplete until that user-assisted acceptance is recorded. Startup,
 anonymous authorization refusal and fixtures do not prove signed-in workflow
 behavior, shared proof storage, Flutter or broker delivery. Nothing was pushed.
+
+## Integrated dev verification and local scheduling limit
+
+Normal merge `797242e` integrates reviewed frontend dev `17aaa30` while preserving
+all three P6 commits. Its tree is the previously reviewed combined tree
+`5522380c4cb3c54c0db1f823065c4078692b5e57`. Incoming changes belong to Merchant/public
+tracking; no Dispatcher, Identity, shared authorization, package or test-setup
+source changed. The P6 change relative to dev remains its workflow tests and this
+handoff. No other-role fixes were authored during integration.
+
+The unrestricted local standard check reproduces one existing Identity heading
+timeout, with 734 tests passing. The complete Identity file passes 67/67 alone.
+Current dev's [standard CI run](https://github.com/SwiftDrop-Group09/swiftdrop-frontend/actions/runs/43685537254)
+passes all 733 upstream tests, including those 67 Identity cases, and build.
+CI on upstream dev does not establish a pass for the unpublished P6 merge.
+
+The unchanged local `npm run check`, launched as `taskset -c 0,1 npm run check`,
+passes all formatting/lint/type gates, **735 tests / 49 files** and production
+build on both the pre-merge feature and exact integrated tree. This limits CPU
+affinity only for the newly created check process; the workstation retains its
+16-CPU affinity. No source, assertion, timeout, Vitest worker configuration or
+host setting was changed. Results support a scheduling-sensitive local test;
+the underlying cause and unrestricted-run stability remain an Identity-owner
+handoff. Do not describe the unrestricted local check as passing or an Identity
+production defect as fixed.
+
+The integrated production browser journey passes at 1280/768/390/320px with all
+three themes, actual SPA navigation and assignment/replacement cache refresh.
+Representative desktop/mobile screenshots were inspected; API traffic remains
+intercepted fixture data. The isolated preview was stopped afterward.
+
+Runtime acceptance was renewed at backend `265e2dc`, frontend `797242e`, infra
+`785f0dc`: full foundation checks and canonical Docker build/start passed, with
+seven expected service images, six healthy container checks and 14 HTTP/JWKS
+probes. Current preflight found the previous stack stopped. Canonical non-watch
+host mode is now running with all nine restoration probes passing. Read-only
+Identity/Delivery/Merchant migration histories match before/during/after at
+5/11/7 applied, with no pending versions. No shared test-parcel write, account
+provisioning, reset or downgrade was performed. The user-deferred signed-in
+two-parcel workflow remains pending; no push or PR has been performed.
