@@ -5,6 +5,11 @@ are implemented. The sections recording 14 November checks below are historical;
 current whole-workflow verification and remaining live acceptance appear in the
 P6 section at the end. Use the linked owning feature contracts for current behavior.
 
+Dispatcher `/dashboard` also provides an all-date operations overview with KPI
+cards, a zone workload chart, bounded courier and recent-unassigned previews,
+and links into the existing workflows. See [dashboard integration](dispatcher-dashboard.md)
+for count definitions, read/cache behavior and verification boundaries.
+
 The `/dispatch/unassigned` page is available to Dispatcher and Admin. It reuses
 the existing dashboard shell, sidebar, top bar, breadcrumbs, account menu and
 appearance settings. The portal delegates to the Dispatch feature. Controls and

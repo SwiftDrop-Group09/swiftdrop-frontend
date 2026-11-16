@@ -9,6 +9,7 @@ import type { Profile } from '~/features/identity/contracts';
 import { IdentityProvider, IdentitySession } from '~/features/identity/session';
 import { csrf, customer, json, pair } from '~/features/identity/test-fixtures';
 import DispatcherParcel from '~/portals/dispatcher/parcel';
+import DashboardRoute from '~/portals/customer/dashboard';
 import { createAppQueryClient } from '~/shared/query-client';
 import { CourierWorkloadPage } from './workload-page';
 import { UnassignedParcelsPage } from './unassigned-page';
@@ -197,6 +198,7 @@ function mount(role: 'Dispatcher' | 'Admin') {
   );
   const router = createMemoryRouter(
     [
+      { path: '/dashboard', element: <DashboardRoute /> },
       { path: '/dispatch/unassigned', element: <UnassignedParcelsPage /> },
       { path: '/dispatch/workload', element: <CourierWorkloadPage /> },
       { path: '/dispatch/zones', element: <ZoneSummaryPage /> },
@@ -240,6 +242,15 @@ it.each(['Dispatcher', 'Admin'] as const)(
         queryFn: () => createAdminDeliveryApi(session).getZoneSummary(from, to),
       });
     await screen.findByText('Courier Alpha');
+    if (role === 'Dispatcher') {
+      await navigate('/dashboard');
+      await screen.findByRole('link', { name: parcel.trackingNumber });
+      expect(screen.getByLabelText('Awaiting assignment')).toHaveTextContent(
+        '1',
+      );
+      expect(screen.getByLabelText('In progress')).toHaveTextContent('0');
+      await navigate('/dispatch/workload');
+    }
     for (const code of ['COU-0001', 'COU-0002']) {
       await user.click(
         screen.getByRole('button', { name: `View active parcels for ${code}` }),
@@ -281,6 +292,7 @@ it.each(['Dispatcher', 'Admin'] as const)(
     ).not.toBeInTheDocument();
     expect((await readDated()).zones[0]?.statusCounts).toEqual({ Assigned: 1 });
     await workload(1, 0);
+    if (role === 'Dispatcher') await dashboard(1, 0);
 
     await navigate(`/dispatch/parcels/${parcelId}`);
     await user.click(
@@ -303,6 +315,7 @@ it.each(['Dispatcher', 'Admin'] as const)(
     expect(queries.getQueryState(datedKey)?.isInvalidated).toBe(true);
     await user.click(screen.getByRole('button', { name: 'Done' }));
     await workload(0, 1);
+    if (role === 'Dispatcher') await dashboard(0, 1);
     await navigate('/dispatch/zones');
     await screen.findByRole('cell', { name: 'Workflow zone' });
     expect((await readDated()).zones[0]?.statusCounts).toEqual({ Assigned: 1 });
@@ -355,6 +368,25 @@ it.each(['Dispatcher', 'Admin'] as const)(
           });
         else await screen.findByText('No active assignments');
         await user.click(screen.getByRole('button', { name: 'Close' }));
+      }
+    }
+    async function dashboard(countA: number, countB: number) {
+      await navigate('/dashboard');
+      await screen.findByText('No parcels awaiting assignment');
+      expect(screen.getByLabelText('Awaiting assignment')).toHaveTextContent(
+        '0',
+      );
+      expect(screen.getByLabelText('In progress')).toHaveTextContent('1');
+      expect(screen.getByLabelText('Zones with backlog')).toHaveTextContent(
+        '0',
+      );
+      for (const [name, count] of [
+        ['Courier Alpha', countA],
+        ['Courier Beta', countB],
+      ] as const) {
+        expect(screen.getByText(name).closest('li')).toHaveTextContent(
+          `${count} / 2`,
+        );
       }
     }
   },
