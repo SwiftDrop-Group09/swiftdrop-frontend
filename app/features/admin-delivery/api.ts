@@ -234,13 +234,37 @@ export function createAdminDeliveryApi(session: IdentitySession) {
         signal ? { signal } : undefined,
       ),
 
-    listAdminCouriers: (signal?: AbortSignal): Promise<AdminCourier[]> =>
-      request('/admin/couriers', z.array(adminCourierSchema), signal ? { signal } : undefined),
+    listAdminCouriers: async (signal?: AbortSignal): Promise<AdminCourier[]> => {
+      try {
+        return await request('/admin/couriers', z.array(adminCourierSchema), signal ? { signal } : undefined);
+      } catch (err) {
+        if (err instanceof AdminDeliveryError && err.status === 404) {
+          return await request('/couriers/ops', z.array(adminCourierSchema), signal ? { signal } : undefined);
+        }
+        throw err;
+      }
+    },
 
-    getAdminCourier: (id: string, signal?: AbortSignal): Promise<AdminCourier> =>
-      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, signal ? { signal } : undefined),
+    getAdminCourier: async (id: string, signal?: AbortSignal): Promise<AdminCourier> => {
+      try {
+        return await request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, signal ? { signal } : undefined);
+      } catch (err) {
+        if (err instanceof AdminDeliveryError && err.status === 404) {
+          return await request(`/couriers/${encodeURIComponent(id)}/ops`, adminCourierSchema, signal ? { signal } : undefined);
+        }
+        throw err;
+      }
+    },
 
-    updateAdminCourier: (id: string, input: UpdateCourierInput): Promise<AdminCourier> =>
-      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, body('PUT', input)),
+    updateAdminCourier: async (id: string, input: UpdateCourierInput): Promise<AdminCourier> => {
+      try {
+        return await request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, body('PUT', input));
+      } catch (err) {
+        if (err instanceof AdminDeliveryError && err.status === 404) {
+          return await request(`/couriers/${encodeURIComponent(id)}/ops`, adminCourierSchema, body('PUT', input));
+        }
+        throw err;
+      }
+    },
   };
 }

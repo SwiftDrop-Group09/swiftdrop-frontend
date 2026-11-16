@@ -18,13 +18,40 @@ const version = integerText.refine(
 const count = integerText
   .refine((s) => /^\d+$/.test(s) && Number.isSafeInteger(Number(s)))
   .transform(Number);
+const vehicleTypeSchema = z
+  .union([
+    z.string(),
+    z.number(),
+    z.instanceof(JsonNumber).transform((jn) => Number(jn.source)),
+  ])
+  .transform((v) => {
+    if (typeof v === 'number') {
+      switch (v) {
+        case 1:
+          return 'Bicycle';
+        case 2:
+          return 'Motorcycle';
+        case 3:
+          return 'Car';
+        case 4:
+          return 'Van';
+        case 5:
+          return 'Truck';
+        default:
+          return 'Motorcycle';
+      }
+    }
+    return v || 'Motorcycle';
+  })
+  .default('Motorcycle');
+
 const candidate = z
   .object({
     courierId: z.uuid(),
     onDuty: z.boolean(),
     activeCountForServiceDate: count,
     capacity: count.refine((n) => n > 0),
-    vehicleType: z.string().default('Motorcycle'),
+    vehicleType: vehicleTypeSchema,
     vehicleNumber: z.string().nullable().default(null),
     maxWeightKg: z.union([
       integerText,

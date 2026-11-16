@@ -55,7 +55,25 @@ export const adminCourierSchema = z.object({
   active: z.boolean(),
   onDuty: z.boolean(),
   capacity: z.number(),
-  vehicleType: z.string(),
+  vehicleType: z.union([z.string(), z.number()]).transform((v) => {
+    if (typeof v === 'number') {
+      switch (v) {
+        case 1:
+          return 'Bicycle';
+        case 2:
+          return 'Motorcycle';
+        case 3:
+          return 'Car';
+        case 4:
+          return 'Van';
+        case 5:
+          return 'Truck';
+        default:
+          return 'Motorcycle';
+      }
+    }
+    return v || 'Motorcycle';
+  }),
   vehicleNumber: z.string().nullable(),
   maxWeightKg: z.union([z.number(), z.string()]).transform(Number),
   zoneIds: z.array(z.string()),
