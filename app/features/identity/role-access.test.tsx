@@ -67,11 +67,12 @@ describe('Role-aware workspaces', () => {
         level: 1,
         name: role === 'Courier' ? "Today's work" : 'Dashboard',
       });
-      if (role === 'Admin' || role === 'Courier') {
+      if (role === 'Admin' || role === 'Courier' || role === 'Dispatcher') {
         expect(
           reads.mock.calls.every(
             ([path]) =>
               !String(path).includes('/parcels/me') &&
+              !String(path).includes('/parcels/summary') &&
               !String(path).includes('/customer/'),
           ),
         ).toBe(true);

@@ -18,9 +18,22 @@ const AdminDashboard = lazy(
 );
 
 const CourierDashboard = lazy(() => import('~/features/courier/dashboard'));
+const DispatcherDashboard = lazy(() => import('~/features/dispatch/dashboard'));
 
 export function RoleHome() {
   const { user } = useIdentity();
+  if (user?.roles.length === 1 && user.roles[0] === 'Dispatcher')
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading dispatch dashboard…" />
+          </WorkspacePage>
+        }
+      >
+        <DispatcherDashboard key={user.id} />
+      </Suspense>
+    );
   if (user?.roles[0] === 'Courier')
     return (
       <Suspense
