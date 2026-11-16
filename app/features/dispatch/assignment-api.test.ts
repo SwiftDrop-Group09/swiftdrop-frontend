@@ -16,7 +16,13 @@ const options = {
   operationsTimeZone: 'Asia/Colombo',
   serviceDate: '2026-11-14',
   items: [
-    { courierId, onDuty: true, activeCountForServiceDate: 0, capacity: 2 },
+    {
+      courierId,
+      courierCode: 'COU-0001',
+      onDuty: true,
+      activeCountForServiceDate: 0,
+      capacity: 2,
+    },
   ],
   totalCount: 1,
   page: 1,
@@ -51,6 +57,7 @@ describe('assignment transport', () => {
       1,
     );
     expect(result.parcelVersion).toBe('9007199254740993');
+    expect(result.items[0]?.courierCode).toBe('COU-0001');
     const attempt = assignmentAttempt(
       parcelId,
       courierId,
@@ -96,6 +103,8 @@ describe('assignment transport', () => {
       items: [{ ...options.items[0], activeCountForServiceDate: 2 }],
     },
     { ...options, parcelVersion: '1' },
+    { ...options, items: [{ ...options.items[0], courierCode: undefined }] },
+    { ...options, items: [{ ...options.items[0], courierCode: courierId }] },
   ])('rejects inconsistent eligibility responses', async (body) => {
     await expect(
       getAssignmentOptions(
@@ -137,7 +146,11 @@ it('reads reassignment context and retains normalized reason and exact bytes on 
       ...options,
       parcelVersion: 2,
       reassign: true,
-      currentAssignment: { courierId: oldCourier, serviceDate: '2026-11-15' },
+      currentAssignment: {
+        courierId: oldCourier,
+        courierCode: 'COU-0002',
+        serviceDate: '2026-11-15',
+      },
       serviceDate: '2026-11-15',
     }),
   );
@@ -154,6 +167,7 @@ it('reads reassignment context and retains normalized reason and exact bytes on 
     expect.stringContaining('reassign=true'),
   );
   expect(context.currentAssignment?.courierId).toBe(oldCourier);
+  expect(context.currentAssignment?.courierCode).toBe('COU-0002');
   const attempt = assignmentAttempt(
     parcelId,
     courierId,
@@ -182,7 +196,26 @@ it.each([
   { reassign: true, currentAssignment: null },
   {
     reassign: true,
-    currentAssignment: { courierId, serviceDate: '2026-11-14' },
+    currentAssignment: {
+      courierId,
+      courierCode: 'COU-0001',
+      serviceDate: '2026-11-14',
+    },
+  },
+  {
+    reassign: true,
+    currentAssignment: {
+      courierId: '33333333-3333-4333-8333-333333333333',
+      serviceDate: '2026-11-14',
+    },
+  },
+  {
+    reassign: true,
+    currentAssignment: {
+      courierId: '33333333-3333-4333-8333-333333333333',
+      courierCode: 'invalid',
+      serviceDate: '2026-11-14',
+    },
   },
 ])(
   'rejects missing, mismatched or self-replacement contexts',

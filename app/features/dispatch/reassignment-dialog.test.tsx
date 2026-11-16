@@ -17,12 +17,22 @@ const options = {
   parcelId,
   parcelVersion: 2,
   reassign: true,
-  currentAssignment: { courierId: oldId, serviceDate: '2026-11-16' },
+  currentAssignment: {
+    courierId: oldId,
+    courierCode: 'COU-0002',
+    serviceDate: '2026-11-16',
+  },
   businessToday: '2026-11-14',
   operationsTimeZone: 'Asia/Colombo',
   serviceDate: '2026-11-16',
   items: [
-    { courierId, onDuty: false, activeCountForServiceDate: 0, capacity: 2 },
+    {
+      courierId,
+      courierCode: 'COU-0001',
+      onDuty: false,
+      activeCountForServiceDate: 0,
+      capacity: 2,
+    },
   ],
   totalCount: 1,
   page: 1,
@@ -51,6 +61,14 @@ function mount({
 } = {}) {
   const reads = vi.fn(read),
     writes = vi.fn(write);
+  const nameReads = vi.fn((ids: string[]) =>
+    json(
+      ids.map((id) => ({
+        id,
+        fullName: id === oldId ? 'Courier Original' : 'Courier Alpha',
+      })),
+    ),
+  );
   const profile = { ...customer, roles: ['Dispatcher'] as ['Dispatcher'] };
   const fetcher = vi.fn<typeof fetch>(async (input, init) => {
     const url = new URL(
@@ -66,6 +84,8 @@ function mount({
       return json(pair(profile, profile.id));
     if (url.pathname.endsWith('/assignment-options'))
       return reads(url.searchParams);
+    if (url.pathname.endsWith('/courier-directory'))
+      return nameReads(url.searchParams.get('ids')!.split(','));
     if (url.pathname.endsWith('/deliveries/assign')) return writes(init);
     return json({ code: 'not_found' }, 404);
   });
@@ -101,7 +121,7 @@ function mount({
       </QueryClientProvider>
     </StrictMode>,
   );
-  return { user: userEvent.setup(), reads, writes, queries };
+  return { user: userEvent.setup(), reads, writes, queries, nameReads };
 }
 it.each([
   ['2026-11-16', '2026-11-16'],
@@ -109,18 +129,26 @@ it.each([
 ])(
   'uses the server-selected date %s → %s and requires a reason',
   async (original, selectedDate) => {
-    const { user, writes, reads } = mount({
+    const { user, writes, reads, nameReads } = mount({
       read: () =>
         json({
           ...options,
-          currentAssignment: { courierId: oldId, serviceDate: original },
+          currentAssignment: {
+            courierId: oldId,
+            courierCode: 'COU-0002',
+            serviceDate: original,
+          },
           serviceDate: selectedDate,
         }),
     });
     const choose = await screen.findByRole('button', {
-      name: `Select courier ${courierId}`,
+      name: 'Select courier Courier Alpha · COU-0001',
     });
     expect(reads.mock.calls.at(-1)?.[0].get('reassign')).toBe('true');
+    expect(nameReads.mock.calls[0]?.[0]).toEqual([courierId, oldId].sort());
+    expect(
+      screen.getByText(/Current courier Courier Original · COU-0002/),
+    ).toHaveTextContent(original);
     expect(
       screen.getByRole('button', { name: 'Service date' }),
     ).toHaveTextContent(selectedDate);
@@ -158,7 +186,9 @@ it('clears selection and confirmation at refresh start and after a newer preview
         : json(options),
   });
   await user.click(
-    await screen.findByRole('button', { name: `Select courier ${courierId}` }),
+    await screen.findByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.type(
     screen.getByRole('textbox', { name: 'Reassignment reason' }),
@@ -188,7 +218,9 @@ it('clears selection and confirmation at refresh start and after a newer preview
   });
   await waitFor(() =>
     expect(
-      screen.getByRole('button', { name: `Select courier ${courierId}` }),
+      screen.getByRole('button', {
+        name: 'Select courier Courier Alpha · COU-0001',
+      }),
     ).toBeEnabled(),
   );
   expect(
@@ -208,7 +240,9 @@ it('retains reason, body and key after an uncertain request and explains cancell
     },
   });
   await user.click(
-    await screen.findByRole('button', { name: `Select courier ${courierId}` }),
+    await screen.findByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.type(
     screen.getByRole('textbox', { name: 'Reassignment reason' }),
@@ -242,7 +276,9 @@ it('clears confirmation after a failed invalidation-driven refresh', async () =>
       fail ? json({ code: 'delivery_unavailable' }, 503) : json(options),
   });
   await user.click(
-    await screen.findByRole('button', { name: `Select courier ${courierId}` }),
+    await screen.findByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.type(
     screen.getByRole('textbox', { name: 'Reassignment reason' }),
