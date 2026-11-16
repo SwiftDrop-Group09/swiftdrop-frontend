@@ -29,8 +29,10 @@ Zero-count zones remain available in the full Zone summary.
 The chart and matrix share their status groups: Before transit (Booked, Assigned,
 Collected), On the road (In transit, Out for delivery), Done (Delivered), and
 Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
-emerald and destructive red families. Chart fills use the status text colors for
-solid Light/Dark contrast. Unknown returned statuses form a neutral Other statuses
+emerald and destructive red families. Chart fills match the matrix's strongest
+background shades: amber/sky/emerald 200 in Light, their 900 shades at 70% in Dark,
+and destructive at 10% for problems. Subtle status borders preserve segment edges.
+Unknown returned statuses form a neutral Other statuses
 series when present, rather than being discarded or inferred from the API total.
 
 The shadcn Chart legend labels each group. Plain text below the ranking caption

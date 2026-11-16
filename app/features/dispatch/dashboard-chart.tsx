@@ -21,26 +21,43 @@ import type { dispatchSnapshot } from './dashboard-analytics';
 import { buildZoneMatrix, formatZoneCount } from './zone-matrix-model';
 import { ZONE_STATUS_GROUPS } from './zone-status-groups';
 
-// Match the matrix's status text colors with solid, theme-aware chart fills.
+// Use the matrix's strongest background shades, rather than its text colors.
 const config = {
   beforeTransit: {
     label: 'Before transit',
-    theme: { light: 'var(--color-amber-800)', dark: 'var(--color-amber-300)' },
+    theme: {
+      light: 'var(--color-amber-200)',
+      dark: 'color-mix(in oklab, var(--color-amber-900) 70%, transparent)',
+    },
   },
   onRoad: {
     label: 'On the road',
-    theme: { light: 'var(--color-sky-800)', dark: 'var(--color-sky-300)' },
+    theme: {
+      light: 'var(--color-sky-200)',
+      dark: 'color-mix(in oklab, var(--color-sky-900) 70%, transparent)',
+    },
   },
   done: {
     label: 'Done',
     theme: {
-      light: 'var(--color-emerald-800)',
-      dark: 'var(--color-emerald-300)',
+      light: 'var(--color-emerald-200)',
+      dark: 'color-mix(in oklab, var(--color-emerald-900) 70%, transparent)',
     },
   },
-  problems: { label: 'Problems', color: 'var(--destructive)' },
-  other: { label: 'Other statuses', color: 'var(--muted-foreground)' },
+  problems: {
+    label: 'Problems',
+    color: 'color-mix(in oklab, var(--destructive) 10%, transparent)',
+  },
+  other: { label: 'Other statuses', color: 'var(--muted)' },
 } satisfies ChartConfig;
+
+const segmentStrokes: Record<keyof typeof config, string> = {
+  beforeTransit: 'stroke-amber-200 dark:stroke-amber-900',
+  onRoad: 'stroke-sky-200 dark:stroke-sky-900',
+  done: 'stroke-emerald-200 dark:stroke-emerald-900',
+  problems: 'stroke-destructive/25',
+  other: 'stroke-border',
+};
 
 function payloadZoneId(value: unknown) {
   return typeof value === 'object' && value !== null && 'zoneId' in value
@@ -191,6 +208,8 @@ export function DispatchWorkloadChart({
               dataKey={key}
               stackId="workload"
               fill={`var(--color-${key})`}
+              className={segmentStrokes[key]}
+              strokeWidth={1}
               isAnimationActive={false}
             />
           ))}
