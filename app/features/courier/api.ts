@@ -46,6 +46,18 @@ export const summarySchema = z.object({
   }),
   createdAt: z.iso.datetime({ offset: true }),
 });
+export const courierDutySchema = z.object({
+  courierId: z.string(),
+  active: z.boolean(),
+  onDuty: z.boolean(),
+  capacity: count,
+  vehicleType: z.string(),
+  vehicleNumber: z.string().nullable().default(null),
+  maxWeightKg: numeric.or(z.string()).or(z.number()).transform(String),
+  courierCode: z.string(),
+  zoneIds: z.array(z.string()),
+});
+export type CourierDuty = z.infer<typeof courierDutySchema>;
 const address = z.object({
   street: z.string(),
   city: z.string(),
@@ -353,6 +365,16 @@ export class CourierApi {
     if (!z.uuid().safeParse(id).success)
       return Promise.reject(new CourierError('not_found', 404));
     return this.read(`/parcels/${id}`, detailSchema);
+  }
+  duty() {
+    return this.read('/couriers/me/duty', courierDutySchema);
+  }
+  setDuty(onDuty: boolean) {
+    return this.read('/couriers/me/duty', courierDutySchema, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onDuty }),
+    });
   }
   async submit(a: Attempt): Promise<Summary> {
     const headers: Record<string, string> = { 'Idempotency-Key': a.key };
