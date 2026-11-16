@@ -235,12 +235,30 @@ export function createAdminDeliveryApi(session: IdentitySession) {
       ),
 
     listAdminCouriers: (signal?: AbortSignal): Promise<AdminCourier[]> =>
-      request('/admin/couriers', z.array(adminCourierSchema), signal ? { signal } : undefined),
+      request(
+        '/admin/couriers',
+        z.array(adminCourierSchema),
+        signal ? { signal } : undefined,
+      ),
 
-    getAdminCourier: (id: string, signal?: AbortSignal): Promise<AdminCourier> =>
-      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, signal ? { signal } : undefined),
+    getAdminCourier: (
+      id: string,
+      signal?: AbortSignal,
+    ): Promise<AdminCourier> =>
+      request(
+        `/admin/couriers/${encodeURIComponent(id)}`,
+        adminCourierSchema,
+        signal ? { signal } : undefined,
+      ),
 
-    updateAdminCourier: (id: string, input: UpdateCourierInput): Promise<AdminCourier> =>
-      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, body('PUT', input)),
+    updateAdminCourier: (
+      id: string,
+      input: UpdateCourierInput,
+    ): Promise<AdminCourier> =>
+      request(
+        `/admin/couriers/${encodeURIComponent(id)}`,
+        adminCourierSchema,
+        body('PUT', input),
+      ),
   };
 }

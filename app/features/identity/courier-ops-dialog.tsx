@@ -23,10 +23,8 @@ import {
   SelectValue,
 } from '~/shared/components/ui/select';
 import { Alert } from '~/shared/components/ui/alert';
-import {
-  WorkspaceLoading,
-  WorkspaceNotice,
-} from '~/shared/components/workspace-state';
+import { WorkspaceLoading } from '~/shared/components/workspace-state';
+import { safeError } from './components';
 
 interface CourierOpsDialogProps {
   profile: Profile;
@@ -34,7 +32,11 @@ interface CourierOpsDialogProps {
   saved: (message: string) => void;
 }
 
-export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProps) {
+export function CourierOpsDialog({
+  profile,
+  close,
+  saved,
+}: CourierOpsDialogProps) {
   const { session } = useIdentity();
   const queries = useQueryClient();
   const api = createAdminDeliveryApi(session);
@@ -67,6 +69,8 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
 
   useEffect(() => {
     if (courierQuery.data) {
+      // The form mirrors asynchronously loaded operational data.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVehicleType(courierQuery.data.vehicleType);
       setVehicleNumber(courierQuery.data.vehicleNumber || '');
       setMaxWeightKg(String(courierQuery.data.maxWeightKg));
@@ -102,20 +106,26 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
       await Promise.all([
         queries.invalidateQueries({ queryKey: ['courier-directory'] }),
         queries.invalidateQueries({ queryKey: ['dispatch-workload'] }),
-        queries.invalidateQueries({ queryKey: ['dispatch-assignment-options'] }),
-        queries.invalidateQueries({ queryKey: ['admin-courier-ops', profile.id] }),
+        queries.invalidateQueries({
+          queryKey: ['dispatch-assignment-options'],
+        }),
+        queries.invalidateQueries({
+          queryKey: ['admin-courier-ops', profile.id],
+        }),
       ]);
       saved(`Updated courier operations for ${profile.fullName}.`);
       close();
     },
-    onError: (err: any) => {
-      setFormError(err.message || 'Failed to update courier operations.');
+    onError: (err: unknown) => {
+      setFormError(err instanceof Error ? err.message : safeError(err));
     },
   });
 
   const toggleZone = (zoneId: string) => {
     setSelectedZones((prev) =>
-      prev.includes(zoneId) ? prev.filter((id) => id !== zoneId) : [...prev, zoneId],
+      prev.includes(zoneId)
+        ? prev.filter((id) => id !== zoneId)
+        : [...prev, zoneId],
     );
   };
 
@@ -127,8 +137,8 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
         <DialogHeader>
           <DialogTitle>Courier Vehicle & Zone Operations</DialogTitle>
           <DialogDescription>
-            Configure operational parameters, vehicle capacity, and delivery zones for{' '}
-            <strong>{profile.fullName}</strong>.
+            Configure operational parameters, vehicle capacity, and delivery
+            zones for <strong>{profile.fullName}</strong>.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,11 +162,21 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Bicycle">Bicycle (Light cargo, up to 15 kg)</SelectItem>
-                  <SelectItem value="Motorcycle">Motorcycle (Standard, up to 35 kg)</SelectItem>
-                  <SelectItem value="Car">Car (Standard parcel trunk, up to 100 kg)</SelectItem>
-                  <SelectItem value="Van">Van (Large cargo, up to 500 kg)</SelectItem>
-                  <SelectItem value="Truck">Truck (Heavy cargo, up to 2000 kg)</SelectItem>
+                  <SelectItem value="Bicycle">
+                    Bicycle (Light cargo, up to 15 kg)
+                  </SelectItem>
+                  <SelectItem value="Motorcycle">
+                    Motorcycle (Standard, up to 35 kg)
+                  </SelectItem>
+                  <SelectItem value="Car">
+                    Car (Standard parcel trunk, up to 100 kg)
+                  </SelectItem>
+                  <SelectItem value="Van">
+                    Van (Large cargo, up to 500 kg)
+                  </SelectItem>
+                  <SelectItem value="Truck">
+                    Truck (Heavy cargo, up to 2000 kg)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -200,7 +220,8 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Maximum active parcel deliveries allowed on a single service date.
+                Maximum active parcel deliveries allowed on a single service
+                date.
               </p>
             </div>
 
@@ -224,7 +245,8 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
             <div className="space-y-2 pt-2 border-t">
               <Label>Assigned Delivery Zones</Label>
               <p className="text-xs text-muted-foreground mb-2">
-                Dispatcher can only assign parcels located in these zones to this courier.
+                Dispatcher can only assign parcels located in these zones to
+                this courier.
               </p>
               {zonesQuery.data?.items.length ? (
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded p-2">
@@ -245,12 +267,19 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">No zones created yet.</p>
+                <p className="text-xs text-muted-foreground italic">
+                  No zones created yet.
+                </p>
               )}
             </div>
 
             <DialogFooter className="pt-3">
-              <Button type="button" variant="outline" onClick={close} disabled={mutation.isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={close}
+                disabled={mutation.isPending}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={mutation.isPending}>
@@ -263,4 +292,3 @@ export function CourierOpsDialog({ profile, close, saved }: CourierOpsDialogProp
     </Dialog>
   );
 }
-
