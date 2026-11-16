@@ -119,6 +119,14 @@ export function AssignmentDialog({
   const data = options.data;
   const candidateIds = data?.items.map((c) => c.courierId) ?? [];
   const directory = useCourierDirectory(candidateIds);
+  const courierIds = data?.items.map((courier) => courier.courierId) ?? [];
+  if (data?.currentAssignment)
+    courierIds.push(data.currentAssignment.courierId);
+  const names = useCourierDirectory(courierIds);
+  function courierLabel(courier: { courierId: string; courierCode: string }) {
+    const name = names.data?.[courier.courierId];
+    return name ? `${name} · ${courier.courierCode}` : courier.courierCode;
+  }
   // A selection belongs to one response, never a newer version returned by refresh.
   const selected =
     selection &&
@@ -216,6 +224,7 @@ export function AssignmentDialog({
     setNeedsReload(false);
     setError(undefined);
     void options.refetch();
+    if (courierIds.length) void names.refetch();
   }
   return (
     <Dialog
@@ -259,8 +268,8 @@ export function AssignmentDialog({
             {data && (
               <div className="space-y-2">
                 {reassign && data.currentAssignment && (
-                  <p className="text-sm break-all">
-                    Current courier {data.currentAssignment.courierId} ·
+                  <p className="text-sm break-words">
+                    Current courier {courierLabel(data.currentAssignment)} ·
                     scheduled{' '}
                     <span className="whitespace-nowrap">
                       {data.currentAssignment.serviceDate}
@@ -329,6 +338,23 @@ export function AssignmentDialog({
             )}
             {data && !options.isError && (
               <>
+                {names.isError && (
+                  <WorkspaceNotice
+                    title="Courier names unavailable"
+                    description="Courier codes identify each courier. Retry to load names."
+                    retry={() => {
+                      void names.refetch();
+                    }}
+                    pending={names.isFetching}
+                  />
+                )}
+                {names.isSuccess &&
+                  courierIds.some((id) => !names.data[id]) && (
+                    <WorkspaceNotice
+                      title="Some courier names are unavailable"
+                      description="Use the displayed courier codes to identify these couriers."
+                    />
+                  )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm">
                     Eligible couriers for {data.serviceDate}
@@ -359,95 +385,50 @@ export function AssignmentDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.items.map((courier) => {
-                        const name = directory.data?.[courier.courierId];
-                        return (
-                          <TableRow key={courier.courierId}>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-sm">
-                                    {name || 'Courier'}
-                                  </span>
-                                  {courier.isRecommended && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                      Best Match
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="font-mono text-[11px] text-muted-foreground">
-                                  {courier.courierId}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col text-xs">
-                                <span className="font-medium">
-                                  {courier.vehicleType}
-                                  {courier.vehicleNumber
-                                    ? ` (${courier.vehicleNumber})`
-                                    : ''}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  Max: {courier.maxWeightKg} kg
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span
-                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${courier.onDuty ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}
-                              >
-                                {courier.onDuty ? 'Yes' : 'No'}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1 w-24">
-                                <div className="text-xs">
-                                  {courier.activeCountForServiceDate} /{' '}
-                                  {courier.capacity}
-                                </div>
-                                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className={`h-full ${courier.activeCountForServiceDate / courier.capacity > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                                    style={{
-                                      width: `${Math.min(100, (courier.activeCountForServiceDate / Math.max(1, courier.capacity)) * 100)}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {courier.score}% fit
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                variant={
-                                  selected?.courierId === courier.courierId
-                                    ? 'default'
-                                    : 'outline'
-                                }
-                                aria-pressed={
-                                  selected?.courierId === courier.courierId
-                                }
-                                aria-label={`Select courier ${name || courier.courierId}`}
-                                disabled={
-                                  locked || options.isFetching || needsReload
-                                }
-                                onClick={() =>
-                                  setSelection({ courier, preview: data })
-                                }
-                              >
-                                {selected?.courierId === courier.courierId
-                                  ? 'Selected'
-                                  : 'Select'}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {data.items.map((courier) => (
+                        <TableRow key={courier.courierId}>
+                          <TableCell className="min-w-40 max-w-64 whitespace-normal">
+                            <p className="font-medium break-words">
+                              {names.data?.[courier.courierId] ??
+                                (names.isFetching
+                                  ? 'Loading courier name…'
+                                  : 'Name unavailable')}
+                            </p>
+                            <p className="mt-1 font-mono text-xs text-muted-foreground">
+                              {courier.courierCode}
+                            </p>
+                          </TableCell>
+                          <TableCell>{courier.onDuty ? 'Yes' : 'No'}</TableCell>
+                          <TableCell>
+                            {courier.activeCountForServiceDate} /{' '}
+                            {courier.capacity}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant={
+                                selected?.courierId === courier.courierId
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              aria-pressed={
+                                selected?.courierId === courier.courierId
+                              }
+                              aria-label={`Select courier ${courierLabel(courier)}`}
+                              disabled={
+                                locked || options.isFetching || needsReload
+                              }
+                              onClick={() =>
+                                setSelection({ courier, preview: data })
+                              }
+                            >
+                              {selected?.courierId === courier.courierId
+                                ? 'Selected'
+                                : 'Select'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 )}
@@ -507,8 +488,8 @@ export function AssignmentDialog({
               </div>
             )}
             {selected && (
-              <p className="text-sm break-all">
-                Confirm {trackingNumber} → courier {selected.courierId} on{' '}
+              <p className="text-sm break-words">
+                Confirm {trackingNumber} → courier {courierLabel(selected)} on{' '}
                 {data?.serviceDate}.{reassign && <> Reason: {reason.trim()}</>}
               </p>
             )}

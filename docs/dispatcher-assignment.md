@@ -14,7 +14,7 @@ deferred; the UI is implemented and tested without claiming shared readiness.
 
 GET /api/v1/deliveries/{parcelId}/assignment-options returns server business
 today/timezone, selected date, exact parcel version and eligible couriers with
-ID, current duty flag, date-specific active count and daily capacity. It is a new
+ID, stable courier code, current duty flag, date-specific active count and daily capacity. It is a new
 Dispatcher read, requiring central proposed contract review. Candidates use
 independent 20-row pages. The server defaults to business today. Calendar dates
 remain YYYY-MM-DD calendar strings regardless of the browser timezone. Past days
@@ -57,6 +57,35 @@ current account. Queue paging already corrects when assignments remove its last
 row. Focus returns to the original action, or queue Refresh when that row leaves.
 Reassignment is available from eligible Assigned parcel details.
 
+## Courier names and codes
+
+Eligible rows show the courier's name above their stable `COU-0001`-style code.
+Selection labels, current-courier details and confirmation use name and code.
+The dialog reuses the account-scoped `useCourierDirectory` lookup for the visible
+page and current courier. Loading or unavailable names retain the stable code
+and permit assignment; failed lookup has an independent read retry and omitted
+names have an explicit notice. Name lookup updates preserve selection. Eligibility
+refresh still requires a fresh selection and confirmation. UUIDs identify couriers
+in request bodies and query keys.
+
+Deploy the additive assignment-options courierCode fields before this frontend.
+The client validates codes on candidates and reassignment context using the same
+format as workload. Both changes use the existing Courier business-number column
+and existing Identity endpoint. The Dispatcher response contract handoff includes
+these fields for central review. Shared startup acceptance follows the workspace's
+current migration authorization and recorded verification limits.
+
+At dev base `6f49910`, the courier-label patch passes the full `npm run check`,
+including all 746 tests, formatting, lint, types and production build on Node
+24.16.0/npm 11.13.0. Production Chrome 157.0.8103.78 passes 23 isolated API-fixture
+browser groups across both dialogs at 1280/768/390/320px in Light/Dark/Device.
+Checks cover long and duplicate names, bounded directory reads, code fallback,
+lookup recovery without selection loss, UUID submission, date/paging changes,
+explicit retry, keyboard/focus and denied roles. Desktop/mobile screenshots were
+inspected. Full canonical Docker startup acceptance remains pending the existing
+task-specific shared migration authorization. Final commits, source fingerprints
+and logs are recorded in the EAD Dispatcher continuity records.
+
 ## Verification
 
 Transport tests cover exact Int64 values, byte-identical retries, response
@@ -81,7 +110,7 @@ through parcel refreshes until dismissed, even if the original action disappears
 Account changes remount the owning Dispatcher feature and discard late results.
 
 GET assignment-options uses reassign=true (strict lowercase boolean). Its response
-adds reassign and currentAssignment={courierId,serviceDate}; ordinary assignment
+adds reassign and currentAssignment={courierId,courierCode,serviceDate}; ordinary assignment
 returns false/null. Existing current courier is excluded. The default selected
 date keeps the scheduled date if today/future, or business today if overdue.
 The original date remains visible separately. Explicit dates use the existing

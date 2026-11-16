@@ -48,6 +48,7 @@ const vehicleTypeSchema = z
 const candidate = z
   .object({
     courierId: z.uuid(),
+    courierCode: z.string().regex(/^COU-[0-9]{4,}$/),
     onDuty: z.boolean(),
     activeCountForServiceDate: count,
     capacity: count.refine((n) => n > 0),
@@ -78,6 +79,7 @@ const optionsSchema = z
     currentAssignment: z
       .object({
         courierId: z.uuid(),
+        courierCode: z.string().regex(/^COU-[0-9]{4,}$/),
         serviceDate: z.iso.date(),
       })
       .nullable()
