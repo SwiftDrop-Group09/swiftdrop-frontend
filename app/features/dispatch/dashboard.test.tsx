@@ -286,9 +286,46 @@ describe('Dispatcher operations dashboard', () => {
         ? json({ zones: [zones[2]] })
         : undefined,
     );
-    await screen.findByText('No active zone workload');
+    await screen.findByText('No parcels in configured zones');
     expect(
       screen.queryByText('No delivery zones configured'),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(['Delivered', 'Failed', 'Cancelled', 'Returned'])(
+    'includes zones containing only %s parcels instead of hiding them as inactive',
+    async (status) => {
+      mount((url) =>
+        url.pathname.endsWith('/zones/summary')
+          ? json({
+              zones: [{ ...zones[0], total: 4, statusCounts: { [status]: 4 } }],
+            })
+          : undefined,
+      );
+      const table = await screen.findByRole('table', {
+        name: 'Zone workload chart values',
+      });
+      expect(
+        within(table).getByRole('rowheader', { name: 'Colombo' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: 'Current zone workload chart' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('No parcels in configured zones'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('distinguishes an unavailable status breakdown from an empty zone', async () => {
+    mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({ zones: [{ ...zones[0], statusCounts: {} }] })
+        : undefined,
+    );
+    await screen.findByText('No status breakdown available');
+    expect(
+      screen.queryByText('No parcels in configured zones'),
     ).not.toBeInTheDocument();
   });
 
@@ -472,7 +509,7 @@ describe('Dispatcher operations dashboard', () => {
     expect(view.reads).toHaveBeenCalledTimes(count);
   });
 
-  it('ignores terminal and unknown states, sorts ties, and exposes all chart values', async () => {
+  it('preserves operational KPIs while exposing all chart statuses and attention ordering', async () => {
     const extra = Array.from({ length: 6 }, (_, n) => ({
       zoneId: id(400 + n),
       name: `Zone ${n}`,
@@ -498,12 +535,16 @@ describe('Dispatcher operations dashboard', () => {
       name: 'Zone workload chart values',
     });
     expect(within(table).getAllByRole('row')).toHaveLength(7);
-    expect(within(table).getAllByRole('row')[1]).toHaveTextContent(
-      'Colombo714',
-    );
+    const row = within(table).getAllByRole('row')[1]!;
+    expect(within(row).getByRole('rowheader')).toHaveTextContent('Colombo');
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent),
+    ).toEqual(['7', '2', '3', '4', '5', '100', '20', '10', '6', '999']);
     expect(
       screen.getByText(
-        '6 of 9 zones · Ranked by awaiting assignment plus in progress.',
+        /6 of 9 zones · Ranked by Booked \+ Delivery unsuccessful \+ Cancelled/,
       ),
     ).toBeInTheDocument();
   });

@@ -260,8 +260,8 @@ function DispatcherDashboardContent() {
               </Button>
             </div>
             <CardDescription>
-              Current statuses across all booking dates. Completed, failed and
-              cancelled parcels are excluded.
+              Current statuses across all booking dates, grouped as in Zone
+              summary. Includes delivered and problem parcels.
             </CardDescription>
           </CardHeader>
           <CardContent className="min-w-0 space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">

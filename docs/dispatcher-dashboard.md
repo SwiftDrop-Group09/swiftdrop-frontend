@@ -21,9 +21,27 @@ historical comparison. Counts represent current states, not transitions today.
 - **Zones with backlog** counts zones with at least one Created parcel. Missing
   status keys mean zero; empty catalogs differ from configured zero-workload zones.
 
-The stacked horizontal chart shows the six busiest zones, ordered by Created
-plus in-progress counts, then name and zone ID. It provides theme-token colors,
-legends, tooltips and a screen-reader table containing full names and counts.
+The stacked horizontal chart previews up to six zones with positive status
+counts. Like Zone summary, it ranks by Booked + Delivery unsuccessful + Cancelled,
+then name and zone ID, so delivered volume does not determine operational priority.
+Zero-count zones remain available in the full Zone summary.
+
+The chart and matrix share their status groups: Before transit (Booked, Assigned,
+Collected), On the road (In transit, Out for delivery), Done (Delivered), and
+Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
+emerald and destructive red families. Chart fills use the status text colors for
+solid Light/Dark contrast; tooltip badges retain the existing status background,
+text and border classes. Unknown returned statuses form a neutral Other statuses
+series when present, rather than being discarded or inferred from the API total.
+
+The shadcn Chart legend labels each group. Pointer and keyboard tooltips expose
+full zone names, exact per-status counts, group sums and the authoritative API
+Total parcels, which is kept separate from the sum of status counts. A
+screen-reader table exposes full zone names, every returned status and API totals
+for the same six-zone preview. Large axis values use compact formatting, while
+tooltip and accessible values remain exact. Empty catalogs, configured zero
+zones and missing status breakdowns have distinct notices. The dashboard's
+operational KPIs retain their existing definitions above.
 
 The courier card shows the first five entries of workload page 1, preserving
 server order and labeling the partial preview. Names are resolved only for those
