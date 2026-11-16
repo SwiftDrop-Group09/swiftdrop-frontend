@@ -262,8 +262,8 @@ two-parcel workflow remains pending; no push or PR has been performed.
 
 ## Current dev integration review — 16 November 2026
 
-Integrated dev `c537d22`, including merged courier-label PR #30, into the P6 and
-Dispatcher dashboard branch for PR review. The combined workflow fixture now
+Integrated dev `18e4966`, including merged courier-label PR #30 and courier
+vehicle/matching PR #29, into the P6 and Dispatcher dashboard branch for PR review. The combined workflow fixture now
 supplies persisted courier codes, returns names only for requested directory IDs,
 and selects couriers by their visible name/code labels. Its assignment and
 reassignment cache, ownership and request assertions continue covering both

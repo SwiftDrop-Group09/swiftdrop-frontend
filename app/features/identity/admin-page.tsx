@@ -14,6 +14,7 @@ import { IdentityShell, Protected, safeError } from './components';
 import { useIdentity } from './session';
 import { AdminWorkspace } from './admin-workspace';
 import { AccountEditor, AccessEditor } from './user-dialogs';
+import { CourierOpsDialog } from './courier-ops-dialog';
 import {
   WorkspaceLoading,
   WorkspaceNotice,
@@ -93,7 +94,7 @@ export function Pagination({
 }
 
 type Editor =
-  | { kind: 'account' | 'roles' | 'status'; profile: Profile }
+  | { kind: 'account' | 'roles' | 'status' | 'courier-ops'; profile: Profile }
   | { kind: 'create'; role: Profile['roles'][number] };
 type RoleFilter = Profile['roles'][number] | 'all';
 const roleViews: { value: RoleFilter; label: string }[] = [
@@ -383,6 +384,18 @@ function AdminContent() {
                                   >
                                     Manage role
                                   </DropdownMenuItem>
+                                  {profile.roles.includes('Courier') && (
+                                    <DropdownMenuItem
+                                      onSelect={() =>
+                                        setEditor({
+                                          kind: 'courier-ops',
+                                          profile,
+                                        })
+                                      }
+                                    >
+                                      Vehicle & zones
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     variant={
@@ -455,6 +468,14 @@ function AdminContent() {
           profile={editor.profile}
           kind={editor.kind}
           saved={saved}
+          close={close}
+        />
+      )}
+      {editor?.kind === 'courier-ops' && (
+        <CourierOpsDialog
+          key={`${editor.profile.id}:courier-ops`}
+          profile={editor.profile}
+          saved={(msg) => saved(editor.profile, msg)}
           close={close}
         />
       )}

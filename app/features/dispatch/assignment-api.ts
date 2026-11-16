@@ -18,6 +18,33 @@ const version = integerText.refine(
 const count = integerText
   .refine((s) => /^\d+$/.test(s) && Number.isSafeInteger(Number(s)))
   .transform(Number);
+const vehicleTypeSchema = z
+  .union([
+    z.string(),
+    z.number(),
+    z.instanceof(JsonNumber).transform((jn) => Number(jn.source)),
+  ])
+  .transform((v) => {
+    if (typeof v === 'number') {
+      switch (v) {
+        case 1:
+          return 'Bicycle';
+        case 2:
+          return 'Motorcycle';
+        case 3:
+          return 'Car';
+        case 4:
+          return 'Van';
+        case 5:
+          return 'Truck';
+        default:
+          return 'Motorcycle';
+      }
+    }
+    return v || 'Motorcycle';
+  })
+  .default('Motorcycle');
+
 const candidate = z
   .object({
     courierId: z.uuid(),
@@ -25,6 +52,20 @@ const candidate = z
     onDuty: z.boolean(),
     activeCountForServiceDate: count,
     capacity: count.refine((n) => n > 0),
+    vehicleType: vehicleTypeSchema,
+    vehicleNumber: z.string().nullable().default(null),
+    maxWeightKg: z
+      .union([
+        integerText,
+        z.instanceof(JsonNumber).transform((n) => decimalText(n.source)),
+        z.string(),
+        z.number().transform(String),
+      ])
+      .default('30.00'),
+    score: z
+      .union([count, z.number(), integerText.transform(Number)])
+      .default(0),
+    isRecommended: z.boolean().default(false),
   })
   .refine((c) => c.activeCountForServiceDate < c.capacity);
 const optionsSchema = z
@@ -104,6 +145,8 @@ const messages: Record<string, string> = {
     'This parcel no longer permits this assignment. Reload the parcel.',
   capacity_exceeded:
     'This courier is full for the selected date. Reload and choose another courier.',
+  weight_capacity_exceeded:
+    'This parcel’s weight exceeds the courier’s maximum vehicle weight limit.',
   courier_unavailable:
     'The courier is no longer eligible for this date. Reload available couriers.',
   zone_mismatch:
