@@ -23,14 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '~/shared/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '~/shared/components/ui/table';
+import { ZoneStatusMatrix } from './zone-status-matrix';
 
 function ZoneSummaryContent() {
   const { user, session } = useIdentity();
@@ -77,15 +70,15 @@ function ZoneSummaryContent() {
         </>
       }
     >
-      <Card>
-        <CardHeader>
+      <Card className="min-w-0">
+        <CardHeader className="p-4 sm:p-6">
           <CardTitle>Delivery volume by zone</CardTitle>
           <CardDescription>
             {scope} Current parcel statuses, grouped by delivery zone. The
             period filters booking time.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
           {query.isFetching && query.data && (
             <p role="status" className="text-sm text-muted-foreground">
               Refreshing zone summary…
@@ -120,36 +113,7 @@ function ZoneSummaryContent() {
                 description="There are no configured delivery zones to summarize."
               />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Zone</TableHead>
-                    <TableHead className="text-right">Total parcels</TableHead>
-                    <TableHead>Status breakdown</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {query.data.zones.map((zone) => (
-                    <TableRow key={zone.zoneId}>
-                      <TableCell className="font-medium">{zone.name}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {zone.total}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                          {Object.entries(zone.statusCounts).map(
-                            ([status, count]) => (
-                              <span key={status}>
-                                {status}: {count}
-                              </span>
-                            ),
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ZoneStatusMatrix zones={query.data.zones} />
             ))
           )}
         </CardContent>
