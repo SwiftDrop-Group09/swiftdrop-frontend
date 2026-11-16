@@ -384,7 +384,9 @@ export function AssignmentDialog({
                               <div className="flex flex-col text-xs">
                                 <span className="font-medium">
                                   {courier.vehicleType}
-                                  {courier.vehicleNumber ? ` (${courier.vehicleNumber})` : ''}
+                                  {courier.vehicleNumber
+                                    ? ` (${courier.vehicleNumber})`
+                                    : ''}
                                 </span>
                                 <span className="text-muted-foreground">
                                   Max: {courier.maxWeightKg} kg
@@ -392,19 +394,24 @@ export function AssignmentDialog({
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${courier.onDuty ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                              <span
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${courier.onDuty ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}
+                              >
                                 {courier.onDuty ? 'Yes' : 'No'}
                               </span>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1 w-24">
                                 <div className="text-xs">
-                                  {courier.activeCountForServiceDate} / {courier.capacity}
+                                  {courier.activeCountForServiceDate} /{' '}
+                                  {courier.capacity}
                                 </div>
                                 <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                   <div
                                     className={`h-full ${courier.activeCountForServiceDate / courier.capacity > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                                    style={{ width: `${Math.min(100, (courier.activeCountForServiceDate / Math.max(1, courier.capacity)) * 100)}%` }}
+                                    style={{
+                                      width: `${Math.min(100, (courier.activeCountForServiceDate / Math.max(1, courier.capacity)) * 100)}%`,
+                                    }}
                                   />
                                 </div>
                               </div>

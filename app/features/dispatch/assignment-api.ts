@@ -53,13 +53,17 @@ const candidate = z
     capacity: count.refine((n) => n > 0),
     vehicleType: vehicleTypeSchema,
     vehicleNumber: z.string().nullable().default(null),
-    maxWeightKg: z.union([
-      integerText,
-      z.instanceof(JsonNumber).transform((n) => decimalText(n.source)),
-      z.string(),
-      z.number().transform(String)
-    ]).default('30.00'),
-    score: z.union([count, z.number(), integerText.transform(Number)]).default(0),
+    maxWeightKg: z
+      .union([
+        integerText,
+        z.instanceof(JsonNumber).transform((n) => decimalText(n.source)),
+        z.string(),
+        z.number().transform(String),
+      ])
+      .default('30.00'),
+    score: z
+      .union([count, z.number(), integerText.transform(Number)])
+      .default(0),
     isRecommended: z.boolean().default(false),
   })
   .refine((c) => c.activeCountForServiceDate < c.capacity);

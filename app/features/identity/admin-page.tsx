@@ -387,7 +387,10 @@ function AdminContent() {
                                   {profile.roles.includes('Courier') && (
                                     <DropdownMenuItem
                                       onSelect={() =>
-                                        setEditor({ kind: 'courier-ops', profile })
+                                        setEditor({
+                                          kind: 'courier-ops',
+                                          profile,
+                                        })
                                       }
                                     >
                                       Vehicle & zones

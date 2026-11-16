@@ -77,7 +77,8 @@ export default function CourierDashboard() {
           {dutyQuery.data && (
             <div className="flex items-center gap-2">
               <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
-                {dutyQuery.data.vehicleType} · Max {dutyQuery.data.maxWeightKg}kg
+                {dutyQuery.data.vehicleType} · Max {dutyQuery.data.maxWeightKg}
+                kg
               </span>
               <Button
                 variant={dutyQuery.data.onDuty ? 'default' : 'outline'}
@@ -88,7 +89,7 @@ export default function CourierDashboard() {
                     : ''
                 }
                 disabled={dutyQuery.isFetching}
-                onClick={toggleDuty}
+                onClick={() => void toggleDuty()}
               >
                 <span
                   className={`mr-2 inline-block size-2 rounded-full ${

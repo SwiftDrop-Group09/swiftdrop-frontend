@@ -236,32 +236,62 @@ export function createAdminDeliveryApi(session: IdentitySession) {
 
     listAdminCouriers: async (signal?: AbortSignal): Promise<AdminCourier[]> => {
       try {
-        return await request('/admin/couriers', z.array(adminCourierSchema), signal ? { signal } : undefined);
+        return await request(
+          '/admin/couriers',
+          z.array(adminCourierSchema),
+          signal ? { signal } : undefined,
+        );
       } catch (err) {
         if (err instanceof AdminDeliveryError && err.status === 404) {
-          return await request('/couriers/ops', z.array(adminCourierSchema), signal ? { signal } : undefined);
+          return await request(
+            '/couriers/ops',
+            z.array(adminCourierSchema),
+            signal ? { signal } : undefined,
+          );
         }
         throw err;
       }
     },
 
-    getAdminCourier: async (id: string, signal?: AbortSignal): Promise<AdminCourier> => {
+    getAdminCourier: async (
+      id: string,
+      signal?: AbortSignal,
+    ): Promise<AdminCourier> => {
       try {
-        return await request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, signal ? { signal } : undefined);
+        return await request(
+          `/admin/couriers/${encodeURIComponent(id)}`,
+          adminCourierSchema,
+          signal ? { signal } : undefined,
+        );
       } catch (err) {
         if (err instanceof AdminDeliveryError && err.status === 404) {
-          return await request(`/couriers/${encodeURIComponent(id)}/ops`, adminCourierSchema, signal ? { signal } : undefined);
+          return await request(
+            `/couriers/${encodeURIComponent(id)}/ops`,
+            adminCourierSchema,
+            signal ? { signal } : undefined,
+          );
         }
         throw err;
       }
     },
 
-    updateAdminCourier: async (id: string, input: UpdateCourierInput): Promise<AdminCourier> => {
+    updateAdminCourier: async (
+      id: string,
+      input: UpdateCourierInput,
+    ): Promise<AdminCourier> => {
       try {
-        return await request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, body('PUT', input));
+        return await request(
+          `/admin/couriers/${encodeURIComponent(id)}`,
+          adminCourierSchema,
+          body('PUT', input),
+        );
       } catch (err) {
         if (err instanceof AdminDeliveryError && err.status === 404) {
-          return await request(`/couriers/${encodeURIComponent(id)}/ops`, adminCourierSchema, body('PUT', input));
+          return await request(
+            `/couriers/${encodeURIComponent(id)}/ops`,
+            adminCourierSchema,
+            body('PUT', input),
+          );
         }
         throw err;
       }
