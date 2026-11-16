@@ -91,19 +91,34 @@ function mount({
     if (url.pathname.endsWith(`/parcels/${parcelId}`)) return json(detail);
     if (url.pathname.endsWith('/events'))
       return json({ code: 'delivery_unavailable' }, 503);
+    if (url.pathname.endsWith('/courier-directory'))
+      return json(
+        url.searchParams
+          .get('ids')!
+          .split(',')
+          .map((id) => ({
+            id,
+            fullName: id === oldId ? 'Courier Original' : 'Courier Replacement',
+          })),
+      );
     if (url.pathname.endsWith('/assignment-options'))
       return new Response(
         JSON.stringify({
           parcelId,
           parcelVersion: 2,
           reassign: true,
-          currentAssignment: { courierId: oldId, serviceDate: '2026-11-16' },
+          currentAssignment: {
+            courierId: oldId,
+            courierCode: 'COU-0001',
+            serviceDate: '2026-11-16',
+          },
           businessToday: '2026-11-14',
           operationsTimeZone: 'Asia/Colombo',
           serviceDate: '2026-11-16',
           items: [
             {
               courierId: targetId,
+              courierCode: 'COU-0002',
               onDuty: false,
               activeCountForServiceDate: 0,
               capacity: 2,
@@ -183,7 +198,9 @@ it.each(['Dispatcher', 'Admin'])(
       await screen.findByRole('button', { name: 'Reassign courier' }),
     );
     await user.click(
-      await screen.findByRole('button', { name: `Select courier ${targetId}` }),
+      await screen.findByRole('button', {
+        name: 'Select courier Courier Replacement · COU-0002',
+      }),
     );
     await user.type(
       screen.getByRole('textbox', { name: 'Reassignment reason' }),
@@ -229,7 +246,9 @@ it('refreshes eligibility when reopening within the shared cache freshness windo
   await user.click(
     await screen.findByRole('button', { name: 'Reassign courier' }),
   );
-  await screen.findByRole('button', { name: `Select courier ${targetId}` });
+  await screen.findByRole('button', {
+    name: 'Select courier Courier Replacement · COU-0002',
+  });
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
   const previousReads = reads.filter((path) =>
     path.endsWith('/assignment-options'),
@@ -242,7 +261,9 @@ it('refreshes eligibility when reopening within the shared cache freshness windo
     ).toHaveLength(previousReads + 1),
   );
   await user.click(
-    await screen.findByRole('button', { name: `Select courier ${targetId}` }),
+    await screen.findByRole('button', {
+      name: 'Select courier Courier Replacement · COU-0002',
+    }),
   );
   await user.type(
     screen.getByRole('textbox', { name: 'Reassignment reason' }),
@@ -293,7 +314,9 @@ it('keeps a pending dialog through parcel refresh but discards it on account cha
     await screen.findByRole('button', { name: 'Reassign courier' }),
   );
   await user.click(
-    await screen.findByRole('button', { name: `Select courier ${targetId}` }),
+    await screen.findByRole('button', {
+      name: 'Select courier Courier Replacement · COU-0002',
+    }),
   );
   await user.type(
     screen.getByRole('textbox', { name: 'Reassignment reason' }),
