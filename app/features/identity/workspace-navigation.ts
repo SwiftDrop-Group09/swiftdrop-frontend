@@ -1,4 +1,5 @@
 import {
+  Bot,
   ChartNoAxesCombined,
   ClipboardList,
   FileChartColumn,
@@ -57,6 +58,7 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Customer'],
     items: [
       { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
+      { label: 'AI Delivery Assistant', icon: Bot, to: '/customer/assistant' },
       { label: 'Track a delivery', icon: MapPin, to: '/customer/tracking' },
       { label: 'Delivery history', icon: History, to: '/customer/history' },
     ],

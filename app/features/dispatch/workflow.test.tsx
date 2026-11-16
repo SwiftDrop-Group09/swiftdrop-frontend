@@ -80,10 +80,14 @@ function mount(role: 'Dispatcher' | 'Admin') {
     }
     reads.push(url.pathname + url.search);
     if (url.pathname.endsWith('/users/courier-directory'))
-      return json([
-        { id: courierA, fullName: 'Courier Alpha' },
-        { id: courierB, fullName: 'Courier Beta' },
-      ]);
+      return json(
+        [
+          { id: courierA, fullName: 'Courier Alpha' },
+          { id: courierB, fullName: 'Courier Beta' },
+        ].filter((entry) =>
+          url.searchParams.get('ids')?.split(',').includes(entry.id),
+        ),
+      );
     if (url.pathname.endsWith('/couriers/workload'))
       return json({
         ...page,
@@ -139,11 +143,16 @@ function mount(role: 'Dispatcher' | 'Admin') {
         serviceDate: '2026-11-14',
         reassign,
         currentAssignment: reassign
-          ? { courierId: courier, serviceDate: '2026-11-14' }
+          ? {
+              courierId: courier,
+              courierCode: courier === courierA ? 'COU-0001' : 'COU-0002',
+              serviceDate: '2026-11-14',
+            }
           : null,
         items: [
           {
             courierId: reassign ? courierB : courierA,
+            courierCode: reassign ? 'COU-0002' : 'COU-0001',
             onDuty: true,
             activeCountForServiceDate: 0,
             capacity: 2,
@@ -270,7 +279,9 @@ it.each(['Dispatcher', 'Admin'] as const)(
       }),
     );
     await user.click(
-      await screen.findByRole('button', { name: `Select courier ${courierA}` }),
+      await screen.findByRole('button', {
+        name: 'Select courier Courier Alpha · COU-0001',
+      }),
     );
     await user.click(
       screen.getByRole('button', { name: 'Confirm assignment' }),
@@ -299,7 +310,9 @@ it.each(['Dispatcher', 'Admin'] as const)(
       await screen.findByRole('button', { name: 'Reassign courier' }),
     );
     await user.click(
-      await screen.findByRole('button', { name: `Select courier ${courierB}` }),
+      await screen.findByRole('button', {
+        name: 'Select courier Courier Beta · COU-0002',
+      }),
     );
     await user.type(
       screen.getByRole('textbox', { name: 'Reassignment reason' }),

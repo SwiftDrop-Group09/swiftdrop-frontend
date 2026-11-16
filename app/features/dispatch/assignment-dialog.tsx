@@ -39,6 +39,7 @@ import {
   type AssignmentCandidate,
   type AssignmentOptions,
 } from './assignment-api';
+import { useCourierDirectory } from './workload-hooks';
 
 export function AssignmentDialog({
   parcelId,
@@ -116,6 +117,14 @@ export function AssignmentDialog({
     enabled: !attempt && !confirmed,
   });
   const data = options.data;
+  const courierIds = data?.items.map((courier) => courier.courierId) ?? [];
+  if (data?.currentAssignment)
+    courierIds.push(data.currentAssignment.courierId);
+  const names = useCourierDirectory(courierIds);
+  function courierLabel(courier: { courierId: string; courierCode: string }) {
+    const name = names.data?.[courier.courierId];
+    return name ? `${name} · ${courier.courierCode}` : courier.courierCode;
+  }
   // A selection belongs to one response, never a newer version returned by refresh.
   const selected =
     selection &&
@@ -213,6 +222,7 @@ export function AssignmentDialog({
     setNeedsReload(false);
     setError(undefined);
     void options.refetch();
+    if (courierIds.length) void names.refetch();
   }
   return (
     <Dialog
@@ -256,8 +266,8 @@ export function AssignmentDialog({
             {data && (
               <div className="space-y-2">
                 {reassign && data.currentAssignment && (
-                  <p className="text-sm break-all">
-                    Current courier {data.currentAssignment.courierId} ·
+                  <p className="text-sm break-words">
+                    Current courier {courierLabel(data.currentAssignment)} ·
                     scheduled{' '}
                     <span className="whitespace-nowrap">
                       {data.currentAssignment.serviceDate}
@@ -326,6 +336,23 @@ export function AssignmentDialog({
             )}
             {data && !options.isError && (
               <>
+                {names.isError && (
+                  <WorkspaceNotice
+                    title="Courier names unavailable"
+                    description="Courier codes identify each courier. Retry to load names."
+                    retry={() => {
+                      void names.refetch();
+                    }}
+                    pending={names.isFetching}
+                  />
+                )}
+                {names.isSuccess &&
+                  courierIds.some((id) => !names.data[id]) && (
+                    <WorkspaceNotice
+                      title="Some courier names are unavailable"
+                      description="Use the displayed courier codes to identify these couriers."
+                    />
+                  )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm">
                     Eligible couriers for {data.serviceDate}
@@ -356,8 +383,16 @@ export function AssignmentDialog({
                     <TableBody>
                       {data.items.map((courier) => (
                         <TableRow key={courier.courierId}>
-                          <TableCell className="font-mono text-xs">
-                            {courier.courierId}
+                          <TableCell className="min-w-40 max-w-64 whitespace-normal">
+                            <p className="font-medium break-words">
+                              {names.data?.[courier.courierId] ??
+                                (names.isFetching
+                                  ? 'Loading courier name…'
+                                  : 'Name unavailable')}
+                            </p>
+                            <p className="mt-1 font-mono text-xs text-muted-foreground">
+                              {courier.courierCode}
+                            </p>
                           </TableCell>
                           <TableCell>{courier.onDuty ? 'Yes' : 'No'}</TableCell>
                           <TableCell>
@@ -375,7 +410,7 @@ export function AssignmentDialog({
                               aria-pressed={
                                 selected?.courierId === courier.courierId
                               }
-                              aria-label={`Select courier ${courier.courierId}`}
+                              aria-label={`Select courier ${courierLabel(courier)}`}
                               disabled={
                                 locked || options.isFetching || needsReload
                               }
@@ -449,8 +484,8 @@ export function AssignmentDialog({
               </div>
             )}
             {selected && (
-              <p className="text-sm break-all">
-                Confirm {trackingNumber} → courier {selected.courierId} on{' '}
+              <p className="text-sm break-words">
+                Confirm {trackingNumber} → courier {courierLabel(selected)} on{' '}
                 {data?.serviceDate}.{reassign && <> Reason: {reason.trim()}</>}
               </p>
             )}

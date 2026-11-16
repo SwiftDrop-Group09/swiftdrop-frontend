@@ -259,3 +259,22 @@ Identity/Delivery/Merchant migration histories match before/during/after at
 5/11/7 applied, with no pending versions. No shared test-parcel write, account
 provisioning, reset or downgrade was performed. The user-deferred signed-in
 two-parcel workflow remains pending; no push or PR has been performed.
+
+## Current dev integration review — 16 November 2026
+
+Integrated dev `c537d22`, including merged courier-label PR #30, into the P6 and
+Dispatcher dashboard branch for PR review. The combined workflow fixture now
+supplies persisted courier codes, returns names only for requested directory IDs,
+and selects couriers by their visible name/code labels. Its assignment and
+reassignment cache, ownership and request assertions continue covering both
+Dispatcher and Admin.
+
+The combined source passes the unrestricted `npm run check` on Linux with
+Node 24.16.0/npm 11.13.0, including formatting, lint, types, all **768 tests /
+51 files**, and production build. The separately recorded dashboard and P6 browser
+fixture checks cover their previously reviewed source. Full canonical Docker
+startup for this combined source and the real two-parcel terminal workflows
+remain pending. The last shared proof-storage preflight found missing runtime
+SELECT/INSERT/DELETE privileges on `proof_objects`; correction remains with the
+Delivery/Courier/environment owner. The previously observed intermittent
+Identity test issue remains recorded with its owner.

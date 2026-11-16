@@ -17,6 +17,7 @@ const courierId = '22222222-2222-4222-8222-222222222222';
 const otherId = '33333333-3333-4333-8333-333333333333';
 const candidate = {
   courierId,
+  courierCode: 'COU-0001',
   onDuty: true,
   activeCountForServiceDate: 1,
   capacity: 2,
@@ -56,13 +57,21 @@ function mount({
       ? Promise.reject(new DOMException('Aborted', 'AbortError'))
       : json(receipt),
   role = 'Dispatcher',
+  directory = (ids: string[]): Response | Promise<Response> =>
+    json(
+      ids.map((id) => ({
+        id,
+        fullName: id === courierId ? 'Courier Alpha' : 'Courier Beta',
+      })),
+    ),
 } = {}) {
   let profile: Profile = {
     ...customer,
     roles: [role as Profile['roles'][number]],
   };
   const reads = vi.fn(read),
-    writes = vi.fn(write);
+    writes = vi.fn(write),
+    nameReads = vi.fn(directory);
   let assigned = false;
   const fetcher = vi.fn<typeof fetch>(async (input, init) => {
     const url = new URL(
@@ -80,6 +89,8 @@ function mount({
     )
       return json(pair(profile, profile.id));
     if (url.pathname.endsWith('/zones/summary')) return json({ zones: [] });
+    if (url.pathname.endsWith('/courier-directory'))
+      return nameReads(url.searchParams.get('ids')!.split(','));
     if (url.pathname.endsWith('/assignment-options'))
       return reads(url.searchParams);
     if (url.pathname.endsWith('/deliveries/assign')) {
@@ -138,6 +149,7 @@ function mount({
     user: userEvent.setup(),
     reads,
     writes,
+    nameReads,
     queries,
     session,
     setProfile: (next: Profile) => {
@@ -145,11 +157,14 @@ function mount({
     },
   };
 }
-async function open(user: ReturnType<typeof userEvent.setup>) {
+async function open(
+  user: ReturnType<typeof userEvent.setup>,
+  label = 'Courier Alpha · COU-0001',
+) {
   await user.click(
     await screen.findByRole('button', { name: 'Assign courier for TRK-1' }),
   );
-  await screen.findByRole('button', { name: `Select courier ${courierId}` });
+  await screen.findByRole('button', { name: `Select courier ${label}` });
 }
 it.each(['Dispatcher', 'Admin'])(
   'confirms an assignment and refreshes the queue for %s',
@@ -160,8 +175,17 @@ it.each(['Dispatcher', 'Admin'])(
       screen.getByRole('button', { name: 'Confirm assignment' }),
     ).toBeDisabled();
     await user.click(
-      screen.getByRole('button', { name: `Select courier ${courierId}` }),
+      screen.getByRole('button', {
+        name: 'Select courier Courier Alpha · COU-0001',
+      }),
     );
+    expect(
+      screen.getByRole('cell', { name: 'Courier Alpha COU-0001' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Confirm TRK-1/)).toHaveTextContent(
+      'Courier Alpha · COU-0001',
+    );
+    expect(screen.queryByText(courierId)).not.toBeInTheDocument();
     expect(writes).not.toHaveBeenCalled();
     await user.click(
       screen.getByRole('button', { name: 'Confirm assignment' }),
@@ -192,7 +216,9 @@ it('uses the official calendar, clears selection and allows off-duty future cand
   });
   await open(user);
   await user.click(
-    screen.getByRole('button', { name: `Select courier ${courierId}` }),
+    screen.getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.click(screen.getByRole('button', { name: 'Service date' }));
   const popover = screen.getByRole('dialog', { name: 'Service date' });
@@ -215,7 +241,9 @@ it('requires a fresh selection after a definite capacity conflict', async () => 
   });
   await open(user);
   await user.click(
-    screen.getByRole('button', { name: `Select courier ${courierId}` }),
+    screen.getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
   await screen.findByText(/This courier is full/);
@@ -242,7 +270,9 @@ it('retains an uncertain request, prevents dismissal and retries only on explici
   });
   await open(user);
   await user.click(
-    screen.getByRole('button', { name: `Select courier ${courierId}` }),
+    screen.getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
   await screen.findByText(/The outcome is uncertain/);
@@ -297,7 +327,9 @@ it('discards a previous account’s pending attempt and late result', async () =
   });
   await open(user);
   await user.click(
-    screen.getByRole('button', { name: `Select courier ${courierId}` }),
+    screen.getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
   );
   await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
   setProfile({ ...customer, id: otherId, roles: ['Dispatcher'] });
@@ -315,4 +347,141 @@ it('discards a previous account’s pending attempt and late result', async () =
       .getQueryCache()
       .findAll({ queryKey: ['dispatch-assignment-options', customer.id] }),
   ).toHaveLength(0);
+  expect(
+    queries
+      .getQueryCache()
+      .findAll({ queryKey: ['courier-directory', customer.id] }),
+  ).toHaveLength(0);
+});
+
+it('distinguishes duplicate courier names by code and submits the selected UUID', async () => {
+  const { user, writes, nameReads } = mount({
+    read: () =>
+      json({
+        ...options,
+        items: [
+          candidate,
+          { ...candidate, courierId: otherId, courierCode: 'COU-0002' },
+        ],
+        totalCount: 2,
+      }),
+    directory: (ids) =>
+      json(ids.map((id) => ({ id, fullName: 'Shared Name' }))),
+  });
+  await open(user, 'Shared Name · COU-0001');
+  expect(nameReads.mock.calls[0]?.[0]).toEqual([courierId, otherId].sort());
+  await user.click(
+    screen.getByRole('button', {
+      name: 'Select courier Shared Name · COU-0002',
+    }),
+  );
+  expect(screen.getByText(/Confirm TRK-1/)).toHaveTextContent(
+    'Shared Name · COU-0002',
+  );
+  await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
+  await screen.findByText(/Assignment confirmed\./);
+  expect(JSON.parse(writes.mock.calls[0]?.[0]?.body as string)).toMatchObject({
+    courierId: otherId,
+  });
+});
+
+it('retries failed names independently while retaining the selected courier and eligibility', async () => {
+  let recovered = false;
+  const { user, writes, reads } = mount({
+    directory: () =>
+      recovered
+        ? json([{ id: courierId, fullName: 'Courier Alpha' }])
+        : json({ code: 'unavailable' }, 503),
+  });
+  await open(user, 'COU-0001');
+  await screen.findByText('Courier names unavailable');
+  await user.click(
+    screen.getByRole('button', { name: 'Select courier COU-0001' }),
+  );
+  expect(
+    screen.getByRole('button', { name: 'Confirm assignment' }),
+  ).toBeEnabled();
+  const eligibilityReads = reads.mock.calls.length;
+  recovered = true;
+  await user.click(
+    within(screen.getByRole('dialog', { name: 'Assign courier' })).getByRole(
+      'button',
+      { name: 'Try again' },
+    ),
+  );
+  await screen.findByRole('button', {
+    name: 'Select courier Courier Alpha · COU-0001',
+  });
+  expect(screen.getByText(/Confirm TRK-1/)).toHaveTextContent(
+    'Courier Alpha · COU-0001',
+  );
+  expect(reads).toHaveBeenCalledTimes(eligibilityReads);
+  expect(writes).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
+  await screen.findByText(/Assignment confirmed\./);
+  expect(JSON.parse(writes.mock.calls[0]?.[0]?.body as string)).toMatchObject({
+    courierId,
+  });
+});
+
+it('permits code selection while names load and when the directory omits a name', async () => {
+  let resolve!: (response: Response) => void;
+  const pending = new Promise<Response>((r) => {
+    resolve = r;
+  });
+  const { user, writes } = mount({ directory: () => pending });
+  await open(user, 'COU-0001');
+  expect(screen.getByText('Loading courier name…')).toBeInTheDocument();
+  await user.click(
+    screen.getByRole('button', { name: 'Select courier COU-0001' }),
+  );
+  expect(
+    screen.getByRole('button', { name: 'Confirm assignment' }),
+  ).toBeEnabled();
+  await act(async () => {
+    resolve(json([]));
+    await pending;
+  });
+  await screen.findByText('Some courier names are unavailable');
+  expect(screen.getByText('Name unavailable')).toBeInTheDocument();
+  expect(screen.getByText(/Confirm TRK-1/)).toHaveTextContent(
+    'courier COU-0001',
+  );
+  await user.click(screen.getByRole('button', { name: 'Confirm assignment' }));
+  await screen.findByText(/Assignment confirmed\./);
+  expect(writes).toHaveBeenCalledTimes(1);
+});
+
+it('looks up names for each visible page and clears selection when the page changes', async () => {
+  const { user, nameReads, writes } = mount({
+    read: (params) =>
+      json({
+        ...options,
+        page: Number(params.get('page')),
+        totalCount: 21,
+        items:
+          params.get('page') === '1'
+            ? [candidate]
+            : [{ ...candidate, courierId: otherId, courierCode: 'COU-0002' }],
+      }),
+  });
+  await open(user);
+  await user.click(
+    screen.getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Next couriers' }));
+  await screen.findByRole('button', {
+    name: 'Select courier Courier Beta · COU-0002',
+  });
+  expect(nameReads.mock.calls.map(([ids]) => ids)).toEqual([
+    [courierId],
+    [otherId],
+  ]);
+  expect(
+    screen.getByRole('button', { name: 'Confirm assignment' }),
+  ).toBeDisabled();
+  expect(screen.queryByText('COU-0001')).not.toBeInTheDocument();
+  expect(writes).not.toHaveBeenCalled();
 });

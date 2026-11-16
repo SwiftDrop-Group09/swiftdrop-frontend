@@ -47,7 +47,7 @@ export function CustomerSectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <CardHeader className="flex flex-col gap-4 space-y-0 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+    <CardHeader className="flex shrink-0 flex-col gap-4 space-y-0 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div className="flex min-w-0 items-start gap-3">
         <Badge
           variant="outline"
