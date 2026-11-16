@@ -234,7 +234,9 @@ export function createAdminDeliveryApi(session: IdentitySession) {
         signal ? { signal } : undefined,
       ),
 
-    listAdminCouriers: async (signal?: AbortSignal): Promise<AdminCourier[]> => {
+    listAdminCouriers: async (
+      signal?: AbortSignal,
+    ): Promise<AdminCourier[]> => {
       try {
         return await request(
           '/admin/couriers',
