@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { parcelStatusBadgeClasses } from '~/features/customer-tracking/components';
+import { Badge } from '~/shared/components/ui/badge';
 import {
   ChartContainer,
   ChartLegend,
@@ -165,8 +167,17 @@ export function DispatchWorkloadChart({
                       </span>
                     </p>
                     {model.groups.map((group) => (
-                      <p key={group.label} className="break-words">
-                        <span className="font-medium">
+                      <div key={group.label} className="break-words">
+                        <Badge
+                          variant="outline"
+                          className={
+                            group.columns[0]?.status
+                              ? parcelStatusBadgeClasses(
+                                  group.columns[0].status,
+                                )
+                              : 'bg-muted text-foreground'
+                          }
+                        >
                           {group.label}:{' '}
                           {
                             formatZoneCount(
@@ -177,7 +188,7 @@ export function DispatchWorkloadChart({
                               ),
                             ).exact
                           }
-                        </span>
+                        </Badge>
                         <span className="text-muted-foreground">
                           {' '}
                           ·{' '}
@@ -188,7 +199,7 @@ export function DispatchWorkloadChart({
                             )
                             .join(' · ')}
                         </span>
-                      </p>
+                      </div>
                     ))}
                   </div>,
                   detailsTarget,

@@ -40,7 +40,9 @@ shows full zone names, exact per-status counts, group sums and the authoritative
 API Total parcels, kept separate from the sum of status counts. The first shown
 zone is selected initially; pointer and keyboard chart selection update this
 inline area, which retains the selected values after leaving the chart. No
-floating detail card covers the bars. A polite status region announces updates.
+floating detail card covers the bars. Inline group labels and their totals use
+the same colored shadcn status badges as the table; individual status counts keep
+readable neutral text. A polite status region announces updates.
 A screen-reader table exposes full zone names, every returned status and API totals
 for the same six-zone preview. Large axis values use compact formatting, while
 inline and accessible values remain exact. Empty catalogs, configured zero
