@@ -3,30 +3,12 @@ import {
   PARCEL_STATUS_LABELS,
   type ParcelStatus,
 } from '~/features/customer-tracking/contracts';
+import { ZONE_STATUS_GROUPS } from './zone-status-groups';
 
 type StatusColumn = { key: string; label: string; status?: ParcelStatus };
 type StatusGroup = { label: string; columns: StatusColumn[] };
 
-const groupDefinitions: { label: string; statuses: ParcelStatus[] }[] = [
-  {
-    label: 'Before transit',
-    statuses: ['Created', 'Assigned', 'PickedUp'],
-  },
-  {
-    label: 'On the road',
-    statuses: ['InTransit', 'OutForDelivery'],
-  },
-  {
-    label: 'Done',
-    statuses: ['Delivered'],
-  },
-  {
-    label: 'Problems',
-    statuses: ['Failed', 'Cancelled'],
-  },
-];
-
-const groups: StatusGroup[] = groupDefinitions.map(({ label, statuses }) => ({
+const groups: StatusGroup[] = ZONE_STATUS_GROUPS.map(({ label, statuses }) => ({
   label,
   columns: statuses.map((status) => ({
     key: status,
