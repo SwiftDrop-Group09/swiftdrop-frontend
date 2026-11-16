@@ -30,16 +30,18 @@ The chart and matrix share their status groups: Before transit (Booked, Assigned
 Collected), On the road (In transit, Out for delivery), Done (Delivered), and
 Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
 emerald and destructive red families. Chart fills use the status text colors for
-solid Light/Dark contrast; tooltip badges retain the existing status background,
-text and border classes. Unknown returned statuses form a neutral Other statuses
+solid Light/Dark contrast. Unknown returned statuses form a neutral Other statuses
 series when present, rather than being discarded or inferred from the API total.
 
-The shadcn Chart legend labels each group. Pointer and keyboard tooltips expose
-full zone names, exact per-status counts, group sums and the authoritative API
-Total parcels, which is kept separate from the sum of status counts. A
-screen-reader table exposes full zone names, every returned status and API totals
+The shadcn Chart legend labels each group. Plain text below the ranking caption
+shows full zone names, exact per-status counts, group sums and the authoritative
+API Total parcels, kept separate from the sum of status counts. The first shown
+zone is selected initially; pointer and keyboard chart selection update this
+inline area, which retains the selected values after leaving the chart. No
+floating detail card covers the bars. A polite status region announces updates.
+A screen-reader table exposes full zone names, every returned status and API totals
 for the same six-zone preview. Large axis values use compact formatting, while
-tooltip and accessible values remain exact. Empty catalogs, configured zero
+inline and accessible values remain exact. Empty catalogs, configured zero
 zones and missing status breakdowns have distinct notices. The dashboard's
 operational KPIs retain their existing definitions above.
 

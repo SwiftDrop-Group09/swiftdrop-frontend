@@ -1,12 +1,11 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { parcelStatusBadgeClasses } from '~/features/customer-tracking/components';
-import { Badge } from '~/shared/components/ui/badge';
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from '~/shared/components/ui/chart';
 import {
@@ -54,6 +53,9 @@ export function DispatchWorkloadChart({
 }: {
   zones: ReturnType<typeof dispatchSnapshot>['workloads'];
 }) {
+  const [detailsTarget, setDetailsTarget] = useState<HTMLDivElement | null>(
+    null,
+  );
   const populated = zones.filter(
     (zone) =>
       zone.beforeTransit +
@@ -91,7 +93,7 @@ export function DispatchWorkloadChart({
     <>
       <ChartContainer
         config={config}
-        className="aspect-auto h-96 w-full min-w-0 sm:h-80 [&_.recharts-tooltip-wrapper]:z-50"
+        className="aspect-auto h-96 w-full min-w-0 sm:h-80"
         role="region"
         aria-label="Current zone workload chart"
       >
@@ -124,73 +126,59 @@ export function DispatchWorkloadChart({
                 : String(value)
             }
           />
-          <ChartTooltip
-            content={({ active, payload }) => {
-              const zone = shown.find(
-                (zone) => zone.zoneId === payloadZoneId(payload?.[0]?.payload),
-              );
-              if (!zone) return null;
-              return (
-                <ChartTooltipContent
-                  active={active}
-                  payload={payload}
-                  className="w-64 max-w-[calc(100vw-2rem)]"
-                  labelFormatter={() =>
-                    zone && (
-                      <div className="space-y-1 whitespace-normal break-words">
-                        <p>{zone.name}</p>
-                        <p className="font-normal text-muted-foreground">
-                          Total parcels: {formatZoneCount(zone.total).exact}
-                        </p>
-                      </div>
-                    )
-                  }
-                  formatter={(value, name) => {
-                    const group = ZONE_STATUS_GROUPS.find(
-                      (group) => group.key === name,
-                    );
-                    const columns = group
-                      ? model.columns.filter((column) =>
-                          group.statuses.some(
-                            (status) => status === column.key,
-                          ),
-                        )
-                      : model.groups.find(
-                          (group) => group.label === 'Other statuses',
-                        )?.columns;
-                    return (
-                      <div className="grid w-full gap-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge
-                            variant="outline"
-                            className={
-                              group &&
-                              parcelStatusBadgeClasses(group.statuses[0])
-                            }
-                          >
-                            {group?.label ?? 'Other statuses'}
-                          </Badge>
-                          <span className="font-medium tabular-nums">
-                            {typeof value === 'number'
-                              ? formatZoneCount(value).exact
-                              : String(value)}
-                          </span>
-                        </div>
-                        <p className="text-xs leading-relaxed whitespace-normal break-words text-muted-foreground">
-                          {columns
-                            ?.map(
+          {detailsTarget && (
+            <ChartTooltip
+              active
+              defaultIndex={0}
+              content={({ payload }) => {
+                const zone = shown.find(
+                  (zone) =>
+                    zone.zoneId === payloadZoneId(payload?.[0]?.payload),
+                );
+                if (!zone) return null;
+                // Keep Recharts' pointer/keyboard selection, render the text in
+                // normal document flow rather than its floating tooltip box.
+                return createPortal(
+                  <div className="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
+                    <p className="break-words sm:col-span-2">
+                      <span className="font-medium">{zone.name}</span>
+                      <span className="text-muted-foreground">
+                        {' '}
+                        · Total parcels: {formatZoneCount(zone.total).exact}
+                      </span>
+                    </p>
+                    {model.groups.map((group) => (
+                      <p key={group.label} className="break-words">
+                        <span className="font-medium">
+                          {group.label}:{' '}
+                          {
+                            formatZoneCount(
+                              group.columns.reduce(
+                                (sum, column) =>
+                                  sum + (zone.statusCounts[column.key] ?? 0),
+                                0,
+                              ),
+                            ).exact
+                          }
+                        </span>
+                        <span className="text-muted-foreground">
+                          {' '}
+                          ·{' '}
+                          {group.columns
+                            .map(
                               ({ key, label }) =>
-                                `${label}: ${formatZoneCount(zone?.statusCounts[key] ?? 0).exact}`,
+                                `${label}: ${formatZoneCount(zone.statusCounts[key] ?? 0).exact}`,
                             )
                             .join(' · ')}
-                        </p>
-                      </div>
-                    );
-                  }}
-                />
-              );
-            }}
-          />
+                        </span>
+                      </p>
+                    ))}
+                  </div>,
+                  detailsTarget,
+                );
+              }}
+            />
+          )}
           <ChartLegend
             itemSorter={null}
             content={
@@ -213,6 +201,13 @@ export function DispatchWorkloadChart({
         unsuccessful + Cancelled, highest first. Zero-count zones are omitted.
         View zones for all status counts.
       </p>
+      <div
+        ref={setDetailsTarget}
+        role="status"
+        aria-label="Zone workload details"
+        aria-atomic="true"
+        className="min-w-0"
+      />
       <div className="sr-only">
         <Table>
           <caption>Zone workload chart values</caption>

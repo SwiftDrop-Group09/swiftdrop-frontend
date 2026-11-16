@@ -292,6 +292,43 @@ describe('Dispatcher operations dashboard', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows exact zone details as inline text below the chart rather than covering its bars', async () => {
+    // jsdom has no layout; chart selection needs a non-zero measured viewport.
+    const bounds = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue(new DOMRect(0, 0, 640, 320));
+    try {
+      mount();
+      await loaded();
+      const details = screen.getByRole('status', {
+        name: 'Zone workload details',
+      });
+      await waitFor(() =>
+        expect(details).toHaveTextContent('Total parcels: 999'),
+      );
+      expect(details).toHaveTextContent('Colombo');
+      expect(details).toHaveTextContent('Before transit: 12');
+      expect(details).toHaveTextContent(
+        'Booked: 7 · Assigned: 2 · Collected: 3',
+      );
+      expect(details).toHaveTextContent('On the road: 9');
+      expect(details).toHaveTextContent('Done: 100');
+      expect(details).toHaveTextContent('Problems: 30');
+      expect(details).toHaveTextContent('Returned: 6');
+      const chart = screen.getByRole('region', {
+        name: 'Current zone workload chart',
+      });
+      expect(chart).not.toContainElement(details);
+      expect(chart).not.toHaveTextContent('Total parcels: 999');
+      expect(
+        chart.compareDocumentPosition(details) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    } finally {
+      bounds.mockRestore();
+    }
+  });
+
   it.each(['Delivered', 'Failed', 'Cancelled', 'Returned'])(
     'includes zones containing only %s parcels instead of hiding them as inactive',
     async (status) => {
