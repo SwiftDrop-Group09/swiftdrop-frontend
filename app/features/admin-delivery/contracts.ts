@@ -48,6 +48,31 @@ export const zoneSummaryResponseSchema = z.object({
 export type ZoneSummaryResponse = z.infer<typeof zoneSummaryResponseSchema>;
 
 export const parcelSizes = ['Small', 'Medium', 'Large'] as const;
+
+export const adminCourierSchema = z.object({
+  courierId: z.string(),
+  courierCode: z.string(),
+  active: z.boolean(),
+  onDuty: z.boolean(),
+  capacity: z.number(),
+  vehicleType: z.string(),
+  vehicleNumber: z.string().nullable(),
+  maxWeightKg: z.union([z.number(), z.string()]).transform(Number),
+  zoneIds: z.array(z.string()),
+  activeDeliveriesCount: z.number().default(0),
+});
+
+export type AdminCourier = z.infer<typeof adminCourierSchema>;
+
+export type UpdateCourierInput = {
+  active: boolean;
+  onDuty: boolean;
+  capacity: number;
+  vehicleType: string;
+  vehicleNumber?: string | null;
+  maxWeightKg: number;
+  zoneIds?: string[];
+};
 export type ParcelSize = (typeof parcelSizes)[number];
 
 export const pricingTierSchema = z.object({

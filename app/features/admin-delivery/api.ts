@@ -8,6 +8,9 @@ import {
   zonePageSchema,
   zoneSchema,
   zoneSummaryResponseSchema,
+  adminCourierSchema,
+  type AdminCourier,
+  type UpdateCourierInput,
   type DeliveryReportResponse,
   type PricingPage,
   type PricingTier,
@@ -230,5 +233,14 @@ export function createAdminDeliveryApi(session: IdentitySession) {
         deliveryReportResponseSchema,
         signal ? { signal } : undefined,
       ),
+
+    listAdminCouriers: (signal?: AbortSignal): Promise<AdminCourier[]> =>
+      request('/admin/couriers', z.array(adminCourierSchema), signal ? { signal } : undefined),
+
+    getAdminCourier: (id: string, signal?: AbortSignal): Promise<AdminCourier> =>
+      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, signal ? { signal } : undefined),
+
+    updateAdminCourier: (id: string, input: UpdateCourierInput): Promise<AdminCourier> =>
+      request(`/admin/couriers/${encodeURIComponent(id)}`, adminCourierSchema, body('PUT', input)),
   };
 }
