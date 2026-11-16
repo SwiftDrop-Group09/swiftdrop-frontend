@@ -117,8 +117,6 @@ export function AssignmentDialog({
     enabled: !attempt && !confirmed,
   });
   const data = options.data;
-  const candidateIds = data?.items.map((c) => c.courierId) ?? [];
-  const directory = useCourierDirectory(candidateIds);
   const courierIds = data?.items.map((courier) => courier.courierId) ?? [];
   if (data?.currentAssignment)
     courierIds.push(data.currentAssignment.courierId);
