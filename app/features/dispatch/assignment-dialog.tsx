@@ -368,15 +368,17 @@ export function AssignmentDialog({
                 {data.items.length === 0 ? (
                   <WorkspaceNotice
                     title="No eligible couriers"
-                    description="Choose another service date or refresh availability."
+                    description="No on-duty couriers found matching this parcel's zone and weight capacity. Check courier shifts, zones, or select a future service date."
                   />
                 ) : (
-                  <Table className="min-w-[36rem] whitespace-nowrap">
+                  <Table className="min-w-[42rem] whitespace-nowrap">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Courier</TableHead>
-                        <TableHead>On duty now</TableHead>
-                        <TableHead>Daily work / capacity</TableHead>
+                        <TableHead>Vehicle & Limit</TableHead>
+                        <TableHead>On duty</TableHead>
+                        <TableHead>Daily workload</TableHead>
+                        <TableHead>Recommendation</TableHead>
                         <TableHead>Select</TableHead>
                       </TableRow>
                     </TableHeader>

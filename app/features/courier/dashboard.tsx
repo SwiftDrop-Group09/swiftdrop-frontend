@@ -45,6 +45,21 @@ export default function CourierDashboard() {
     enabled: user?.roles[0] === 'Courier',
   });
   const day = q.data?.day;
+  const dutyQuery = useQuery({
+    queryKey: ['courier', `${user!.id}:Courier`, 'duty'],
+    queryFn: () => api.duty(),
+    enabled: user?.roles[0] === 'Courier',
+  });
+  const toggleDuty = async () => {
+    if (!dutyQuery.data) return;
+    try {
+      await api.setDuty(!dutyQuery.data.onDuty);
+      void dutyQuery.refetch();
+      void q.refetch();
+    } catch {
+      /* handled */
+    }
+  };
   function queue(status = '', history = false, overdueOnly = false) {
     const params = new URLSearchParams();
     if (date || q.data?.serviceDate)
@@ -58,14 +73,42 @@ export default function CourierDashboard() {
     <WorkspacePage
       title="Today's work"
       actions={
-        <Button
-          variant="outline"
-          disabled={q.isFetching}
-          onClick={() => void q.refetch()}
-        >
-          <RefreshCw aria-hidden="true" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          {dutyQuery.data && (
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
+                {dutyQuery.data.vehicleType} · Max {dutyQuery.data.maxWeightKg}
+                kg
+              </span>
+              <Button
+                variant={dutyQuery.data.onDuty ? 'default' : 'outline'}
+                size="sm"
+                className={
+                  dutyQuery.data.onDuty
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : ''
+                }
+                disabled={dutyQuery.isFetching}
+                onClick={() => void toggleDuty()}
+              >
+                <span
+                  className={`mr-2 inline-block size-2 rounded-full ${
+                    dutyQuery.data.onDuty ? 'bg-white' : 'bg-gray-400'
+                  }`}
+                />
+                {dutyQuery.data.onDuty ? 'On Duty' : 'Off Duty'}
+              </Button>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            disabled={q.isFetching}
+            onClick={() => void q.refetch()}
+          >
+            <RefreshCw aria-hidden="true" />
+            Refresh
+          </Button>
+        </div>
       }
     >
       <Card className="gap-4 border-primary/20 bg-primary/5 p-4 sm:p-6">
