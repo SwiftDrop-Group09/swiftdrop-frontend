@@ -97,6 +97,8 @@ function mount(
           ? json(pair(account))
           : json({ code: 'invalid_credentials' }, 401),
       );
+    if (url.pathname.endsWith('/merchants/me'))
+      return Promise.resolve(json({ code: 'business_not_found' }, 404));
     reads(url, init);
     const replacement = override?.(url, init);
     if (replacement) return Promise.resolve(replacement);
@@ -464,7 +466,7 @@ describe('Dispatcher operations dashboard', () => {
     await loaded();
     const count = view.reads.mock.calls.length;
     act(() => view.session.updateUser({ ...dispatcher, roles: ['Merchant'] }));
-    await screen.findByLabelText('Dashboard workspace');
+    await screen.findByRole('link', { name: 'All orders' });
     expect(screen.queryByLabelText('Dispatch KPIs')).not.toBeInTheDocument();
     expect(
       view.queries.getQueryData(['delivery-zone-summary', dispatcher.id]),
