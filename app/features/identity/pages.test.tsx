@@ -241,9 +241,18 @@ describe('Customer account screens', () => {
   );
 
   it('rejects ambiguous multi-role profiles before restoring private navigation', async () => {
-    mount('/dashboard', { ...customer, roles: ['Customer', 'Admin'] });
+    const { session, router } = mount('/dashboard', {
+      ...customer,
+      roles: ['Customer', 'Admin'],
+    });
+    // Flush restoration and its redirect before inspecting the committed UI.
+    await act(async () => {
+      await session.restore();
+    });
+    expect(session.getSnapshot().user).toBeNull();
+    expect(router.state.location.pathname).toBe('/401');
     expect(
-      await screen.findByRole('heading', { name: 'Sign in to continue' }),
+      screen.getByRole('heading', { name: 'Sign in to continue' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('navigation', { name: 'Administration navigation' }),
