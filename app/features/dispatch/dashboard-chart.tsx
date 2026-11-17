@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import {
   Bar,
   BarChart,
@@ -31,7 +32,12 @@ import {
 import { PARCEL_STATUS_LABELS } from '~/features/customer-tracking/contracts';
 import { WorkspaceNotice } from '~/shared/components/workspace-state';
 import type { dispatchSnapshot } from './dashboard-analytics';
-import { buildZoneMatrix, formatZoneCount } from './zone-matrix-model';
+import {
+  buildZoneMatrix,
+  formatZoneCount,
+  zoneCountShade,
+} from './zone-matrix-model';
+import { statusShadeTheme } from './zone-status-shades';
 import { ZONE_STATUS_GROUPS } from './zone-status-groups';
 
 // Use the requested shade 4 fills consistently in every appearance mode.
@@ -58,10 +64,12 @@ const config = {
 const tooltipConfig: ChartConfig = { ...config };
 for (const group of ZONE_STATUS_GROUPS) {
   for (const status of group.statuses) {
-    tooltipConfig[status] = {
-      label: PARCEL_STATUS_LABELS[status],
-      color: config[group.key].color,
-    };
+    for (let shade = 0; shade <= 4; shade++) {
+      tooltipConfig[`${status}-${shade}`] = {
+        label: PARCEL_STATUS_LABELS[status],
+        theme: statusShadeTheme(status, shade),
+      };
+    }
   }
 }
 function payloadZoneId(value: unknown) {
@@ -129,6 +137,8 @@ export function DispatchWorkloadChart({
   zones: Workloads;
   mode?: ZoneWorkloadMode;
 }) {
+  const labelId = useId().replace(/:/g, '');
+  const maxima = buildZoneMatrix(zones).maxima;
   const populated = zones
     .filter((zone) => zone[mode] > 0)
     .sort(
@@ -201,12 +211,17 @@ export function DispatchWorkloadChart({
                 <ChartTooltipContent
                   active={active}
                   label={zone.name}
-                  payload={group.statuses.map((status) => ({
-                    ...entry,
-                    dataKey: status,
-                    name: status,
-                    value: zone.statusCounts[status] ?? 0,
-                  }))}
+                  payload={group.statuses.map((status) => {
+                    const count = zone.statusCounts[status] ?? 0;
+                    const key = `${status}-${zoneCountShade(count, maxima[status] ?? 0)}`;
+                    return {
+                      ...entry,
+                      dataKey: key,
+                      name: key,
+                      value: count,
+                      color: `var(--color-${key})`,
+                    };
+                  })}
                   indicator="dot"
                   className="w-64 max-w-[calc(100vw-2rem)] break-words"
                 />
@@ -223,13 +238,57 @@ export function DispatchWorkloadChart({
           >
             <LabelList
               dataKey="name"
-              position="insideLeft"
-              offset={8}
-              className="pointer-events-none fill-foreground stroke-background stroke-[3px] [paint-order:stroke]"
-              fontSize={12}
-              formatter={(value) => {
+              content={({ viewBox, value }) => {
+                if (
+                  !viewBox ||
+                  !('x' in viewBox) ||
+                  !('width' in viewBox) ||
+                  !('y' in viewBox) ||
+                  !('height' in viewBox)
+                )
+                  return null;
                 const name = String(value);
-                return name.length > 17 ? name.slice(0, 16) + '…' : name;
+                const text = name.length > 17 ? name.slice(0, 16) + '…' : name;
+                const x = Number(viewBox.x) + 8;
+                const y = Number(viewBox.y) + Number(viewBox.height) / 2;
+                const clip = `${labelId}-${viewBox.y}`;
+                return (
+                  <g aria-hidden="true">
+                    <text
+                      x={x}
+                      y={y}
+                      dominantBaseline="central"
+                      className={`pointer-events-none stroke-none ${mode === 'problems' ? 'fill-black dark:fill-white' : 'fill-black'}`}
+                      fontSize={12}
+                    >
+                      {text}
+                    </text>
+                    {mode !== 'problems' && (
+                      <>
+                        <defs>
+                          <clipPath id={clip}>
+                            <rect
+                              x={Number(viewBox.x) + Number(viewBox.width)}
+                              y={Number(viewBox.y)}
+                              width={200}
+                              height={Number(viewBox.height)}
+                            />
+                          </clipPath>
+                        </defs>
+                        <text
+                          x={x}
+                          y={y}
+                          dominantBaseline="central"
+                          clipPath={`url(#${clip})`}
+                          className="pointer-events-none hidden fill-white stroke-none dark:block"
+                          fontSize={12}
+                        >
+                          {text}
+                        </text>
+                      </>
+                    )}
+                  </g>
+                );
               }}
             />
             <LabelList
@@ -251,7 +310,7 @@ export function DispatchWorkloadChart({
                     )}
                     y={Number(viewBox.y) + Number(viewBox.height) / 2}
                     dominantBaseline="central"
-                    className="pointer-events-none fill-foreground"
+                    className="pointer-events-none fill-black stroke-none dark:fill-white"
                     fontSize={12}
                   >
                     {formatZoneCount(Number(value)).display}

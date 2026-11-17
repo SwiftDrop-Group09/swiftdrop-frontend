@@ -49,7 +49,13 @@ The standard shadcn ChartTooltipContent shows the full zone name and exact selec
 component status counts on pointer/keyboard interaction, with the default dot
 indicator: Booked/Assigned/Collected, In transit/Out for delivery, Delivered, or
 Delivery unsuccessful/Cancelled according to the selected mode. The group name
-is not repeated as the tooltip value. Omitted statuses display as zero. The separate
+is not repeated as the tooltip value. Omitted statuses display as zero. Tooltip
+dots use each individual status column's relative shade across the full response,
+matching Zone summary (including neutral zero dots). A shared feature palette
+supplies the matrix background classes and corresponding chart color values.
+Bar labels have no outline. Light labels are black. In Dark mode, names use
+black over pale bars and white over dark bars or when a short bar leaves the name
+on the dark surface. End counts use white against the dark surface. The separate
 inline colored detail breakdown is removed. The accessible table retains exact
 individual status counts and authoritative API totals for the displayed zones.
 Zero-count, missing-breakdown and empty-mode notices remain distinct.
