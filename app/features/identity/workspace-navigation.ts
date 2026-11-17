@@ -1,6 +1,5 @@
 import {
   Bot,
-  ChartNoAxesCombined,
   ClipboardList,
   FileChartColumn,
   History,
@@ -78,11 +77,6 @@ const navigation: readonly NavigationGroup[] = [
     label: 'Merchant',
     roles: ['Merchant'],
     items: [
-      {
-        label: 'Business overview',
-        icon: ChartNoAxesCombined,
-        to: '/merchant/overview',
-      },
       { label: 'Orders', icon: ClipboardList, to: '/merchant/orders' },
       { label: 'API keys', icon: KeyRound, to: '/merchant' },
       { label: 'Webhooks', icon: Webhook, to: '/merchant/webhooks' },

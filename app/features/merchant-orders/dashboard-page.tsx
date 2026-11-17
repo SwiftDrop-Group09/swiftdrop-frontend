@@ -39,26 +39,32 @@ import {
   TrackingLink,
 } from './order-display';
 
+export function MerchantDashboardWorkspace() {
+  return (
+    <WorkspacePage
+      title="Dashboard"
+      description="Your orders and delivery results for a chosen period. Figures come from SwiftDrop's copy of your parcel statuses."
+      actions={
+        <Button asChild variant="outline">
+          <Link to="/merchant/orders">
+            <ClipboardList aria-hidden="true" />
+            All orders
+          </Link>
+        </Button>
+      }
+    >
+      <ApprovedBusinessGate feature="business statistics">
+        <DashboardContent />
+      </ApprovedBusinessGate>
+    </WorkspacePage>
+  );
+}
+
 export function DashboardPage() {
   return (
     <Protected roles={['Merchant']}>
       <IdentityShell>
-        <WorkspacePage
-          title="Business overview"
-          description="Your orders and delivery results for a chosen period. Figures come from SwiftDrop's copy of your parcel statuses."
-          actions={
-            <Button asChild variant="outline">
-              <Link to="/merchant/orders">
-                <ClipboardList aria-hidden="true" />
-                All orders
-              </Link>
-            </Button>
-          }
-        >
-          <ApprovedBusinessGate feature="business statistics">
-            <DashboardContent />
-          </ApprovedBusinessGate>
-        </WorkspacePage>
+        <MerchantDashboardWorkspace />
       </IdentityShell>
     </Protected>
   );

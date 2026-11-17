@@ -65,6 +65,9 @@ export function useMerchantDashboard(days: DashboardDays, enabled: boolean) {
   });
 }
 
+/** How often an active parcel re-checks for status changes on its detail page. */
+export const LIVE_STATUS_POLL_MS = 5_000;
+
 export function useMerchantOrder(id: string, enabled: boolean) {
   const { user } = useIdentity();
   const api = useMerchantOrdersApi();
@@ -72,10 +75,17 @@ export function useMerchantOrder(id: string, enabled: boolean) {
     queryKey: merchantOrderKeys.detail(user?.id, id),
     enabled: enabled && !!user,
     queryFn: ({ signal }) => api.getOrder(id, signal),
-    // Poll only while SwiftDrop is still creating the parcel.
-    refetchInterval: (query) =>
-      query.state.data && isInProgress(query.state.data.state)
-        ? IN_PROGRESS_POLL_MS
-        : false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      if (isInProgress(data.state)) return IN_PROGRESS_POLL_MS;
+      if (data.state === 'Created') {
+        const terminal = ['Delivered', 'Failed', 'Cancelled'];
+        if (!data.parcelStatus || !terminal.includes(data.parcelStatus)) {
+          return LIVE_STATUS_POLL_MS;
+        }
+      }
+      return false;
+    },
   });
 }
