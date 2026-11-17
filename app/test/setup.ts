@@ -1,16 +1,18 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
-// jsdom has no layout engine; Radix measures its hidden checkbox input.
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-);
+// jsdom has no layout engine; Radix measures checkbox inputs and scroll areas.
+beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
 
 // Responsive Radix shell tests use a desktop viewport unless a case overrides it.
 vi.stubGlobal('matchMedia', (query: string) => ({

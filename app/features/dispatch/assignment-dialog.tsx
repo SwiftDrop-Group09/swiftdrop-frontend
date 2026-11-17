@@ -7,6 +7,7 @@ import {
   WorkspaceNotice,
 } from '~/shared/components/workspace-state';
 import { Button } from '~/shared/components/ui/button';
+import { Badge } from '~/shared/components/ui/badge';
 import { Calendar } from '~/shared/components/ui/calendar';
 import {
   Dialog,
@@ -396,10 +397,28 @@ export function AssignmentDialog({
                               {courier.courierCode}
                             </p>
                           </TableCell>
+                          <TableCell>
+                            <p>{courier.vehicleType}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {courier.maxWeightKg} kg maximum
+                            </p>
+                            {courier.vehicleNumber && (
+                              <p className="text-xs text-muted-foreground">
+                                {courier.vehicleNumber}
+                              </p>
+                            )}
+                          </TableCell>
                           <TableCell>{courier.onDuty ? 'Yes' : 'No'}</TableCell>
                           <TableCell>
                             {courier.activeCountForServiceDate} /{' '}
                             {courier.capacity}
+                          </TableCell>
+                          <TableCell>
+                            {courier.isRecommended ? (
+                              <Badge variant="secondary">Recommended</Badge>
+                            ) : (
+                              '—'
+                            )}
                           </TableCell>
                           <TableCell>
                             <Button

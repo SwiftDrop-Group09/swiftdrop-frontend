@@ -62,18 +62,19 @@ export function formatMoney(amount: number, currency = 'LKR'): string {
   })}`;
 }
 
-export function StatusBadge({ status }: { status: ParcelStatus }) {
-  const variantClass =
-    status === 'Delivered'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
-      : status === 'Failed' || status === 'Cancelled'
-        ? 'border-destructive/25 bg-destructive/10 text-destructive'
-        : status === 'OutForDelivery' || status === 'InTransit'
-          ? 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300'
-          : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300';
+export function parcelStatusBadgeClasses(status: ParcelStatus) {
+  return status === 'Delivered'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300'
+    : status === 'Failed' || status === 'Cancelled'
+      ? 'border-destructive/25 bg-destructive/10 text-destructive'
+      : status === 'OutForDelivery' || status === 'InTransit'
+        ? 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-300'
+        : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300';
+}
 
+export function StatusBadge({ status }: { status: ParcelStatus }) {
   return (
-    <Badge variant="outline" className={variantClass}>
+    <Badge variant="outline" className={parcelStatusBadgeClasses(status)}>
       {PARCEL_STATUS_LABELS[status] ?? status}
     </Badge>
   );

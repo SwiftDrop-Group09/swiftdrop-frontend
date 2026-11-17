@@ -1,10 +1,44 @@
 # Dispatcher zone summary
 
 The Dispatcher/Admin `/dispatch/zones` page implements FR-D05 through
-`GET /api/v1/zones/summary`. Route guards run before private reads. The existing
-three-column table remains: Zone, Total parcels and Status breakdown. Totals
-come from the API, and all returned status keys remain visible. Configured
-zero-count zones remain in the table; omitted status keys mean zero.
+`GET /api/v1/zones/summary`. Route guards run before private reads. The table
+presents a grouped status matrix with Zone first and authoritative API Total
+parcels last. Configured zero-count zones remain visible, and omitted status
+keys mean zero.
+
+## Status matrix
+
+The two-row header groups Booked/Assigned/Collected under Before transit,
+In transit/Out for delivery under On the road, Delivered under Done, and
+Delivery unsuccessful/Cancelled under Problems. Additional returned status keys
+appear alphabetically under Other statuses, with a consistent column for every
+zone. The underlying API status keys and enum labels are reused.
+
+Zones are ordered descending by Created + Failed + Cancelled, then by name and
+zone ID. This ordering uses current counts in the selected booking-period
+response. The API total remains authoritative even when it differs from the
+sum of recognized status columns.
+
+Each status column uses its own maximum across the full response. Positive
+counts receive four intensity levels at 25/50/75/100% of that maximum.
+The matrix composes shared shadcn Table and Badge surfaces and reuses the existing
+StatusBadge palette: amber before transit, sky on the road, emerald for delivered,
+and the theme's destructive red for problems. Text and borders retain the system
+status colors in Light/Dark/Device; background shades vary within each family to
+show relative volume. Additional unknown statuses use neutral shades. Muted dashes indicate zero,
+and screen readers receive the numeric value. Counts below one million stay
+fully formatted. Larger counts use compact notation with at most one decimal,
+with exact values available through focus/hover Tooltip and accessible labels.
+
+The official shadcn ScrollArea is installed through the registry CLI and reuses
+the shared class-name utility and existing Radix dependency. A single named,
+keyboard-focusable viewport scrolls horizontally on narrow screens. The table
+uses its natural height, with no fixed height cap or nested vertical scrollbar:
+larger displays can show more zones, and longer lists use normal page scrolling.
+Zone names remain visible during horizontal scrolling. Zone names and column
+headings wrap. The shared Table's optional containerClassName and ScrollArea's
+optional viewportProps/scrollbarOrientation support this composition while
+retaining their default behavior for existing consumers.
 
 ## Booking period
 
@@ -45,12 +79,17 @@ Customer, Courier, Merchant and signed-out users cannot mount summary reads.
 ## Verification and handoff
 
 The summary page tests use the real shared QueryClient and isolated identity
-transport. They cover the original table, authoritative API totals, UTC Calendar
+transport. They cover the grouped matrix, authoritative API totals, UTC Calendar
 Apply/Clear/Cancel/validation, separate catalog caches, prefix invalidation,
 cancellation and account/role isolation. Shared period tests cover keyboard
 selection/focus and compatibility with existing report inputs. Run
 `npm run check` and browser checks for changed controls before review.
 Refresh tests also verify retained rows, an honest failure notice and recovery.
+Matrix tests cover attention ordering, stable ties, unknown-status columns,
+independent maxima, intensity boundaries, accessible zero values, large-count
+tooltips and 100 configured zones. Browser checks establish page/horizontal scrolling,
+sticky zone names, uncapped height on tall displays, theme contrast and small-screen layout. The jsdom
+ResizeObserver stub is renewed before each test for Radix measurements.
 
 Backend TC-D05 tests cover persisted counts, exact date boundaries and HTTP
 authorization. See `swiftdrop-backend/docs/dispatcher-zone-summary.md`. Release

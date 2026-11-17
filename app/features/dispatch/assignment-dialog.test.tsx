@@ -166,6 +166,54 @@ async function open(
   );
   await screen.findByRole('button', { name: `Select courier ${label}` });
 }
+it('aligns incoming vehicle and recommendation data with all six table columns', async () => {
+  const { user } = mount({
+    read: () =>
+      json({
+        ...options,
+        items: [
+          {
+            ...candidate,
+            vehicleType: 'Van',
+            vehicleNumber: 'TEST-001',
+            maxWeightKg: 100.5,
+            isRecommended: true,
+            score: 80,
+          },
+        ],
+      }),
+  });
+  await open(user);
+  const dialog = screen.getByRole('dialog', { name: 'Assign courier' });
+  expect(
+    within(dialog)
+      .getAllByRole('columnheader')
+      .map((cell) => cell.textContent),
+  ).toEqual([
+    'Courier',
+    'Vehicle & Limit',
+    'On duty',
+    'Daily workload',
+    'Recommendation',
+    'Select',
+  ]);
+  const cells = within(within(dialog).getAllByRole('row')[1]!).getAllByRole(
+    'cell',
+  );
+  expect(cells).toHaveLength(6);
+  expect(cells[0]).toHaveTextContent('Courier Alpha');
+  expect(cells[1]).toHaveTextContent('Van');
+  expect(cells[1]).toHaveTextContent('100.5 kg maximum');
+  expect(cells[1]).toHaveTextContent('TEST-001');
+  expect(cells[2]).toHaveTextContent('Yes');
+  expect(cells[3]).toHaveTextContent('1 / 2');
+  expect(cells[4]).toHaveTextContent('Recommended');
+  expect(
+    within(cells[5]!).getByRole('button', {
+      name: 'Select courier Courier Alpha · COU-0001',
+    }),
+  ).toBeEnabled();
+});
 it.each(['Dispatcher', 'Admin'])(
   'confirms an assignment and refreshes the queue for %s',
   async (role) => {

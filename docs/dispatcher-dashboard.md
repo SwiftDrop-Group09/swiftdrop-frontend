@@ -21,9 +21,42 @@ historical comparison. Counts represent current states, not transitions today.
 - **Zones with backlog** counts zones with at least one Created parcel. Missing
   status keys mean zero; empty catalogs differ from configured zero-workload zones.
 
-The stacked horizontal chart shows the six busiest zones, ordered by Created
-plus in-progress counts, then name and zone ID. It provides theme-token colors,
-legends, tooltips and a screen-reader table containing full names and counts.
+The horizontal custom-label bar chart uses the official shadcn example with
+zone labels inside each bar and counts at its right edge. An official searchable shadcn Combobox selects
+Before transit, On the road, Done or Problems. Each mode shows up to twelve zones
+with positive counts, ranked by that group's count descending, then name and ID.
+The initial mode is Before transit when populated, otherwise the first populated
+known group. Empty modes remain selectable and explain how to view other counts.
+Unknown statuses remain available in Zone summary and the accessible table.
+The chart grows to 512px for nine to twelve rows, using more of the space beside
+the courier preview without crowding labels. Seven/eight rows use 384px, and
+smaller results use 320px. Long names truncate visually; full names and exact counts remain in tooltips
+and the accessible table. Million-scale end labels compact values to fit.
+
+The chart and matrix share their status groups: Before transit (Booked, Assigned,
+Collected), On the road (In transit, Out for delivery), Done (Delivered), and
+Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
+emerald and brand red families. All four chart series reuse the Zone summary table's strongest (fourth) shade,
+including its theme-aware amber, sky and emerald fills and destructive at 10%
+for problems. Device appearance follows the resolved Light/Dark theme.
+Subtle status borders preserve segment edges.
+Unknown returned statuses remain in the accessible chart table and the full Zone
+summary, rather than being inferred from the API total or added as a fifth mode.
+
+The mode Combobox sits beside the card heading and remains available on mobile.
+The standard shadcn ChartTooltipContent shows the full zone name and exact selected
+component status counts on pointer/keyboard interaction, with the default dot
+indicator: Booked/Assigned/Collected, In transit/Out for delivery, Delivered, or
+Delivery unsuccessful/Cancelled according to the selected mode. The group name
+is not repeated as the tooltip value. Omitted statuses display as zero. Tooltip
+dots use each individual status column's relative shade across the full response,
+matching Zone summary (including neutral zero dots). A shared feature palette
+supplies the matrix background classes and corresponding chart color values.
+Bar labels have no outline. Light labels are black. In Dark mode, names use
+white over the dark table-matched bars and the dark surface. End counts use white against the dark surface. The separate
+inline colored detail breakdown is removed. The accessible table retains exact
+individual status counts and authoritative API totals for the displayed zones.
+Zero-count, missing-breakdown and empty-mode notices remain distinct.
 
 The courier card shows the first five entries of workload page 1, preserving
 server order and labeling the partial preview. Names are resolved only for those

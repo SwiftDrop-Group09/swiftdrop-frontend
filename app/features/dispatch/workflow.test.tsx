@@ -252,6 +252,8 @@ it.each(['Dispatcher', 'Admin'] as const)(
       });
     await screen.findByText('Courier Alpha');
     if (role === 'Dispatcher') {
+      // This cache workflow checks reads after the lazy Dispatcher bundle loads.
+      await import('./dashboard');
       await navigate('/dashboard');
       await screen.findByRole('link', { name: parcel.trackingNumber });
       expect(screen.getByLabelText('Awaiting assignment')).toHaveTextContent(
@@ -330,7 +332,7 @@ it.each(['Dispatcher', 'Admin'] as const)(
     await workload(0, 1);
     if (role === 'Dispatcher') await dashboard(0, 1);
     await navigate('/dispatch/zones');
-    await screen.findByRole('cell', { name: 'Workflow zone' });
+    await screen.findByRole('rowheader', { name: 'Workflow zone' });
     expect((await readDated()).zones[0]?.statusCounts).toEqual({ Assigned: 1 });
     expect(
       reads.filter((path) => path.includes('/zones/summary?')),

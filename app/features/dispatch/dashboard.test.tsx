@@ -288,9 +288,112 @@ describe('Dispatcher operations dashboard', () => {
         ? json({ zones: [zones[2]] })
         : undefined,
     );
-    await screen.findByText('No active zone workload');
+    await screen.findByText('No parcels in configured zones');
     expect(
       screen.queryByText('No delivery zones configured'),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(['Delivered', 'Failed', 'Cancelled'])(
+    'includes zones containing only %s parcels instead of hiding them as inactive',
+    async (status) => {
+      mount((url) =>
+        url.pathname.endsWith('/zones/summary')
+          ? json({
+              zones: [{ ...zones[0], total: 4, statusCounts: { [status]: 4 } }],
+            })
+          : undefined,
+      );
+      const table = await screen.findByRole('table', {
+        name: 'Zone workload chart values',
+      });
+      expect(
+        within(table).getByRole('rowheader', { name: 'Colombo' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: 'Current zone workload chart' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('No parcels in configured zones'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('switches group modes, reranks zones and keeps empty modes selectable', async () => {
+    const view = mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({
+            zones: [
+              ...zones,
+              {
+                ...zones[0],
+                zoneId: id(77),
+                name: 'Delivered leader',
+                statusCounts: { Delivered: 200 },
+              },
+            ],
+          })
+        : undefined,
+    );
+    await loaded();
+    expect(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    ).toHaveValue('Before transit');
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.click(await screen.findByRole('option', { name: 'Done' }));
+    const table = await screen.findByRole('table', {
+      name: 'Zone workload chart values',
+    });
+    expect(within(table).getAllByRole('rowheader')[0]).toHaveTextContent(
+      'Delivered leader',
+    );
+    expect(
+      screen.getByText(/Ranked by Done, highest first/),
+    ).toBeInTheDocument();
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.clear(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.type(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+      'Problems',
+    );
+    await view.user.keyboard('{ArrowDown}{Enter}');
+    expect(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    ).toHaveValue('Problems');
+  });
+
+  it('keeps unknown-only counts available through the full summary rather than inventing a known mode', async () => {
+    const view = mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({ zones: [{ ...zones[0], statusCounts: { Returned: 4 } }] })
+        : undefined,
+    );
+    await screen.findByText('No parcels in Before transit');
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.click(await screen.findByRole('option', { name: 'Done' }));
+    await screen.findByText('No parcels in Done');
+    expect(
+      screen.getByRole('link', { name: 'View zones' }),
+    ).toBeInTheDocument();
+  });
+
+  it('distinguishes an unavailable status breakdown from an empty zone', async () => {
+    mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({ zones: [{ ...zones[0], statusCounts: {} }] })
+        : undefined,
+    );
+    await screen.findByText('No status breakdown available');
+    expect(
+      screen.queryByText('No parcels in configured zones'),
     ).not.toBeInTheDocument();
   });
 
@@ -474,17 +577,17 @@ describe('Dispatcher operations dashboard', () => {
     expect(view.reads).toHaveBeenCalledTimes(count);
   });
 
-  it('ignores terminal and unknown states, sorts ties, and exposes all chart values', async () => {
-    const extra = Array.from({ length: 6 }, (_, n) => ({
+  it('preserves operational KPIs while exposing all chart statuses and attention ordering', async () => {
+    const extra = Array.from({ length: 18 }, (_, n) => ({
       zoneId: id(400 + n),
-      name: `Zone ${n}`,
+      name: `Zone ${String(n).padStart(2, '0')}`,
       total: 1,
       statusCounts: { Created: 1 },
     }));
     const snapshot = dispatchSnapshot([...zones, ...extra]);
     expect(snapshot.inProgress).toBe(14);
     expect(snapshot.outForDelivery).toBe(5);
-    expect(snapshot.zonesWithBacklog).toBe(8);
+    expect(snapshot.zonesWithBacklog).toBe(20);
     expect(
       dispatchSnapshot([
         { ...zones[1]!, name: 'Tie', zoneId: id(2) },
@@ -499,14 +602,22 @@ describe('Dispatcher operations dashboard', () => {
     const table = await screen.findByRole('table', {
       name: 'Zone workload chart values',
     });
-    expect(within(table).getAllByRole('row')).toHaveLength(7);
-    expect(within(table).getAllByRole('row')[1]).toHaveTextContent(
-      'Colombo714',
-    );
+    expect(within(table).getAllByRole('row')).toHaveLength(13);
     expect(
-      screen.getByText(
-        '6 of 9 zones · Ranked by awaiting assignment plus in progress.',
-      ),
+      within(table).getByRole('rowheader', { name: 'Zone 09' }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).queryByRole('rowheader', { name: 'Zone 10' }),
+    ).not.toBeInTheDocument();
+    const row = within(table).getAllByRole('row')[1]!;
+    expect(within(row).getByRole('rowheader')).toHaveTextContent('Colombo');
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent),
+    ).toEqual(['7', '2', '3', '4', '5', '100', '20', '10', '6', '999']);
+    expect(
+      screen.getByText(/12 of 21 zones · Ranked by Before transit/),
     ).toBeInTheDocument();
   });
 });

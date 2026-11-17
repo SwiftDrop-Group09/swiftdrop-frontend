@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import {
@@ -42,7 +42,12 @@ import {
 } from '~/shared/components/ui/table';
 import { useCourierDirectory, useCourierWorkload } from './workload-hooks';
 import { dispatchSnapshot } from './dashboard-analytics';
-import { DispatchWorkloadChart } from './dashboard-chart';
+import {
+  DispatchWorkloadChart,
+  DispatchWorkloadModePicker,
+  defaultWorkloadMode,
+  type ZoneWorkloadMode,
+} from './dashboard-chart';
 
 type ReadState = {
   data?: unknown;
@@ -149,6 +154,7 @@ export default function DispatcherDashboard() {
 }
 
 function DispatcherDashboardContent() {
+  const [zoneMode, setZoneMode] = useState<ZoneWorkloadMode | null>(null);
   const { user, session } = useIdentity();
   const zones = useQuery({
     queryKey: ['delivery-zone-summary', user!.id],
@@ -169,6 +175,8 @@ function DispatcherDashboardContent() {
     couriers.map((courier) => courier.courierId),
   );
   const snapshot = zones.data ? dispatchSnapshot(zones.data.zones) : undefined;
+  const selectedZoneMode =
+    zoneMode ?? defaultWorkloadMode(snapshot?.workloads ?? []);
   const refreshing =
     zones.isFetching ||
     queue.isFetching ||
@@ -252,21 +260,33 @@ function DispatcherDashboardContent() {
               <CardTitle>
                 <h2 className="text-base">Current zone workload</h2>
               </CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/dispatch/zones">
-                  View zones
-                  <ArrowRight aria-hidden="true" />
-                </Link>
-              </Button>
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <DispatchWorkloadModePicker
+                  mode={selectedZoneMode}
+                  onModeChange={setZoneMode}
+                />
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/dispatch/zones">
+                    View zones
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
             </div>
             <CardDescription>
-              Current statuses across all booking dates. Completed, failed and
-              cancelled parcels are excluded.
+              Current statuses across all booking dates, grouped as in Zone
+              summary. Includes delivered and problem parcels.
             </CardDescription>
           </CardHeader>
           <CardContent className="min-w-0 space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
             <DashboardRead query={zones} label="zone workload">
-              {snapshot && <DispatchWorkloadChart zones={snapshot.workloads} />}
+              {snapshot && (
+                <DispatchWorkloadChart
+                  key={selectedZoneMode}
+                  zones={snapshot.workloads}
+                  mode={selectedZoneMode}
+                />
+              )}
             </DashboardRead>
           </CardContent>
         </Card>

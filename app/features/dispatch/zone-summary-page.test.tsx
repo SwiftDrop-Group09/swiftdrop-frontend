@@ -131,7 +131,7 @@ function mount(
 }
 
 async function loaded() {
-  await screen.findByRole('cell', { name: zones[0]!.name });
+  await screen.findByRole('rowheader', { name: zones[0]!.name });
 }
 async function openPeriod(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Reporting period' }));
@@ -152,7 +152,7 @@ async function selectDate(
 
 describe('Dispatcher zone summary', () => {
   it.each(['Dispatcher', 'Admin'] as const)(
-    'uses an all-date private summary for %s with the existing table design',
+    'uses an all-date private summary for %s with the grouped status matrix',
     async (role) => {
       const { reads, queries } = mount(undefined, {
         ...dispatcher,
@@ -168,14 +168,34 @@ describe('Dispatcher zone summary', () => {
       ).toHaveTextContent('All booking dates');
       expect(
         screen.getAllByRole('columnheader').map((cell) => cell.textContent),
-      ).toEqual(['Zone', 'Total parcels', 'Status breakdown']);
+      ).toEqual([
+        'Zone',
+        'Before transit',
+        'On the road',
+        'Done',
+        'Problems',
+        'Other statuses',
+        'Total parcels',
+        'Booked',
+        'Assigned',
+        'Collected',
+        'In transit',
+        'Out for delivery',
+        'Delivered',
+        'Delivery unsuccessful',
+        'Cancelled',
+        'Returned',
+      ]);
       const row = screen
-        .getByRole('cell', { name: zones[0]!.name })
+        .getByRole('rowheader', { name: zones[0]!.name })
         .closest('tr')!;
       expect(within(row).getByRole('cell', { name: '12' })).toBeInTheDocument();
-      expect(within(row).getByText('Returned: 2')).toBeInTheDocument();
       expect(
-        screen.getByRole('cell', { name: 'Empty zone' }),
+        screen.getByRole('columnheader', { name: 'Returned' }),
+      ).toBeInTheDocument();
+      expect(within(row).getByRole('cell', { name: '2' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('rowheader', { name: 'Empty zone' }),
       ).toBeInTheDocument();
       expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     },
@@ -232,7 +252,7 @@ describe('Dispatcher zone summary', () => {
     await user.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(screen.getByText('Refreshing zone summary…')).toBeInTheDocument();
     expect(
-      screen.getByRole('cell', { name: zones[0]!.name }),
+      screen.getByRole('rowheader', { name: zones[0]!.name }),
     ).toBeInTheDocument();
     await act(async () => {
       resolve(json({ code: 'delivery_unavailable' }, 503));
@@ -243,7 +263,7 @@ describe('Dispatcher zone summary', () => {
       screen.getByText(/Showing previously loaded results for this period/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('cell', { name: zones[0]!.name }),
+      screen.getByRole('rowheader', { name: zones[0]!.name }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() =>
@@ -464,7 +484,7 @@ describe('Dispatcher zone summary', () => {
     await act(async () => {
       await session.login('other@example.test', 'test-password');
     });
-    await screen.findByRole('cell', { name: 'Other account zone' });
+    await screen.findByRole('rowheader', { name: 'Other account zone' });
     expect(
       screen.getByRole('button', { name: 'Reporting period' }),
     ).toHaveTextContent('All booking dates');
@@ -475,7 +495,7 @@ describe('Dispatcher zone summary', () => {
       await Promise.resolve();
     });
     expect(
-      screen.queryByRole('cell', { name: zones[0]!.name }),
+      screen.queryByRole('rowheader', { name: zones[0]!.name }),
     ).not.toBeInTheDocument();
     expect(
       queries
