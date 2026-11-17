@@ -292,44 +292,7 @@ describe('Dispatcher operations dashboard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows exact zone details as inline text below the chart rather than covering its bars', async () => {
-    // jsdom has no layout; chart selection needs a non-zero measured viewport.
-    const bounds = vi
-      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-      .mockReturnValue(new DOMRect(0, 0, 640, 320));
-    try {
-      mount();
-      await loaded();
-      const details = screen.getByRole('status', {
-        name: 'Zone workload details',
-      });
-      await waitFor(() =>
-        expect(details).toHaveTextContent('Total parcels: 999'),
-      );
-      expect(details).toHaveTextContent('Colombo');
-      expect(details).toHaveTextContent('Before transit: 12');
-      expect(details).toHaveTextContent(
-        'Booked: 7 · Assigned: 2 · Collected: 3',
-      );
-      expect(details).toHaveTextContent('On the road: 9');
-      expect(details).toHaveTextContent('Done: 100');
-      expect(details).toHaveTextContent('Problems: 30');
-      expect(details).toHaveTextContent('Returned: 6');
-      const chart = screen.getByRole('region', {
-        name: 'Current zone workload chart',
-      });
-      expect(chart).not.toContainElement(details);
-      expect(chart).not.toHaveTextContent('Total parcels: 999');
-      expect(
-        chart.compareDocumentPosition(details) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    } finally {
-      bounds.mockRestore();
-    }
-  });
-
-  it.each(['Delivered', 'Failed', 'Cancelled', 'Returned'])(
+  it.each(['Delivered', 'Failed', 'Cancelled'])(
     'includes zones containing only %s parcels instead of hiding them as inactive',
     async (status) => {
       mount((url) =>
@@ -353,6 +316,72 @@ describe('Dispatcher operations dashboard', () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it('switches group modes, reranks zones and keeps empty modes selectable', async () => {
+    const view = mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({
+            zones: [
+              ...zones,
+              {
+                ...zones[0],
+                zoneId: id(77),
+                name: 'Delivered leader',
+                statusCounts: { Delivered: 200 },
+              },
+            ],
+          })
+        : undefined,
+    );
+    await loaded();
+    expect(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    ).toHaveValue('Before transit');
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.click(await screen.findByRole('option', { name: 'Done' }));
+    const table = await screen.findByRole('table', {
+      name: 'Zone workload chart values',
+    });
+    expect(within(table).getAllByRole('rowheader')[0]).toHaveTextContent(
+      'Delivered leader',
+    );
+    expect(
+      screen.getByText(/Ranked by Done, highest first/),
+    ).toBeInTheDocument();
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.clear(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.type(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+      'Problems',
+    );
+    await view.user.keyboard('{ArrowDown}{Enter}');
+    expect(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    ).toHaveValue('Problems');
+  });
+
+  it('keeps unknown-only counts available through the full summary rather than inventing a known mode', async () => {
+    const view = mount((url) =>
+      url.pathname.endsWith('/zones/summary')
+        ? json({ zones: [{ ...zones[0], statusCounts: { Returned: 4 } }] })
+        : undefined,
+    );
+    await screen.findByText('No parcels in Before transit');
+    await view.user.click(
+      screen.getByRole('combobox', { name: 'Zone workload mode' }),
+    );
+    await view.user.click(await screen.findByRole('option', { name: 'Done' }));
+    await screen.findByText('No parcels in Done');
+    expect(
+      screen.getByRole('link', { name: 'View zones' }),
+    ).toBeInTheDocument();
+  });
 
   it('distinguishes an unavailable status breakdown from an empty zone', async () => {
     mount((url) =>
@@ -580,9 +609,7 @@ describe('Dispatcher operations dashboard', () => {
         .map((cell) => cell.textContent),
     ).toEqual(['7', '2', '3', '4', '5', '100', '20', '10', '6', '999']);
     expect(
-      screen.getByText(
-        /6 of 9 zones · Ranked by Booked \+ Delivery unsuccessful \+ Cancelled/,
-      ),
+      screen.getByText(/6 of 9 zones · Ranked by Before transit/),
     ).toBeInTheDocument();
   });
 });

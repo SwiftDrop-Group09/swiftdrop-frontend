@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { parcelStatusBadgeClasses } from '~/features/customer-tracking/components';
-import { Badge } from '~/shared/components/ui/badge';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
+  ChartTooltipContent,
   type ChartConfig,
 } from '~/shared/components/ui/chart';
 import {
@@ -18,6 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from '~/shared/components/ui/table';
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from '~/shared/components/ui/combobox';
 import { WorkspaceNotice } from '~/shared/components/workspace-state';
 import type { dispatchSnapshot } from './dashboard-analytics';
 import { buildZoneMatrix, formatZoneCount } from './zone-matrix-model';
@@ -52,34 +62,67 @@ const segmentStrokes: Record<keyof typeof config, string> = {
   other: 'stroke-border',
 };
 
-function payloadZoneId(value: unknown) {
-  return typeof value === 'object' && value !== null && 'zoneId' in value
-    ? value.zoneId
-    : undefined;
+type Workloads = ReturnType<typeof dispatchSnapshot>['workloads'];
+export type ZoneWorkloadMode = (typeof ZONE_STATUS_GROUPS)[number]['key'];
+export function defaultWorkloadMode(zones: Workloads): ZoneWorkloadMode {
+  return (
+    ZONE_STATUS_GROUPS.find((group) =>
+      zones.some((zone) => zone[group.key] > 0),
+    )?.key ?? 'beforeTransit'
+  );
 }
-
+export function DispatchWorkloadModePicker({
+  mode,
+  onModeChange,
+}: {
+  mode: ZoneWorkloadMode;
+  onModeChange: (value: ZoneWorkloadMode) => void;
+}) {
+  const selected = ZONE_STATUS_GROUPS.find((group) => group.key === mode)!;
+  return (
+    <Combobox<(typeof ZONE_STATUS_GROUPS)[number]>
+      items={[...ZONE_STATUS_GROUPS]}
+      value={selected}
+      onValueChange={(value) => {
+        if (value) onModeChange(value.key);
+      }}
+      itemToStringLabel={(group) => group.label}
+    >
+      <ComboboxInput
+        aria-label="Zone workload mode"
+        placeholder="Select workload mode"
+        className="w-full sm:w-48"
+      />
+      <ComboboxContent>
+        <ComboboxEmpty>No matching modes.</ComboboxEmpty>
+        <ComboboxList>
+          {(group: (typeof ZONE_STATUS_GROUPS)[number]) => (
+            <ComboboxItem key={group.key} value={group}>
+              {group.label}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}
 export function DispatchWorkloadChart({
   zones,
+  mode = defaultWorkloadMode(zones),
 }: {
-  zones: ReturnType<typeof dispatchSnapshot>['workloads'];
+  zones: Workloads;
+  mode?: ZoneWorkloadMode;
 }) {
-  const [detailsTarget, setDetailsTarget] = useState<HTMLDivElement | null>(
-    null,
-  );
-  const populated = zones.filter(
-    (zone) =>
-      zone.beforeTransit +
-        zone.onRoad +
-        zone.done +
-        zone.problems +
-        zone.other >
-      0,
-  );
+  const populated = zones
+    .filter((zone) => zone[mode] > 0)
+    .sort(
+      (a, b) =>
+        b[mode] - a[mode] ||
+        a.name.localeCompare(b.name) ||
+        a.zoneId.localeCompare(b.zoneId),
+    );
   const shown = populated.slice(0, 6);
-  const series = [
-    ...ZONE_STATUS_GROUPS.map(({ key }) => key),
-    ...(zones.some((zone) => zone.other > 0) ? (['other'] as const) : []),
-  ];
+  const label = config[mode].label;
   const model = buildZoneMatrix(shown);
   if (!zones.length)
     return (
@@ -92,16 +135,27 @@ export function DispatchWorkloadChart({
     return (
       <WorkspaceNotice
         title={
-          zones.some((zone) => zone.total > 0)
-            ? 'No status breakdown available'
-            : 'No parcels in configured zones'
+          zones.some(
+            (zone) =>
+              zone.beforeTransit +
+                zone.onRoad +
+                zone.done +
+                zone.problems +
+                zone.other >
+              0,
+          )
+            ? `No parcels in ${label}`
+            : zones.some((zone) => zone.total > 0)
+              ? 'No status breakdown available'
+              : 'No parcels in configured zones'
         }
-        description="No positive status counts were returned. View zones for the configured zones and their reported totals."
+        description="Choose another mode or view zones for the complete status breakdown, including other returned statuses."
       />
     );
   return (
     <>
       <ChartContainer
+        key={mode}
         config={config}
         className="aspect-auto h-96 w-full min-w-0 sm:h-80"
         role="region"
@@ -111,124 +165,74 @@ export function DispatchWorkloadChart({
           accessibilityLayer
           data={shown}
           layout="vertical"
-          margin={{ left: 0, right: 12 }}
+          margin={{ left: 0, right: 56 }}
         >
           <CartesianGrid horizontal={false} />
-          <XAxis
-            tick={{ fill: 'var(--muted-foreground)' }}
-            type="number"
-            allowDecimals={false}
-            axisLine={false}
-            tickLine={false}
-            minTickGap={24}
-            tickFormatter={(value: number) => formatZoneCount(value).display}
-          />
-          <YAxis
-            tick={{ fill: 'var(--muted-foreground)' }}
-            type="category"
-            dataKey="name"
-            width={100}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) =>
-              typeof value === 'string' && value.length > 14
-                ? value.slice(0, 13) + '…'
-                : String(value)
+          <XAxis type="number" dataKey={mode} hide />
+          <YAxis type="category" dataKey="name" hide />
+          <ChartTooltip
+            cursor={false}
+            content={
+              <ChartTooltipContent
+                indicator="dot"
+                className="max-w-64 break-words"
+              />
             }
           />
-          {detailsTarget && (
-            <ChartTooltip
-              active
-              defaultIndex={0}
-              content={({ payload }) => {
-                const zone = shown.find(
-                  (zone) =>
-                    zone.zoneId === payloadZoneId(payload?.[0]?.payload),
-                );
-                if (!zone) return null;
-                // Keep Recharts' pointer/keyboard selection, render the text in
-                // normal document flow rather than its floating tooltip box.
-                return createPortal(
-                  <div className="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
-                    <p className="break-words sm:col-span-2">
-                      <span className="font-medium">{zone.name}</span>
-                      <span className="text-muted-foreground">
-                        {' '}
-                        · Total parcels: {formatZoneCount(zone.total).exact}
-                      </span>
-                    </p>
-                    {model.groups.map((group) => (
-                      <div key={group.label} className="break-words">
-                        <Badge
-                          variant="outline"
-                          className={
-                            group.columns[0]?.status
-                              ? parcelStatusBadgeClasses(
-                                  group.columns[0].status,
-                                )
-                              : 'bg-muted text-foreground'
-                          }
-                        >
-                          {group.label}:{' '}
-                          {
-                            formatZoneCount(
-                              group.columns.reduce(
-                                (sum, column) =>
-                                  sum + (zone.statusCounts[column.key] ?? 0),
-                                0,
-                              ),
-                            ).exact
-                          }
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          {' '}
-                          ·{' '}
-                          {group.columns
-                            .map(
-                              ({ key, label }) =>
-                                `${label}: ${formatZoneCount(zone.statusCounts[key] ?? 0).exact}`,
-                            )
-                            .join(' · ')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>,
-                  detailsTarget,
+          <Bar
+            dataKey={mode}
+            fill={`var(--color-${mode})`}
+            className={segmentStrokes[mode]}
+            strokeWidth={1}
+            radius={4}
+            isAnimationActive={false}
+          >
+            <LabelList
+              dataKey="name"
+              position="insideLeft"
+              offset={8}
+              className="pointer-events-none fill-foreground stroke-background stroke-[3px] [paint-order:stroke]"
+              fontSize={12}
+              formatter={(value) => {
+                const name = String(value);
+                return name.length > 17 ? name.slice(0, 16) + '…' : name;
+              }}
+            />
+            <LabelList
+              dataKey={mode}
+              content={({ viewBox, value }) => {
+                if (
+                  !viewBox ||
+                  !('x' in viewBox) ||
+                  !('width' in viewBox) ||
+                  !('y' in viewBox) ||
+                  !('height' in viewBox)
+                )
+                  return null;
+                return (
+                  <text
+                    x={Math.max(
+                      Number(viewBox.x) + Number(viewBox.width) + 8,
+                      120,
+                    )}
+                    y={Number(viewBox.y) + Number(viewBox.height) / 2}
+                    dominantBaseline="central"
+                    className="pointer-events-none fill-foreground"
+                    fontSize={12}
+                  >
+                    {formatZoneCount(Number(value)).display}
+                  </text>
                 );
               }}
             />
-          )}
-          <ChartLegend
-            itemSorter={null}
-            content={
-              <ChartLegendContent className="flex-wrap gap-x-3 gap-y-2" />
-            }
-          />
-          {series.map((key) => (
-            <Bar
-              key={key}
-              dataKey={key}
-              stackId="workload"
-              fill={`var(--color-${key})`}
-              className={segmentStrokes[key]}
-              strokeWidth={1}
-              isAnimationActive={false}
-            />
-          ))}
+          </Bar>
         </BarChart>
       </ChartContainer>
       <p className="text-xs text-muted-foreground">
-        {shown.length} of {zones.length} zones · Ranked by Booked + Delivery
-        unsuccessful + Cancelled, highest first. Zero-count zones are omitted.
-        View zones for all status counts.
+        {shown.length} of {zones.length} zones · Ranked by {label}, highest
+        first. Zero-count zones in this mode are omitted. View zones for all
+        status counts.
       </p>
-      <div
-        ref={setDetailsTarget}
-        role="status"
-        aria-label="Zone workload details"
-        aria-atomic="true"
-        className="min-w-0"
-      />
       <div className="sr-only">
         <Table>
           <caption>Zone workload chart values</caption>

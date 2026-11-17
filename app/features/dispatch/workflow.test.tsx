@@ -252,6 +252,8 @@ it.each(['Dispatcher', 'Admin'] as const)(
       });
     await screen.findByText('Courier Alpha');
     if (role === 'Dispatcher') {
+      // This cache workflow checks reads after the lazy Dispatcher bundle loads.
+      await import('./dashboard');
       await navigate('/dashboard');
       await screen.findByRole('link', { name: parcel.trackingNumber });
       expect(screen.getByLabelText('Awaiting assignment')).toHaveTextContent(

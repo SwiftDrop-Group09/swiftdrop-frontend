@@ -21,10 +21,15 @@ historical comparison. Counts represent current states, not transitions today.
 - **Zones with backlog** counts zones with at least one Created parcel. Missing
   status keys mean zero; empty catalogs differ from configured zero-workload zones.
 
-The stacked horizontal chart previews up to six zones with positive status
-counts. Like Zone summary, it ranks by Booked + Delivery unsuccessful + Cancelled,
-then name and zone ID, so delivered volume does not determine operational priority.
-Zero-count zones remain available in the full Zone summary.
+The horizontal custom-label bar chart uses the official shadcn example with
+zone labels inside each bar and counts at its right edge. An official searchable shadcn Combobox selects
+Before transit, On the road, Done or Problems. Each mode shows up to six zones
+with positive counts, ranked by that group's count descending, then name and ID.
+The initial mode is Before transit when populated, otherwise the first populated
+known group. Empty modes remain selectable and explain how to view other counts.
+Unknown statuses remain available in Zone summary and the accessible table.
+Long names truncate visually; full names and exact counts remain in tooltips
+and the accessible table. Million-scale end labels compact values to fit.
 
 The chart and matrix share their status groups: Before transit (Booked, Assigned,
 Collected), On the road (In transit, Out for delivery), Done (Delivered), and
@@ -34,22 +39,15 @@ fills in Light, Dark and Device: amber-200, sky-200, emerald-200, and brand red
 (`#DC2626`) at 10% opacity for problems. The graph keeps these fills when the theme
 changes; the full matrix retains its own theme-aware intensity scale.
 Subtle status borders preserve segment edges.
-Unknown returned statuses form a neutral Other statuses
-series when present, rather than being discarded or inferred from the API total.
+Unknown returned statuses remain in the accessible chart table and the full Zone
+summary, rather than being inferred from the API total or added as a fifth mode.
 
-The shadcn Chart legend labels each group. Plain text below the ranking caption
-shows full zone names, exact per-status counts, group sums and the authoritative
-API Total parcels, kept separate from the sum of status counts. The first shown
-zone is selected initially; pointer and keyboard chart selection update this
-inline area, which retains the selected values after leaving the chart. No
-floating detail card covers the bars. Inline group labels and their totals use
-the same colored shadcn status badges as the table; individual status counts keep
-readable neutral text. A polite status region announces updates.
-A screen-reader table exposes full zone names, every returned status and API totals
-for the same six-zone preview. Large axis values use compact formatting, while
-inline and accessible values remain exact. Empty catalogs, configured zero
-zones and missing status breakdowns have distinct notices. The dashboard's
-operational KPIs retain their existing definitions above.
+The mode Combobox sits beside the card heading and remains available on mobile.
+The standard shadcn ChartTooltipContent shows the full zone name and exact selected
+group count on pointer/keyboard interaction, with the default dot indicator. The separate
+inline colored detail breakdown is removed. The accessible table retains exact
+individual status counts and authoritative API totals for the displayed zones.
+Zero-count, missing-breakdown and empty-mode notices remain distinct.
 
 The courier card shows the first five entries of workload page 1, preserving
 server order and labeling the partial preview. Names are resolved only for those
