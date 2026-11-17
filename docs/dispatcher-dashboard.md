@@ -46,7 +46,10 @@ summary, rather than being inferred from the API total or added as a fifth mode.
 
 The mode Combobox sits beside the card heading and remains available on mobile.
 The standard shadcn ChartTooltipContent shows the full zone name and exact selected
-group count on pointer/keyboard interaction, with the default dot indicator. The separate
+component status counts on pointer/keyboard interaction, with the default dot
+indicator: Booked/Assigned/Collected, In transit/Out for delivery, Delivered, or
+Delivery unsuccessful/Cancelled according to the selected mode. The group name
+is not repeated as the tooltip value. Omitted statuses display as zero. The separate
 inline colored detail breakdown is removed. The accessible table retains exact
 individual status counts and authoritative API totals for the displayed zones.
 Zero-count, missing-breakdown and empty-mode notices remain distinct.

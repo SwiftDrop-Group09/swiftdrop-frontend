@@ -28,6 +28,7 @@ import {
   ComboboxItem,
   ComboboxEmpty,
 } from '~/shared/components/ui/combobox';
+import { PARCEL_STATUS_LABELS } from '~/features/customer-tracking/contracts';
 import { WorkspaceNotice } from '~/shared/components/workspace-state';
 import type { dispatchSnapshot } from './dashboard-analytics';
 import { buildZoneMatrix, formatZoneCount } from './zone-matrix-model';
@@ -53,6 +54,21 @@ const config = {
   },
   other: { label: 'Other statuses', color: 'var(--muted)' },
 } satisfies ChartConfig;
+
+const tooltipConfig: ChartConfig = { ...config };
+for (const group of ZONE_STATUS_GROUPS) {
+  for (const status of group.statuses) {
+    tooltipConfig[status] = {
+      label: PARCEL_STATUS_LABELS[status],
+      color: config[group.key].color,
+    };
+  }
+}
+function payloadZoneId(value: unknown) {
+  return typeof value === 'object' && value !== null && 'zoneId' in value
+    ? value.zoneId
+    : undefined;
+}
 
 const segmentStrokes: Record<keyof typeof config, string> = {
   beforeTransit: 'stroke-amber-200 dark:stroke-amber-900',
@@ -156,7 +172,7 @@ export function DispatchWorkloadChart({
     <>
       <ChartContainer
         key={mode}
-        config={config}
+        config={tooltipConfig}
         className={`aspect-auto w-full min-w-0 ${shown.length > 8 ? 'h-[32rem]' : shown.length > 6 ? 'h-96' : 'h-80'}`}
         role="region"
         aria-label="Current zone workload chart"
@@ -172,12 +188,30 @@ export function DispatchWorkloadChart({
           <YAxis type="category" dataKey="name" hide />
           <ChartTooltip
             cursor={false}
-            content={
-              <ChartTooltipContent
-                indicator="dot"
-                className="max-w-64 break-words"
-              />
-            }
+            content={({ active, payload }) => {
+              const zone = shown.find(
+                (zone) => zone.zoneId === payloadZoneId(payload?.[0]?.payload),
+              );
+              const group = ZONE_STATUS_GROUPS.find(
+                (group) => group.key === mode,
+              )!;
+              if (!zone || !payload?.[0]) return null;
+              const entry = payload[0];
+              return (
+                <ChartTooltipContent
+                  active={active}
+                  label={zone.name}
+                  payload={group.statuses.map((status) => ({
+                    ...entry,
+                    dataKey: status,
+                    name: status,
+                    value: zone.statusCounts[status] ?? 0,
+                  }))}
+                  indicator="dot"
+                  className="w-64 max-w-[calc(100vw-2rem)] break-words"
+                />
+              );
+            }}
           />
           <Bar
             dataKey={mode}
