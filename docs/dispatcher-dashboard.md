@@ -23,12 +23,14 @@ historical comparison. Counts represent current states, not transitions today.
 
 The horizontal custom-label bar chart uses the official shadcn example with
 zone labels inside each bar and counts at its right edge. An official searchable shadcn Combobox selects
-Before transit, On the road, Done or Problems. Each mode shows up to six zones
+Before transit, On the road, Done or Problems. Each mode shows up to twelve zones
 with positive counts, ranked by that group's count descending, then name and ID.
 The initial mode is Before transit when populated, otherwise the first populated
 known group. Empty modes remain selectable and explain how to view other counts.
 Unknown statuses remain available in Zone summary and the accessible table.
-Long names truncate visually; full names and exact counts remain in tooltips
+The chart grows to 512px for nine to twelve rows, using more of the space beside
+the courier preview without crowding labels. Seven/eight rows use 384px, and
+smaller results use 320px. Long names truncate visually; full names and exact counts remain in tooltips
 and the accessible table. Million-scale end labels compact values to fit.
 
 The chart and matrix share their status groups: Before transit (Booked, Assigned,

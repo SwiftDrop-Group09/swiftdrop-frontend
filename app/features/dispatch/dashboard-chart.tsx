@@ -121,7 +121,7 @@ export function DispatchWorkloadChart({
         a.name.localeCompare(b.name) ||
         a.zoneId.localeCompare(b.zoneId),
     );
-  const shown = populated.slice(0, 6);
+  const shown = populated.slice(0, 12);
   const label = config[mode].label;
   const model = buildZoneMatrix(shown);
   if (!zones.length)
@@ -157,7 +157,7 @@ export function DispatchWorkloadChart({
       <ChartContainer
         key={mode}
         config={config}
-        className="aspect-auto h-96 w-full min-w-0 sm:h-80"
+        className={`aspect-auto w-full min-w-0 ${shown.length > 8 ? 'h-[32rem]' : shown.length > 6 ? 'h-96' : 'h-80'}`}
         role="region"
         aria-label="Current zone workload chart"
       >

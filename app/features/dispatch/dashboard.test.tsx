@@ -576,16 +576,16 @@ describe('Dispatcher operations dashboard', () => {
   });
 
   it('preserves operational KPIs while exposing all chart statuses and attention ordering', async () => {
-    const extra = Array.from({ length: 6 }, (_, n) => ({
+    const extra = Array.from({ length: 18 }, (_, n) => ({
       zoneId: id(400 + n),
-      name: `Zone ${n}`,
+      name: `Zone ${String(n).padStart(2, '0')}`,
       total: 1,
       statusCounts: { Created: 1 },
     }));
     const snapshot = dispatchSnapshot([...zones, ...extra]);
     expect(snapshot.inProgress).toBe(14);
     expect(snapshot.outForDelivery).toBe(5);
-    expect(snapshot.zonesWithBacklog).toBe(8);
+    expect(snapshot.zonesWithBacklog).toBe(20);
     expect(
       dispatchSnapshot([
         { ...zones[1]!, name: 'Tie', zoneId: id(2) },
@@ -600,7 +600,13 @@ describe('Dispatcher operations dashboard', () => {
     const table = await screen.findByRole('table', {
       name: 'Zone workload chart values',
     });
-    expect(within(table).getAllByRole('row')).toHaveLength(7);
+    expect(within(table).getAllByRole('row')).toHaveLength(13);
+    expect(
+      within(table).getByRole('rowheader', { name: 'Zone 09' }),
+    ).toBeInTheDocument();
+    expect(
+      within(table).queryByRole('rowheader', { name: 'Zone 10' }),
+    ).not.toBeInTheDocument();
     const row = within(table).getAllByRole('row')[1]!;
     expect(within(row).getByRole('rowheader')).toHaveTextContent('Colombo');
     expect(
@@ -609,7 +615,7 @@ describe('Dispatcher operations dashboard', () => {
         .map((cell) => cell.textContent),
     ).toEqual(['7', '2', '3', '4', '5', '100', '20', '10', '6', '999']);
     expect(
-      screen.getByText(/6 of 9 zones · Ranked by Before transit/),
+      screen.getByText(/12 of 21 zones · Ranked by Before transit/),
     ).toBeInTheDocument();
   });
 });
