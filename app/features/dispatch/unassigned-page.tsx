@@ -378,68 +378,82 @@ function UnassignedParcelsContent() {
                       }
                     />
                   ) : (
-                    <Table className="min-w-[48rem] whitespace-nowrap">
-                      <TableCaption className="sr-only">
-                        Booked parcels awaiting courier assignment, newest
-                        first.
-                      </TableCaption>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tracking number</TableHead>
-                          <TableHead>Pickup → delivery</TableHead>
-                          <TableHead>Recipient</TableHead>
-                          <TableHead>Package size/weight</TableHead>
-                          <TableHead>Booked</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.items.map((parcel) => (
-                          <TableRow key={parcel.id}>
-                            <TableCell className="font-mono text-xs">
-                              {parcel.trackingNumber}
-                            </TableCell>
-                            <TableCell>
-                              {parcel.pickupCity} → {parcel.deliveryCity}
-                            </TableCell>
-                            <TableCell>{parcel.recipientName}</TableCell>
-                            <TableCell>
-                              {parcel.packageDetails.size} ·{' '}
-                              {parcel.packageDetails.weightKg} kg
-                            </TableCell>
-                            <TableCell>
-                              {formatDateTime(parcel.createdAt)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  size="sm"
-                                  aria-label={`Assign courier for ${parcel.trackingNumber}`}
-                                  onClick={(event) => {
-                                    assignmentTrigger.current =
-                                      event.currentTarget;
-                                    setAssignment({
-                                      id: parcel.id,
-                                      trackingNumber: parcel.trackingNumber,
-                                    });
-                                  }}
-                                >
-                                  Assign courier
-                                </Button>
-                                <Button asChild size="sm" variant="outline">
-                                  <Link
-                                    to={`/dispatch/parcels/${encodeURIComponent(parcel.id)}`}
-                                    aria-label={`View details for ${parcel.trackingNumber}`}
-                                  >
-                                    View details
-                                  </Link>
-                                </Button>
-                              </div>
-                            </TableCell>
+                    <div
+                      role="region"
+                      aria-label="Unassigned parcels table"
+                      tabIndex={0}
+                      className="overflow-x-auto rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Table
+                        className="w-full min-w-[48rem] table-fixed [&_td]:break-words"
+                        containerClassName="overflow-visible"
+                      >
+                        <TableCaption className="sr-only">
+                          Booked parcels awaiting courier assignment, newest
+                          first.
+                        </TableCaption>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tracking number</TableHead>
+                            <TableHead>Pickup → delivery</TableHead>
+                            <TableHead>Recipient</TableHead>
+                            <TableHead>Package size/weight</TableHead>
+                            <TableHead>Booked</TableHead>
+                            <TableHead className="w-40 bg-card text-right md:sticky md:right-0 md:z-10">
+                              Actions
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {data.items.map((parcel) => (
+                            <TableRow key={parcel.id}>
+                              <TableCell className="font-mono text-xs break-all">
+                                {parcel.trackingNumber}
+                              </TableCell>
+                              <TableCell>
+                                {parcel.pickupCity} → {parcel.deliveryCity}
+                              </TableCell>
+                              <TableCell className="break-words">
+                                {parcel.recipientName}
+                              </TableCell>
+                              <TableCell>
+                                {parcel.packageDetails.size} ·{' '}
+                                {parcel.packageDetails.weightKg} kg
+                              </TableCell>
+                              <TableCell>
+                                {formatDateTime(parcel.createdAt)}
+                              </TableCell>
+                              <TableCell className="bg-card text-right md:sticky md:right-0 md:z-10">
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    size="sm"
+                                    aria-label={`Assign courier for ${parcel.trackingNumber}`}
+                                    onClick={(event) => {
+                                      assignmentTrigger.current =
+                                        event.currentTarget;
+                                      setAssignment({
+                                        id: parcel.id,
+                                        trackingNumber: parcel.trackingNumber,
+                                      });
+                                    }}
+                                  >
+                                    Assign courier
+                                  </Button>
+                                  <Button asChild size="sm" variant="outline">
+                                    <Link
+                                      to={`/dispatch/parcels/${encodeURIComponent(parcel.id)}`}
+                                      aria-label={`View details for ${parcel.trackingNumber}`}
+                                    >
+                                      View details
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                   {data.totalCount > 0 && (
                     <div className="flex flex-col gap-4 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
