@@ -82,11 +82,13 @@ fixture tests do not establish live database readiness. Subsequent database-data
 verification is recorded separately in the backend's `docs/development-data.md`;
 it does not replace end-to-end startup acceptance.
 
-The awaiting-assignment table uses fixed column layout with wrapping values and
-stacked action buttons. Its Actions column stays visible at the right edge from
+The awaiting-assignment table uses fixed column layout with single-line values and
+side-by-side action buttons in a reserved224px Actions column. Long values use
+ellipses with their complete text available through native title hints. Its Actions column stays visible at the right edge from
 tablet widths upward. Narrow screens use one named, keyboard-focusable horizontal
 scroll region; the table keeps natural vertical height. This prevents long IDs,
-city names and dates from pushing View details partly outside the card.
+city names and dates from pushing View details partly outside the card, while
+retaining compact row heights.
 
 ## Verification — initial queue, 14 November 2026
 

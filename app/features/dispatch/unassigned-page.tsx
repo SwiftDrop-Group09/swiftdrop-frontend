@@ -385,21 +385,21 @@ function UnassignedParcelsContent() {
                       className="overflow-x-auto rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Table
-                        className="w-full min-w-[48rem] table-fixed [&_td]:break-words"
+                        className="w-full min-w-[48rem] table-fixed whitespace-nowrap"
                         containerClassName="overflow-visible"
                       >
                         <TableCaption className="sr-only">
                           Booked parcels awaiting courier assignment, newest
                           first.
                         </TableCaption>
-                        <TableHeader>
+                        <TableHeader className="whitespace-normal">
                           <TableRow>
                             <TableHead>Tracking number</TableHead>
                             <TableHead>Pickup → delivery</TableHead>
                             <TableHead>Recipient</TableHead>
                             <TableHead>Package size/weight</TableHead>
                             <TableHead>Booked</TableHead>
-                            <TableHead className="w-40 bg-card text-right md:sticky md:right-0 md:z-10">
+                            <TableHead className="w-56 bg-card text-right md:sticky md:right-0 md:z-10">
                               Actions
                             </TableHead>
                           </TableRow>
@@ -407,24 +407,49 @@ function UnassignedParcelsContent() {
                         <TableBody>
                           {data.items.map((parcel) => (
                             <TableRow key={parcel.id}>
-                              <TableCell className="font-mono text-xs break-all">
-                                {parcel.trackingNumber}
+                              <TableCell className="font-mono text-xs">
+                                <span
+                                  className="block truncate"
+                                  title={parcel.trackingNumber}
+                                >
+                                  {parcel.trackingNumber}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {parcel.pickupCity} → {parcel.deliveryCity}
-                              </TableCell>
-                              <TableCell className="break-words">
-                                {parcel.recipientName}
-                              </TableCell>
-                              <TableCell>
-                                {parcel.packageDetails.size} ·{' '}
-                                {parcel.packageDetails.weightKg} kg
+                                <span
+                                  className="block truncate"
+                                  title={`${parcel.pickupCity} → ${parcel.deliveryCity}`}
+                                >
+                                  {parcel.pickupCity} → {parcel.deliveryCity}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {formatDateTime(parcel.createdAt)}
+                                <span
+                                  className="block truncate"
+                                  title={parcel.recipientName}
+                                >
+                                  {parcel.recipientName}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className="block truncate"
+                                  title={`${parcel.packageDetails.size} · ${parcel.packageDetails.weightKg} kg`}
+                                >
+                                  {parcel.packageDetails.size} ·{' '}
+                                  {parcel.packageDetails.weightKg} kg
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className="block truncate"
+                                  title={formatDateTime(parcel.createdAt)}
+                                >
+                                  {formatDateTime(parcel.createdAt)}
+                                </span>
                               </TableCell>
                               <TableCell className="bg-card text-right md:sticky md:right-0 md:z-10">
-                                <div className="flex flex-col gap-2">
+                                <div className="flex justify-end gap-2">
                                   <Button
                                     size="sm"
                                     aria-label={`Assign courier for ${parcel.trackingNumber}`}
