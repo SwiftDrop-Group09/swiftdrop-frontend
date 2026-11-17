@@ -1,4 +1,3 @@
-import { useId } from 'react';
 import {
   Bar,
   BarChart,
@@ -40,23 +39,23 @@ import {
 import { statusShadeTheme } from './zone-status-shades';
 import { ZONE_STATUS_GROUPS } from './zone-status-groups';
 
-// Use the requested shade 4 fills consistently in every appearance mode.
+// Reuse the Zone summary table’s strongest shade in each appearance mode.
 const config = {
   beforeTransit: {
     label: 'Before transit',
-    color: 'var(--color-amber-200)',
+    theme: statusShadeTheme('Created', 4),
   },
   onRoad: {
     label: 'On the road',
-    color: 'var(--color-sky-200)',
+    theme: statusShadeTheme('InTransit', 4),
   },
   done: {
     label: 'Done',
-    color: 'var(--color-emerald-200)',
+    theme: statusShadeTheme('Delivered', 4),
   },
   problems: {
     label: 'Problems',
-    color: 'color-mix(in oklab, var(--brand-primary) 10%, transparent)',
+    theme: statusShadeTheme('Failed', 4),
   },
   other: { label: 'Other statuses', color: 'var(--muted)' },
 } satisfies ChartConfig;
@@ -137,7 +136,6 @@ export function DispatchWorkloadChart({
   zones: Workloads;
   mode?: ZoneWorkloadMode;
 }) {
-  const labelId = useId().replace(/:/g, '');
   const maxima = buildZoneMatrix(zones).maxima;
   const populated = zones
     .filter((zone) => zone[mode] > 0)
@@ -251,42 +249,17 @@ export function DispatchWorkloadChart({
                 const text = name.length > 17 ? name.slice(0, 16) + '…' : name;
                 const x = Number(viewBox.x) + 8;
                 const y = Number(viewBox.y) + Number(viewBox.height) / 2;
-                const clip = `${labelId}-${viewBox.y}`;
                 return (
                   <g aria-hidden="true">
                     <text
                       x={x}
                       y={y}
                       dominantBaseline="central"
-                      className={`pointer-events-none stroke-none ${mode === 'problems' ? 'fill-black dark:fill-white' : 'fill-black'}`}
+                      className="pointer-events-none fill-black stroke-none dark:fill-white"
                       fontSize={12}
                     >
                       {text}
                     </text>
-                    {mode !== 'problems' && (
-                      <>
-                        <defs>
-                          <clipPath id={clip}>
-                            <rect
-                              x={Number(viewBox.x) + Number(viewBox.width)}
-                              y={Number(viewBox.y)}
-                              width={200}
-                              height={Number(viewBox.height)}
-                            />
-                          </clipPath>
-                        </defs>
-                        <text
-                          x={x}
-                          y={y}
-                          dominantBaseline="central"
-                          clipPath={`url(#${clip})`}
-                          className="pointer-events-none hidden fill-white stroke-none dark:block"
-                          fontSize={12}
-                        >
-                          {text}
-                        </text>
-                      </>
-                    )}
                   </g>
                 );
               }}

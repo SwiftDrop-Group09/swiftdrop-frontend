@@ -36,10 +36,9 @@ and the accessible table. Million-scale end labels compact values to fit.
 The chart and matrix share their status groups: Before transit (Booked, Assigned,
 Collected), On the road (In transit, Out for delivery), Done (Delivered), and
 Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
-emerald and brand red families. All four chart series use the requested shade 4
-fills in Light, Dark and Device: amber-200, sky-200, emerald-200, and brand red
-(`#DC2626`) at 10% opacity for problems. The graph keeps these fills when the theme
-changes; the full matrix retains its own theme-aware intensity scale.
+emerald and brand red families. All four chart series reuse the Zone summary table's strongest (fourth) shade,
+including its theme-aware amber, sky and emerald fills and destructive at 10%
+for problems. Device appearance follows the resolved Light/Dark theme.
 Subtle status borders preserve segment edges.
 Unknown returned statuses remain in the accessible chart table and the full Zone
 summary, rather than being inferred from the API total or added as a fifth mode.
@@ -54,8 +53,7 @@ dots use each individual status column's relative shade across the full response
 matching Zone summary (including neutral zero dots). A shared feature palette
 supplies the matrix background classes and corresponding chart color values.
 Bar labels have no outline. Light labels are black. In Dark mode, names use
-black over pale bars and white over dark bars or when a short bar leaves the name
-on the dark surface. End counts use white against the dark surface. The separate
+white over the dark table-matched bars and the dark surface. End counts use white against the dark surface. The separate
 inline colored detail breakdown is removed. The accessible table retains exact
 individual status counts and authoritative API totals for the displayed zones.
 Zero-count, missing-breakdown and empty-mode notices remain distinct.
