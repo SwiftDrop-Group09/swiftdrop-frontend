@@ -19,6 +19,11 @@ const AdminDashboard = lazy(
 
 const CourierDashboard = lazy(() => import('~/features/courier/dashboard'));
 const DispatcherDashboard = lazy(() => import('~/features/dispatch/dashboard'));
+const MerchantDashboardWorkspace = lazy(() =>
+  import('~/features/merchant-orders/dashboard-page').then((m) => ({
+    default: m.MerchantDashboardWorkspace,
+  })),
+);
 
 export function RoleHome() {
   const { user } = useIdentity();
@@ -52,6 +57,19 @@ export function RoleHome() {
         }
       >
         <AdminDashboard />
+      </Suspense>
+    );
+  }
+  if (user?.roles.length === 1 && user.roles[0] === 'Merchant') {
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading merchant dashboard…" />
+          </WorkspacePage>
+        }
+      >
+        <MerchantDashboardWorkspace />
       </Suspense>
     );
   }

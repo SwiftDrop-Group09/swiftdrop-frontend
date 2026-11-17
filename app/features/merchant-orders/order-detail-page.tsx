@@ -86,7 +86,11 @@ function OrderDetailContent() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <OrderSummary job={job} refreshing={order.isFetching} />
-      <ParcelSummary job={job} />
+      <ParcelSummary
+        job={job}
+        onRefresh={() => void order.refetch()}
+        refreshing={order.isFetching}
+      />
       <OrderTimeline job={job} />
     </div>
   );
@@ -145,16 +149,42 @@ function OrderSummary({
   );
 }
 
-function ParcelSummary({ job }: { job: OrderJob }) {
+function ParcelSummary({
+  job,
+  onRefresh,
+  refreshing,
+}: {
+  job: OrderJob;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Parcel</CardTitle>
-        <CardDescription>
-          {job.trackingNumber
-            ? `Parcel status is refreshed periodically and may be up to ${PARCEL_STATUS_MAX_AGE_MINUTES} minutes old.`
-            : 'A parcel and tracking number appear once SwiftDrop confirms the order.'}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <div>
+          <CardTitle>Parcel</CardTitle>
+          <CardDescription>
+            {job.trackingNumber
+              ? `Parcel status is refreshed periodically and may be up to ${PARCEL_STATUS_MAX_AGE_MINUTES} minutes old.`
+              : 'A parcel and tracking number appear once SwiftDrop confirms the order.'}
+          </CardDescription>
+        </div>
+        {job.trackingNumber && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+            onClick={onRefresh}
+            className="gap-1.5"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={refreshing ? 'size-3.5 animate-spin' : 'size-3.5'}
+            />
+            Refresh
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {job.parcelStatus === 'Failed' && (
