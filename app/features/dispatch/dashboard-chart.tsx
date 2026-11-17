@@ -23,32 +23,23 @@ import type { dispatchSnapshot } from './dashboard-analytics';
 import { buildZoneMatrix, formatZoneCount } from './zone-matrix-model';
 import { ZONE_STATUS_GROUPS } from './zone-status-groups';
 
-// Use the matrix's strongest background shades, rather than its text colors.
+// Use the requested shade 4 fills consistently in every appearance mode.
 const config = {
   beforeTransit: {
     label: 'Before transit',
-    theme: {
-      light: 'var(--color-amber-200)',
-      dark: 'color-mix(in oklab, var(--color-amber-900) 70%, transparent)',
-    },
+    color: 'var(--color-amber-200)',
   },
   onRoad: {
     label: 'On the road',
-    theme: {
-      light: 'var(--color-sky-200)',
-      dark: 'color-mix(in oklab, var(--color-sky-900) 70%, transparent)',
-    },
+    color: 'var(--color-sky-200)',
   },
   done: {
     label: 'Done',
-    theme: {
-      light: 'var(--color-emerald-200)',
-      dark: 'color-mix(in oklab, var(--color-emerald-900) 70%, transparent)',
-    },
+    color: 'var(--color-emerald-200)',
   },
   problems: {
     label: 'Problems',
-    color: 'color-mix(in oklab, var(--destructive) 10%, transparent)',
+    color: 'color-mix(in oklab, var(--brand-primary) 10%, transparent)',
   },
   other: { label: 'Other statuses', color: 'var(--muted)' },
 } satisfies ChartConfig;

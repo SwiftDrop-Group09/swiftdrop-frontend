@@ -29,9 +29,11 @@ Zero-count zones remain available in the full Zone summary.
 The chart and matrix share their status groups: Before transit (Booked, Assigned,
 Collected), On the road (In transit, Out for delivery), Done (Delivered), and
 Problems (Delivery unsuccessful, Cancelled). They use the system's amber, sky,
-emerald and destructive red families. Chart fills match the matrix's strongest
-background shades: amber/sky/emerald 200 in Light, their 900 shades at 70% in Dark,
-and destructive at 10% for problems. Subtle status borders preserve segment edges.
+emerald and brand red families. All four chart series use the requested shade 4
+fills in Light, Dark and Device: amber-200, sky-200, emerald-200, and brand red
+(`#DC2626`) at 10% opacity for problems. The graph keeps these fills when the theme
+changes; the full matrix retains its own theme-aware intensity scale.
+Subtle status borders preserve segment edges.
 Unknown returned statuses form a neutral Other statuses
 series when present, rather than being discarded or inferred from the API total.
 
