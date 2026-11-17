@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { statusShades } from './zone-status-shades';
 import type { ZoneSummaryResponse } from '~/features/admin-delivery/contracts';
 import type { ParcelStatus } from '~/features/customer-tracking/contracts';
 import { parcelStatusBadgeClasses } from '~/features/customer-tracking/components';
@@ -32,41 +33,6 @@ const neutralShades = [
   'border-border bg-muted/70 text-foreground',
   'border-border bg-muted text-foreground',
 ];
-
-const beforeTransitShades = [
-  'bg-amber-50 dark:bg-amber-950/60',
-  'bg-amber-100/60 dark:bg-amber-950/75',
-  'bg-amber-100 dark:bg-amber-950',
-  'bg-amber-200 dark:bg-amber-900/70',
-];
-const onRoadShades = [
-  'bg-sky-50 dark:bg-sky-950/60',
-  'bg-sky-100/60 dark:bg-sky-950/75',
-  'bg-sky-100 dark:bg-sky-950',
-  'bg-sky-200 dark:bg-sky-900/70',
-];
-const deliveredShades = [
-  'bg-emerald-50 dark:bg-emerald-950/60',
-  'bg-emerald-100/60 dark:bg-emerald-950/75',
-  'bg-emerald-100 dark:bg-emerald-950',
-  'bg-emerald-200 dark:bg-emerald-900/70',
-];
-const problemShades = [
-  'bg-destructive/[0.025]',
-  'bg-destructive/5',
-  'bg-destructive/[0.075]',
-  'bg-destructive/10',
-];
-const statusShades: Record<ParcelStatus, string[]> = {
-  Created: beforeTransitShades,
-  Assigned: beforeTransitShades,
-  PickedUp: beforeTransitShades,
-  InTransit: onRoadShades,
-  OutForDelivery: onRoadShades,
-  Delivered: deliveredShades,
-  Failed: problemShades,
-  Cancelled: problemShades,
-};
 
 function countBadgeClasses(
   status: ParcelStatus | undefined,
