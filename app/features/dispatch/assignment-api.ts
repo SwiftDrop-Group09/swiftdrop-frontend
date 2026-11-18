@@ -110,6 +110,18 @@ const receiptSchema = z.object({
   }),
   createdAt: z.iso.datetime({ offset: true }),
 });
+const unassignedReceiptSchema = z.object({
+  id: z.uuid(),
+  trackingNumber: z.string().min(1),
+  status: z.literal('Created'),
+  version,
+  priceSnapshot: z.object({
+    total: integerText.refine(validMoney),
+    currency: z.literal('LKR'),
+    pricingVersion: z.string().min(1),
+  }),
+  createdAt: z.iso.datetime({ offset: true }),
+});
 export type AssignmentOptions = z.infer<typeof optionsSchema>;
 export type AssignmentCandidate = AssignmentOptions['items'][number];
 export type AssignmentAttempt = Readonly<{
@@ -260,6 +272,72 @@ export async function submitAssignment(
       body: attempt.body,
     });
     const parsed = receiptSchema.safeParse(await responseBody(response));
+    if (
+      !parsed.success ||
+      response.status !== 200 ||
+      parsed.data.id !== attempt.parcelId ||
+      BigInt(parsed.data.version) !== BigInt(attempt.expectedVersion) + 1n
+    )
+      throw new AssignmentError('invalid_response', response.status);
+    return parsed.data;
+  } catch (error) {
+    if (error instanceof AssignmentError) throw error;
+    if (error instanceof IdentityError)
+      throw new AssignmentError(error.code, error.status);
+    throw new AssignmentError('network');
+  }
+}
+export function unassignAttempt(
+  parcelId: string,
+  expectedVersion: string,
+  reason?: string,
+): AssignmentAttempt {
+  if (
+    !/^[1-9]\d*$/.test(expectedVersion) ||
+    BigInt(expectedVersion) > 9223372036854775807n
+  )
+    throw new Error('Invalid parcel version.');
+  const trimmedReason = reason?.trim();
+  if (
+    reason !== undefined &&
+    trimmedReason !== undefined &&
+    trimmedReason.length > 0
+  ) {
+    if (trimmedReason.length > 500)
+      throw new Error('Supply an unassignment reason of 1 to 500 characters.');
+  }
+  return Object.freeze({
+    parcelId,
+    expectedVersion,
+    key: crypto.randomUUID(),
+    body: stringifyExactJson({
+      parcelId,
+      expectedVersion: new JsonNumber(expectedVersion),
+      ...(trimmedReason && trimmedReason.length > 0
+        ? { reason: trimmedReason }
+        : {}),
+    }),
+  });
+}
+export async function submitUnassign(
+  request: AuthenticatedRequest,
+  base: string,
+  attempt: AssignmentAttempt,
+  signal?: AbortSignal,
+) {
+  try {
+    const response = await request(`${base}/v1/deliveries/unassign`, {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': attempt.key,
+      },
+      body: attempt.body,
+    });
+    const parsed = unassignedReceiptSchema.safeParse(
+      await responseBody(response),
+    );
     if (
       !parsed.success ||
       response.status !== 200 ||
