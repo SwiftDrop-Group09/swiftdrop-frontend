@@ -216,7 +216,9 @@ export function UnassignDialog({
               <Button
                 variant="destructive"
                 disabled={locked || !validReason || now < retryAt}
-                onClick={submit}
+                onClick={() => {
+                  void submit();
+                }}
                 type="button"
               >
                 {busy

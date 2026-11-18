@@ -298,7 +298,11 @@ export function unassignAttempt(
   )
     throw new Error('Invalid parcel version.');
   const trimmedReason = reason?.trim();
-  if (reason !== undefined && trimmedReason !== undefined && trimmedReason.length > 0) {
+  if (
+    reason !== undefined &&
+    trimmedReason !== undefined &&
+    trimmedReason.length > 0
+  ) {
     if (trimmedReason.length > 500)
       throw new Error('Supply an unassignment reason of 1 to 500 characters.');
   }
@@ -309,7 +313,9 @@ export function unassignAttempt(
     body: stringifyExactJson({
       parcelId,
       expectedVersion: new JsonNumber(expectedVersion),
-      ...(trimmedReason && trimmedReason.length > 0 ? { reason: trimmedReason } : {}),
+      ...(trimmedReason && trimmedReason.length > 0
+        ? { reason: trimmedReason }
+        : {}),
     }),
   });
 }
@@ -329,7 +335,9 @@ export async function submitUnassign(
       },
       body: attempt.body,
     });
-    const parsed = unassignedReceiptSchema.safeParse(await responseBody(response));
+    const parsed = unassignedReceiptSchema.safeParse(
+      await responseBody(response),
+    );
     if (
       !parsed.success ||
       response.status !== 200 ||

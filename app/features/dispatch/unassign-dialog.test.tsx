@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -108,10 +108,14 @@ it('submits unassignment without reason and shows confirmation', async () => {
     expect(writes).toHaveBeenCalledTimes(1);
   });
 
-  const call = writes.mock.calls[0][0];
+  const call = writes.mock.calls[0]?.[0];
   const headers = new Headers(call?.headers);
   expect(headers.get('Idempotency-Key')).toBeTruthy();
-  const body = JSON.parse(call?.body as string);
+  const body = JSON.parse(call?.body as string) as {
+    parcelId?: string;
+    expectedVersion?: number;
+    reason?: string;
+  };
   expect(body.parcelId).toBe(parcelId);
   expect(body.expectedVersion).toBe(2);
   expect(body.reason).toBeUndefined();
@@ -140,7 +144,9 @@ it('submits unassignment with optional reason when provided', async () => {
     expect(writes).toHaveBeenCalledTimes(1);
   });
 
-  const body = JSON.parse(writes.mock.calls[0][0]?.body as string);
+  const body = JSON.parse(writes.mock.calls[0]?.[0]?.body as string) as {
+    reason?: string;
+  };
   expect(body.reason).toBe('Courier vehicle breakdown');
 
   expect(
