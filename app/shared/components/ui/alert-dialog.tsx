@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { AlertDialog as Primitive } from 'radix-ui';
+import type { VariantProps } from 'class-variance-authority';
 import { cn } from '~/shared/lib/utils';
 import { buttonVariants } from './button';
 
 const AlertDialog = Primitive.Root;
+const AlertDialogTrigger = Primitive.Trigger;
 function AlertDialogContent({
   className,
   ...props
@@ -56,10 +58,16 @@ function AlertDialogDescription({
 }
 function AlertDialogAction({
   className,
+  variant = 'default',
   ...props
-}: React.ComponentProps<typeof Primitive.Action>) {
+}: React.ComponentProps<typeof Primitive.Action> & {
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+}) {
   return (
-    <Primitive.Action className={cn(buttonVariants(), className)} {...props} />
+    <Primitive.Action
+      className={cn(buttonVariants({ variant }), className)}
+      {...props}
+    />
   );
 }
 function AlertDialogCancel({
@@ -75,6 +83,7 @@ function AlertDialogCancel({
 }
 export {
   AlertDialog,
+  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogFooter,

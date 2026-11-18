@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -7,6 +7,7 @@ import { IdentityApi } from '../identity/api';
 import { IdentityProvider, IdentitySession } from '../identity/session';
 import { csrf, customer, json, pair } from '../identity/test-fixtures';
 import { WebhookScreens } from './webhook-screens';
+import { Toaster } from '~/shared/components/ui/toaster';
 import type { BusinessResponse } from '../merchant/contracts';
 import type {
   OneTimeWebhookResponse,
@@ -137,6 +138,7 @@ function setupMount(currentUser = mockMerchantUser, handler?: FetchHandler) {
     <QueryClientProvider client={queryClient}>
       <IdentityProvider session={session}>
         <RouterProvider router={router} />
+        <Toaster />
       </IdentityProvider>
     </QueryClientProvider>,
   );
@@ -291,5 +293,129 @@ describe('WebhookScreens', () => {
         screen.queryByText('Webhook Signing Secret Generated'),
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('opens custom AlertDialog and does not use native confirm when clicking deactivate', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(globalThis, 'confirm');
+    setupMount();
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Deactivate Webhook Subscription?'),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/https:\/\/api\.merchant\.com\/webhook/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /^Cancel$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /^Deactivate Webhook$/i }),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('cancels deactivation when clicking Cancel in AlertDialog', async () => {
+    const user = userEvent.setup();
+    let deleteAttempted = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        deleteAttempted = true;
+        return json({ success: true });
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+
+    const cancelBtn = screen.getByRole('button', { name: /^Cancel$/i });
+    await user.click(cancelBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(deleteAttempted).toBe(false);
+  });
+
+  it('deactivates webhook subscription and displays success Toast notification upon confirmation', async () => {
+    const user = userEvent.setup();
+    let deleteCalled = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        deleteCalled = true;
+        return json({ success: true });
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+
+    const confirmActionBtn = screen.getByRole('button', {
+      name: /^Deactivate Webhook$/i,
+    });
+    await user.click(confirmActionBtn);
+
+    expect(deleteCalled).toBe(true);
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText('Webhook Deactivated')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Webhook subscription for https:\/\/api\.merchant\.com\/webhook was deactivated/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('displays error toast and error banner when deactivation fails', async () => {
+    const user = userEvent.setup();
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        return json(
+          {
+            code: 'operation_failed',
+            detail: 'Server unable to deactivate subscription at this time.',
+          },
+          500,
+        );
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    const confirmActionBtn = await screen.findByRole('button', {
+      name: /^Deactivate Webhook$/i,
+    });
+    await user.click(confirmActionBtn);
+
+    expect(await screen.findByText('Deactivation Failed')).toBeInTheDocument();
+    const errorDetails = screen.getAllByText(
+      'Server unable to deactivate subscription at this time.',
+    );
+    expect(errorDetails.length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText('Operation Failed')).toBeInTheDocument();
   });
 });

@@ -14,6 +14,7 @@ import { IdentityProvider, SessionReady } from './features/identity/session';
 import { RouteAccessBoundary } from './features/identity/route-access';
 import './styles/app.css';
 import { ThemeController } from './shared/theme';
+import { Toaster } from './shared/components/ui/toaster';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -52,6 +53,7 @@ export default function App() {
           </RouteAccessBoundary>
         </SessionReady>
       </IdentityProvider>
+      <Toaster />
     </AppProviders>
   );
 }

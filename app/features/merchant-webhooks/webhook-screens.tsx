@@ -66,6 +66,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/shared/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/shared/components/ui/alert-dialog';
+import { toast } from '~/shared/hooks/use-toast';
 
 export function WebhookScreens() {
   const { user, restoring } = useIdentity();
@@ -85,6 +96,8 @@ export function WebhookScreens() {
   const [testSuccessMessage, setTestSuccessMessage] = useState<string | null>(
     null,
   );
+  const [deactivatingSub, setDeactivatingSub] =
+    useState<WebhookSubscriptionResponse | null>(null);
 
   // 1. Fetch Merchant status to ensure approved
   const { data: business, isLoading: businessLoading } = useQuery({
@@ -144,18 +157,32 @@ export function WebhookScreens() {
   // 5. Delete Webhook Mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => webhookApi.deleteWebhook(id),
-    onSuccess: () => {
+    onSuccess: (_data, subId) => {
+      const endpoint = deactivatingSub?.endpointUrl;
+      setDeactivatingSub(null);
       void queryClient.invalidateQueries({
         queryKey: ['merchant', 'webhooks'],
       });
-      if (selectedWebhook) {
+      if (selectedWebhook?.id === subId) {
         setSelectedWebhook(null);
       }
+      toast({
+        title: 'Webhook Deactivated',
+        description: endpoint
+          ? `Webhook subscription for ${endpoint} was deactivated.`
+          : 'Webhook subscription was successfully deactivated.',
+      });
     },
     onError: (err: unknown) => {
-      setApiError(
-        err instanceof WebhookError ? err.message : 'Failed to delete webhook.',
-      );
+      setDeactivatingSub(null);
+      const msg =
+        err instanceof WebhookError ? err.message : 'Failed to delete webhook.';
+      setApiError(msg);
+      toast({
+        title: 'Deactivation Failed',
+        description: msg,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -596,15 +623,8 @@ export function WebhookScreens() {
                                   size="icon"
                                   className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                   title="Deactivate Webhook"
-                                  onClick={() => {
-                                    if (
-                                      confirm(
-                                        'Deactivate this webhook subscription? Unsent jobs will be cancelled.',
-                                      )
-                                    ) {
-                                      deleteMutation.mutate(sub.id);
-                                    }
-                                  }}
+                                  aria-label={`Deactivate webhook ${sub.endpointUrl}`}
+                                  onClick={() => setDeactivatingSub(sub)}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                   <span className="sr-only">Deactivate</span>
@@ -821,6 +841,52 @@ export function WebhookScreens() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Modal 4: Deactivate Webhook Confirmation AlertDialog */}
+          <AlertDialog
+            open={!!deactivatingSub}
+            onOpenChange={(open) => {
+              if (!open && !deleteMutation.isPending) {
+                setDeactivatingSub(null);
+              }
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Deactivate Webhook Subscription?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to deactivate the webhook subscription
+                  for{' '}
+                  <span className="font-mono font-medium text-foreground break-all">
+                    {deactivatingSub?.endpointUrl}
+                  </span>
+                  ? Unsent jobs will be cancelled and event dispatches will
+                  stop.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (deactivatingSub) {
+                      deleteMutation.mutate(deactivatingSub.id);
+                    }
+                  }}
+                >
+                  {deleteMutation.isPending
+                    ? 'Deactivating...'
+                    : 'Deactivate Webhook'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </WorkspacePage>
       </IdentityShell>
     </Protected>
