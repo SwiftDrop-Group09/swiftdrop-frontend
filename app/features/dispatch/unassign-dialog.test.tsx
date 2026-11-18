@@ -109,7 +109,8 @@ it('submits unassignment without reason and shows confirmation', async () => {
   });
 
   const call = writes.mock.calls[0][0];
-  expect(call?.headers).toHaveProperty('Idempotency-Key');
+  const headers = new Headers(call?.headers);
+  expect(headers.get('Idempotency-Key')).toBeTruthy();
   const body = JSON.parse(call?.body as string);
   expect(body.parcelId).toBe(parcelId);
   expect(body.expectedVersion).toBe(2);
