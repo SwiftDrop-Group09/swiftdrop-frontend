@@ -1,3 +1,4 @@
+import { DISPATCH_PAGE_SIZE } from './pagination';
 import { useRef, useState, type FormEvent, type Ref } from 'react';
 import { Link } from 'react-router';
 import { format } from 'date-fns';
@@ -49,7 +50,7 @@ import {
   TableRow,
 } from '~/shared/components/ui/table';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DISPATCH_PAGE_SIZE;
 type Filters = Pick<CustomerParcelQuery, 'search' | 'from' | 'to' | 'zoneId'>;
 
 // The supplied shadcn Date Picker composition, controlled by the queue's draft filters.

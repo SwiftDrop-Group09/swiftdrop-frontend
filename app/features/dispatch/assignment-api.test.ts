@@ -26,7 +26,7 @@ const options = {
   ],
   totalCount: 1,
   page: 1,
-  pageSize: 20,
+  pageSize: 10,
 };
 const receipt = {
   id: parcelId,

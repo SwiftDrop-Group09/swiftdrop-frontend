@@ -65,7 +65,7 @@ function mount(role: 'Dispatcher' | 'Admin') {
     if (url.pathname.endsWith('/auth/csrf')) return json(csrf);
     if (url.pathname.endsWith('/auth/refresh')) return json(pair(profile));
     const status = courier ? 'Assigned' : 'Created';
-    const page = { totalCount: 0, page: 1, pageSize: 20 };
+    const page = { totalCount: 0, page: 1, pageSize: 10 };
     if (url.pathname.endsWith('/deliveries/assign')) {
       if (typeof init?.body !== 'string')
         throw new Error('Assignment must retain its serialized request bytes.');

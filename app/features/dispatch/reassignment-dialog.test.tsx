@@ -36,7 +36,7 @@ const options = {
   ],
   totalCount: 1,
   page: 1,
-  pageSize: 20,
+  pageSize: 10,
 };
 afterEach(() => {
   vi.unstubAllGlobals();

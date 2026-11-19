@@ -16,7 +16,7 @@ GET /api/v1/deliveries/{parcelId}/assignment-options returns server business
 today/timezone, selected date, exact parcel version and eligible couriers with
 ID, stable courier code, current duty flag, date-specific active count and daily capacity. It is a new
 Dispatcher read, requiring central proposed contract review. Candidates use
-independent 20-row pages. The server defaults to business today. Calendar dates
+independent 10-row pages. The server defaults to business today. Calendar dates
 remain YYYY-MM-DD calendar strings regardless of the browser timezone. Past days
 are disabled; date/page/refresh changes clear the selected courier.
 

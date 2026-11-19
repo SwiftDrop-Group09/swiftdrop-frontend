@@ -22,7 +22,7 @@ Delivery-zone selection uses the official shadcn Select added through the CLI.
 
 The page uses the existing authenticated `GET /api/v1/parcels` read through
 `useCustomerParcels(query, true)`. Every request sets `status=Created` and uses
-20 rows per page, preserving the server's newest-first ordering. Search matches
+10 rows per page, preserving the server's newest-first ordering. Search matches
 tracking number or recipient. Booking dates are optional UTC days: From is
 inclusive; Through includes the selected day by sending the next midnight as
 the API's exclusive `to` bound. Reversed ranges are rejected before querying.
@@ -286,3 +286,28 @@ remain pending. The last shared proof-storage preflight found missing runtime
 SELECT/INSERT/DELETE privileges on `proof_objects`; correction remains with the
 Delivery/Courier/environment owner. The previously observed intermittent
 Identity test issue remains recorded with its owner.
+
+## Ten-row Dispatcher pagination — 19 November 2026
+
+Dispatcher paginated tables use 10 rows per page: the unassigned queue, courier
+workload, active-assignment drill-down and assignment/reassignment candidates.
+Parcel tracking/history already uses 10. Dashboard previews remain five rows;
+the workload preview reads the first 10-row page and displays its first five.
+Zone summary continues to show all zones. Backend defaults and other-role pages
+are unchanged. The feature page-size constant keeps requests, candidate-response
+validation and page calculations aligned.
+
+On frontend base `93f3367`, Linux Node 24.16.0/npm 11.13.0, the standard
+`npm run check` passes formatting, lint, types, all 795 tests in 55 files and the
+production build. Existing workload coverage now exercises middle/final pages
+and correction after shrinking results. Production-browser intercepted fixtures
+verify ten-row queue/workload/active-assignment pages at 1280/320px in Light/Dark,
+plus candidate paging and selection reset at 1280/768/390/320px across all three
+appearance modes. The canonical web image build passes. These checks do not
+establish current-source full Docker startup or real signed-in parcel acceptance;
+those gates retain their existing authorization and workflow dependencies.
+
+The Dispatcher review found priority semantics still undefined, while existing
+reassignment is implemented despite the older workload handoff saying pending.
+That stale statement is corrected. Priority behavior needs a contract decision;
+no additional business workflow is introduced by this pagination change.

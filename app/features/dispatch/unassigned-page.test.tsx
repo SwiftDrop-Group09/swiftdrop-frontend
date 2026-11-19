@@ -187,7 +187,7 @@ describe('Dispatcher unassigned queue', () => {
       );
       await loaded();
       expect(reads.mock.calls[0]![0].toString()).toBe(
-        'status=Created&page=1&pageSize=20',
+        'status=Created&page=1&pageSize=10',
       );
       expect(
         queries
@@ -198,7 +198,7 @@ describe('Dispatcher unassigned queue', () => {
         'customer-parcels',
         dispatcher.id,
         true,
-        { status: 'Created', page: 1, pageSize: 20 },
+        { status: 'Created', page: 1, pageSize: 10 },
       ]);
       expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
       const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
@@ -213,8 +213,8 @@ describe('Dispatcher unassigned queue', () => {
       expect(screen.getByText('41 matching parcels')).toBeInTheDocument();
       expect(
         screen.getAllByRole('link', { name: /^View details for/ }),
-      ).toHaveLength(20);
-      expect(screen.getAllByText('Medium · 3 kg')).toHaveLength(20);
+      ).toHaveLength(10);
+      expect(screen.getAllByText('Medium · 3 kg')).toHaveLength(10);
       await user.click(
         screen.getByRole('link', { name: 'View details for TRK-1' }),
       );
@@ -239,7 +239,7 @@ describe('Dispatcher unassigned queue', () => {
     const { reads, user } = mount();
     await loaded();
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2 of 3');
+    await screen.findByText('Page 2 of 5');
     await user.type(
       screen.getByLabelText('Tracking number or recipient'),
       ' TRK-1 ',
@@ -249,7 +249,7 @@ describe('Dispatcher unassigned queue', () => {
     await chooseZone(user, 'Colombo');
     expect(reads).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', { name: 'Apply filters' }));
-    await screen.findByText('Page 1 of 3');
+    await screen.findByText('Page 1 of 5');
     const params = reads.mock.calls.at(-1)![0];
     expect(Object.fromEntries(params)).toEqual({
       status: 'Created',
@@ -258,7 +258,7 @@ describe('Dispatcher unassigned queue', () => {
       to: '2026-11-14T00:00:00.000Z',
       search: 'TRK-1',
       page: '1',
-      pageSize: '20',
+      pageSize: '10',
     });
     expect(
       screen.getByLabelText('Tracking number or recipient'),
@@ -266,7 +266,7 @@ describe('Dispatcher unassigned queue', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
     await waitFor(() =>
       expect(reads.mock.calls.at(-1)![0].toString()).toBe(
-        'status=Created&page=1&pageSize=20',
+        'status=Created&page=1&pageSize=10',
       ),
     );
     expect(screen.getByLabelText('Tracking number or recipient')).toHaveValue(
@@ -289,7 +289,7 @@ describe('Dispatcher unassigned queue', () => {
     );
     await loaded();
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByText('Page 2 of 3');
+    await screen.findByText('Page 2 of 5');
     await chooseZone(user, 'Kandy');
     expect(reads).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', { name: 'Apply filters' }));
@@ -536,9 +536,13 @@ describe('Dispatcher unassigned queue', () => {
       await loaded();
       expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
       await user.click(screen.getByRole('button', { name: 'Next' }));
-      await screen.findByText('Page 2 of 3');
+      await screen.findByText('Page 2 of 5');
       await user.click(screen.getByRole('button', { name: 'Next' }));
-      await screen.findByText('Page 3 of 3');
+      await screen.findByText('Page 3 of 5');
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      await screen.findByText('Page 4 of 5');
+      await user.click(screen.getByRole('button', { name: 'Next' }));
+      await screen.findByText('Page 5 of 5');
       expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
       count = remaining;
       await user.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -576,7 +580,7 @@ describe('Dispatcher unassigned queue', () => {
             ],
             totalCount: 1,
             page: 1,
-            pageSize: 20,
+            pageSize: 10,
           });
         if (params.has('search'))
           return new Promise<Response>((done) => {
@@ -604,7 +608,7 @@ describe('Dispatcher unassigned queue', () => {
       screen.getByRole('combobox', { name: 'Delivery zone' }),
     ).toHaveTextContent('All delivery zones');
     await act(async () => {
-      resolveOld(parcelPage(new URLSearchParams('page=1&pageSize=20')));
+      resolveOld(parcelPage(new URLSearchParams('page=1&pageSize=10')));
       await Promise.resolve();
     });
     expect(
@@ -617,7 +621,7 @@ describe('Dispatcher unassigned queue', () => {
         .every((query) => query.queryKey[1] === other.id),
     ).toBe(true);
     expect(reads.mock.calls.at(-1)![0].toString()).toBe(
-      'status=Created&page=1&pageSize=20',
+      'status=Created&page=1&pageSize=10',
     );
   });
 });
