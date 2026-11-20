@@ -28,6 +28,7 @@ const mockIdentity = vi.hoisted(() => {
 
 vi.mock('~/features/identity/session', () => ({
   useIdentity: () => mockIdentity,
+  useOptionalIdentity: () => mockIdentity,
 }));
 
 vi.mock('./api', async () => {
@@ -218,5 +219,256 @@ describe('AI Delivery Assistant UI Components', () => {
     expect(
       screen.queryByRole('button', { name: /Open Delivery Assistant/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders Courier assignments and work summary cards', async () => {
+    const mockCourierResponse: AssistantChatResponse = {
+      reply: 'Here are your assigned deliveries for today.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        courierAssignments: {
+          totalCount: 1,
+          serviceDate: '2026-11-20',
+          assignments: [
+            {
+              trackingNumber: 'SD-2026-9999',
+              status: 'Assigned',
+              recipientName: 'Alice Smith',
+              recipientPhone: '+94771234567',
+              dropoffAddress: '15 Flower Rd',
+              dropoffCity: 'Colombo',
+              weightKg: 2.5,
+            },
+          ],
+        },
+        courierWorkSummary: {
+          serviceDate: '2026-11-20',
+          assigned: 1,
+          pickedUp: 0,
+          inTransit: 0,
+          outForDelivery: 0,
+          delivered: 3,
+          failed: 0,
+          active: 1,
+          completed: 3,
+          overdueCount: 0,
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockCourierResponse);
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(input, 'What are my assigned deliveries today?');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('SD-2026-9999')).toBeInTheDocument();
+      expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Courier Shift Work Summary/i),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders Dispatcher unassigned queue and fleet workload cards', async () => {
+    const mockDispatcherResponse: AssistantChatResponse = {
+      reply: 'Here is the unassigned parcel queue.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        dispatcherQueue: {
+          totalUnassigned: 1,
+          parcels: [
+            {
+              parcelId: 'p-1',
+              trackingNumber: 'SD-2026-0042',
+              pickupCity: 'Colombo',
+              deliveryCity: 'Kandy',
+              weightKg: 4.2,
+              size: 'Medium',
+              createdAt: '2026-11-20T00:00:00Z',
+            },
+          ],
+        },
+        courierWorkload: {
+          totalCouriers: 5,
+          activeCouriersOnDuty: 3,
+          couriers: [
+            {
+              courierId: 'c-1',
+              courierCode: 'CR-001',
+              onDuty: true,
+              activeCount: 2,
+              capacity: 10,
+              vehicleType: 'Motorcycle',
+              maxWeightKg: 30,
+            },
+          ],
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(
+      mockDispatcherResponse,
+    );
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(input, 'How many unassigned parcels are waiting?');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('SD-2026-0042')).toBeInTheDocument();
+      expect(screen.getByText(/Fleet Workload/i)).toBeInTheDocument();
+      expect(screen.getByText('CR-001')).toBeInTheDocument();
+    });
+  });
+
+  it('renders Merchant orders and integration guide cards', async () => {
+    const mockMerchantResponse: AssistantChatResponse = {
+      reply: 'Here is your merchant integration guide.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        merchantOrders: {
+          totalOrders: 1,
+          orders: [
+            {
+              trackingNumber: 'SD-2026-5555',
+              externalOrderId: 'ORD-987',
+              status: 'In transit',
+              recipientCity: 'Galle',
+              weightKg: 1.5,
+              createdAt: '2026-11-20T00:00:00Z',
+            },
+          ],
+        },
+        merchantIntegration: {
+          apiBaseUrl: 'https://api.swiftdrop.lk/api/v1',
+          endpoint: 'POST /api/v1/deliveries',
+          webhookEvents: ['parcel.created', 'parcel.delivered'],
+          signatureAlgorithm: 'HMAC-SHA256',
+          documentationUrl: 'https://docs.swiftdrop.lk',
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockMerchantResponse);
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(input, 'How do I integrate via API?');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('SD-2026-5555')).toBeInTheDocument();
+      expect(
+        screen.getByText(/API & Webhook Integration/i),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders Admin delivery report and pricing tariffs cards', async () => {
+    const mockAdminResponse: AssistantChatResponse = {
+      reply: 'Here is the admin system performance report.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        adminReport: {
+          from: '2026-10-20T00:00:00Z',
+          to: '2026-11-20T00:00:00Z',
+          delivered: 120,
+          failed: 4,
+          cancelled: 2,
+          totalTerminal: 126,
+          successRate: 0.952,
+          failureRate: 0.032,
+          dailyMetrics: [],
+        },
+        adminTariffs: {
+          totalTiers: 1,
+          tiers: [
+            {
+              zoneName: 'Colombo Metro',
+              size: 'Small',
+              baseRate: 350,
+              perKgRate: 50,
+              currency: 'LKR',
+              isActive: true,
+              pricingVersion: 'v2026.11',
+            },
+          ],
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockAdminResponse);
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(input, 'Show delivery system reports and KPIs');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Delivery Performance KPIs/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Pricing Tariffs Schedule/i)).toBeInTheDocument();
+      expect(screen.getByText(/Colombo Metro/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders Delivery Time transit SLA estimate card', async () => {
+    const mockTimeResponse: AssistantChatResponse = {
+      reply: 'Deliveries from Kandy to Moratuwa typically take 24–48 hours.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        deliveryTime: {
+          pickupCity: 'Kandy',
+          deliveryCity: 'Moratuwa',
+          estimatedDuration: '24–48 hours (1–2 business days)',
+          estimatedDeliveryDate: 'Tomorrow by 2:00 PM',
+          serviceSpeed: 'Standard',
+          cutoffTime:
+            'Orders booked before 2:00 PM are dispatched on the same day.',
+          minHours: 24,
+          maxHours: 48,
+          routeType: 'Inter-Province Standard Route',
+          summary: 'Summary text',
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockTimeResponse);
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(
+      input,
+      'How much time will it take to go from kandy to moratuwa',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Estimated Delivery Transit Time/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/24–48 hours \(1–2 business days\)/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Inter-Province Standard Route/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Book This Delivery/i)).toBeInTheDocument();
+    });
   });
 });

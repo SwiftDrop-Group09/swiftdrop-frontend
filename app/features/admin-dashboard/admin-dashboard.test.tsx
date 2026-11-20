@@ -17,8 +17,8 @@ const mocks = vi.hoisted(() => ({
   role: 'Admin',
   userId: '00000000-0000-4000-8000-000000000001',
 }));
-vi.mock('~/features/identity/session', () => ({
-  useIdentity: () => ({
+vi.mock('~/features/identity/session', () => {
+  const getIdentity = () => ({
     restoring: false,
     user: {
       id: mocks.userId,
@@ -33,8 +33,12 @@ vi.mock('~/features/identity/session', () => ({
       api: { base: '/custom-api' },
       authenticatedRequest: mocks.request,
     },
-  }),
-}));
+  });
+  return {
+    useIdentity: getIdentity,
+    useOptionalIdentity: getIdentity,
+  };
+});
 const zoneId = '00000000-0000-4000-8000-000000000002';
 const todayRange = getUtcDatePreset(30);
 const defaultFrom = getUtcIsoRange(

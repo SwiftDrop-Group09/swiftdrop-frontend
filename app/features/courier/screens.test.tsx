@@ -18,12 +18,16 @@ const mocks = vi.hoisted(() => ({
     restoring: false,
   },
 }));
-vi.mock('~/features/identity/session', () => ({
-  useIdentity: () => ({
+vi.mock('~/features/identity/session', () => {
+  const getIdentity = () => ({
     ...mocks.identity,
     session: { authenticatedRequest: mocks.request, api: { base: '/api' } },
-  }),
-}));
+  });
+  return {
+    useIdentity: getIdentity,
+    useOptionalIdentity: getIdentity,
+  };
+});
 beforeEach(() => {
   mocks.identity.user = { id: 'courier-test', roles: ['Courier'] };
   mocks.identity.restoring = false;

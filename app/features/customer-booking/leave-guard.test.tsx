@@ -6,7 +6,10 @@ const identity = vi.hoisted(() => ({
   user: { roles: ['Customer'] },
   logoutRequested: false,
 }));
-vi.mock('~/features/identity/session', () => ({ useIdentity: () => identity }));
+vi.mock('~/features/identity/session', () => ({
+  useIdentity: () => identity,
+  useOptionalIdentity: () => identity,
+}));
 afterEach(() => {
   identity.logoutRequested = false;
 });

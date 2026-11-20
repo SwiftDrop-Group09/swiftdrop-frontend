@@ -91,11 +91,196 @@ export interface ZonesCardData {
   supportedCities: string[];
 }
 
+export interface DeliveryTimeEstimateCardData {
+  pickupCity: string;
+  deliveryCity: string;
+  estimatedDuration: string;
+  estimatedDeliveryDate: string;
+  serviceSpeed: string;
+  cutoffTime: string;
+  minHours: number;
+  maxHours: number;
+  routeType: string;
+  summary: string;
+}
+
+// -------------------------------------------------------------
+// Role-Specific Card Interfaces
+// -------------------------------------------------------------
+
+// Courier Cards
+export interface CourierAssignmentItem {
+  trackingNumber: string;
+  status: string;
+  recipientName: string;
+  recipientPhone: string;
+  dropoffAddress: string;
+  dropoffCity: string;
+  weightKg: number;
+  externalOrderId?: string | null;
+}
+
+export interface CourierAssignmentsCardData {
+  totalCount: number;
+  serviceDate: string;
+  assignments: CourierAssignmentItem[];
+}
+
+export interface CourierWorkSummaryCardData {
+  serviceDate: string;
+  assigned: number;
+  pickedUp: number;
+  inTransit: number;
+  outForDelivery: number;
+  delivered: number;
+  failed: number;
+  active: number;
+  completed: number;
+  overdueCount: number;
+}
+
+export interface CourierDutyCardData {
+  onDuty: boolean;
+  vehicleType?: string | null;
+  vehicleNumber?: string | null;
+  maxWeightKg: number;
+  statusMessage: string;
+}
+
+export interface CourierProtocolCardData {
+  title: string;
+  steps: string[];
+  exceptionGuidelines: string;
+}
+
+// Dispatcher Cards
+export interface UnassignedParcelItem {
+  parcelId: string;
+  trackingNumber: string;
+  pickupCity: string;
+  deliveryCity: string;
+  weightKg: number;
+  size: string;
+  createdAt: string;
+}
+
+export interface DispatcherQueueCardData {
+  totalUnassigned: number;
+  parcels: UnassignedParcelItem[];
+}
+
+export interface CourierWorkloadItem {
+  courierId: string;
+  courierCode: string;
+  onDuty: boolean;
+  activeCount: number;
+  capacity: number;
+  vehicleType: string;
+  maxWeightKg: number;
+}
+
+export interface CourierWorkloadCardData {
+  totalCouriers: number;
+  activeCouriersOnDuty: number;
+  couriers: CourierWorkloadItem[];
+}
+
+export interface ZoneDispatchItem {
+  zoneName: string;
+  pendingPickups: number;
+  inTransit: number;
+  couriersCount: number;
+}
+
+export interface ZoneDispatchCardData {
+  zones: ZoneDispatchItem[];
+}
+
+// Merchant Cards
+export interface MerchantOrderItem {
+  trackingNumber: string;
+  externalOrderId?: string | null;
+  status: string;
+  recipientCity: string;
+  weightKg: number;
+  priceLkr?: number | null;
+  createdAt: string;
+}
+
+export interface MerchantOrdersCardData {
+  totalOrders: number;
+  orders: MerchantOrderItem[];
+}
+
+export interface MerchantIntegrationCardData {
+  apiBaseUrl: string;
+  endpoint: string;
+  webhookEvents: string[];
+  signatureAlgorithm: string;
+  documentationUrl: string;
+}
+
+// Admin Cards
+export interface AdminReportMetricItem {
+  date: string;
+  delivered: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface AdminReportCardData {
+  from: string;
+  to: string;
+  delivered: number;
+  failed: number;
+  cancelled: number;
+  totalTerminal: number;
+  successRate: number;
+  failureRate: number;
+  dailyMetrics: AdminReportMetricItem[];
+}
+
+export interface AdminTariffItem {
+  zoneName: string;
+  size: string;
+  baseRate: number;
+  perKgRate: number;
+  currency: string;
+  isActive: boolean;
+  pricingVersion: string;
+}
+
+export interface AdminTariffsCardData {
+  totalTiers: number;
+  tiers: AdminTariffItem[];
+}
+
+export interface AdminOverviewCardData {
+  totalParcelsToday: number;
+  unassignedParcels: number;
+  activeCouriersOnDuty: number;
+  activeZonesCount: number;
+  todaySuccessRate: number;
+}
+
 export interface AssistantCards {
   tracking?: TrackingCardData | null;
   parcelList?: ParcelListCardData | null;
   quote?: QuoteCardData | null;
   zones?: ZonesCardData | null;
+  deliveryTime?: DeliveryTimeEstimateCardData | null;
+  courierAssignments?: CourierAssignmentsCardData | null;
+  courierWorkSummary?: CourierWorkSummaryCardData | null;
+  courierDuty?: CourierDutyCardData | null;
+  courierProtocol?: CourierProtocolCardData | null;
+  dispatcherQueue?: DispatcherQueueCardData | null;
+  courierWorkload?: CourierWorkloadCardData | null;
+  zoneDispatch?: ZoneDispatchCardData | null;
+  merchantOrders?: MerchantOrdersCardData | null;
+  merchantIntegration?: MerchantIntegrationCardData | null;
+  adminReport?: AdminReportCardData | null;
+  adminTariffs?: AdminTariffsCardData | null;
+  adminOverview?: AdminOverviewCardData | null;
 }
 
 export interface AssistantChatResponse {

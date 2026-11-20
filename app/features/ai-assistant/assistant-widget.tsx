@@ -10,10 +10,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from '~/shared/components/ui/sheet';
+import { useIdentity } from '~/features/identity/session';
 import {
+  AdminOverviewResultCard,
+  AdminReportResultCard,
+  AdminTariffsResultCard,
+  CourierAssignmentsResultCard,
+  CourierDutyResultCard,
+  CourierProtocolResultCard,
+  CourierWorkloadResultCard,
+  CourierWorkSummaryResultCard,
+  DeliveryTimeResultCard,
+  DispatcherQueueResultCard,
+  MerchantIntegrationResultCard,
+  MerchantOrdersResultCard,
   ParcelListResultCard,
   QuoteResultCard,
   TrackingResultCard,
+  ZoneDispatchResultCard,
   ZonesResultCard,
 } from './assistant-cards';
 import { FormattedAssistantText } from './formatted-assistant-text';
@@ -27,11 +41,13 @@ export function AssistantWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isSending, sendMessage, clearChat } = useAssistantChat();
+  const { user } = useIdentity();
+  const role = user?.roles[0] ?? 'Guest';
 
   // Hide floating launcher on the dedicated full-page assistant route
-  const isDedicatedAssistantPage = location.pathname.startsWith(
-    '/customer/assistant',
-  );
+  const isDedicatedAssistantPage =
+    location.pathname.startsWith('/customer/assistant') ||
+    location.pathname.startsWith('/assistant');
 
   // Keyboard shortcut: Alt+A to toggle assistant
   useEffect(() => {
@@ -159,11 +175,26 @@ export function AssistantWidget() {
             {messages.length === 0 ? (
               <div className="my-auto flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
                 <p className="text-sm font-medium text-foreground">
-                  How can I help you today?
+                  {role === 'Courier'
+                    ? 'SwiftDrop Courier Assistant'
+                    : role === 'Dispatcher'
+                      ? 'Dispatch Operations Assistant'
+                      : role === 'Merchant'
+                        ? 'Merchant Business Assistant'
+                        : role === 'Admin'
+                          ? 'Administration Assistant'
+                          : 'How can I help you today?'}
                 </p>
                 <p className="text-xs max-w-xs">
-                  Ask to track a parcel, estimate delivery rates, or view your
-                  active shipments.
+                  {role === 'Courier'
+                    ? 'Check your assigned runs, track deliveries, or review proof of delivery requirements.'
+                    : role === 'Dispatcher'
+                      ? 'Inspect unassigned delivery queues, fleet workloads, and zone coverage.'
+                      : role === 'Merchant'
+                        ? 'Track commercial orders, review API/webhook integration, or calculate commercial rates.'
+                        : role === 'Admin'
+                          ? 'Analyze delivery KPIs, audit pricing tariffs, and view platform operational health.'
+                          : 'Ask to track a parcel, estimate delivery rates, or view your active shipments.'}
                 </p>
               </div>
             ) : (
@@ -172,7 +203,20 @@ export function AssistantWidget() {
                   msg.cards?.tracking ||
                   msg.cards?.quote ||
                   msg.cards?.parcelList ||
-                  msg.cards?.zones,
+                  msg.cards?.zones ||
+                  msg.cards?.deliveryTime ||
+                  msg.cards?.courierAssignments ||
+                  msg.cards?.courierWorkSummary ||
+                  msg.cards?.courierDuty ||
+                  msg.cards?.courierProtocol ||
+                  msg.cards?.dispatcherQueue ||
+                  msg.cards?.courierWorkload ||
+                  msg.cards?.zoneDispatch ||
+                  msg.cards?.merchantOrders ||
+                  msg.cards?.merchantIntegration ||
+                  msg.cards?.adminReport ||
+                  msg.cards?.adminTariffs ||
+                  msg.cards?.adminOverview,
                 );
 
                 return (
@@ -228,6 +272,89 @@ export function AssistantWidget() {
                         <ZonesResultCard data={msg.cards.zones} />
                       </div>
                     )}
+                    {msg.cards?.deliveryTime && (
+                      <div className="w-full max-w-[95%]">
+                        <DeliveryTimeResultCard data={msg.cards.deliveryTime} />
+                      </div>
+                    )}
+
+                    {/* Role-Specific Cards */}
+                    {msg.cards?.courierAssignments && (
+                      <div className="w-full max-w-[95%]">
+                        <CourierAssignmentsResultCard
+                          data={msg.cards.courierAssignments}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.courierWorkSummary && (
+                      <div className="w-full max-w-[95%]">
+                        <CourierWorkSummaryResultCard
+                          data={msg.cards.courierWorkSummary}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.courierDuty && (
+                      <div className="w-full max-w-[95%]">
+                        <CourierDutyResultCard data={msg.cards.courierDuty} />
+                      </div>
+                    )}
+                    {msg.cards?.courierProtocol && (
+                      <div className="w-full max-w-[95%]">
+                        <CourierProtocolResultCard
+                          data={msg.cards.courierProtocol}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.dispatcherQueue && (
+                      <div className="w-full max-w-[95%]">
+                        <DispatcherQueueResultCard
+                          data={msg.cards.dispatcherQueue}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.courierWorkload && (
+                      <div className="w-full max-w-[95%]">
+                        <CourierWorkloadResultCard
+                          data={msg.cards.courierWorkload}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.zoneDispatch && (
+                      <div className="w-full max-w-[95%]">
+                        <ZoneDispatchResultCard data={msg.cards.zoneDispatch} />
+                      </div>
+                    )}
+                    {msg.cards?.merchantOrders && (
+                      <div className="w-full max-w-[95%]">
+                        <MerchantOrdersResultCard
+                          data={msg.cards.merchantOrders}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.merchantIntegration && (
+                      <div className="w-full max-w-[95%]">
+                        <MerchantIntegrationResultCard
+                          data={msg.cards.merchantIntegration}
+                        />
+                      </div>
+                    )}
+                    {msg.cards?.adminReport && (
+                      <div className="w-full max-w-[95%]">
+                        <AdminReportResultCard data={msg.cards.adminReport} />
+                      </div>
+                    )}
+                    {msg.cards?.adminTariffs && (
+                      <div className="w-full max-w-[95%]">
+                        <AdminTariffsResultCard data={msg.cards.adminTariffs} />
+                      </div>
+                    )}
+                    {msg.cards?.adminOverview && (
+                      <div className="w-full max-w-[95%]">
+                        <AdminOverviewResultCard
+                          data={msg.cards.adminOverview}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -254,7 +381,17 @@ export function AssistantWidget() {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask e.g. 'Where is my parcel?'..."
+                placeholder={
+                  role === 'Courier'
+                    ? "Ask e.g. 'Assigned deliveries today?' or 'Proof protocol'..."
+                    : role === 'Dispatcher'
+                      ? "Ask e.g. 'Unassigned parcels' or 'Courier workload'..."
+                      : role === 'Merchant'
+                        ? "Ask e.g. 'My orders' or 'API integration guide'..."
+                        : role === 'Admin'
+                          ? "Ask e.g. 'Delivery reports' or 'Pricing tariffs'..."
+                          : "Ask e.g. 'Where is my parcel?'..."
+                }
                 disabled={isSending}
                 className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />

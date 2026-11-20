@@ -28,7 +28,10 @@ const identity = vi.hoisted(() => {
     },
   };
 });
-vi.mock('~/features/identity/session', () => ({ useIdentity: () => identity }));
+vi.mock('~/features/identity/session', () => ({
+  useIdentity: () => identity,
+  useOptionalIdentity: () => identity,
+}));
 const priceSnapshot = { total: 540, currency: 'LKR', pricingVersion: 'v1' };
 const item: CustomerParcelListItem = {
   id: 'parcel-1',
