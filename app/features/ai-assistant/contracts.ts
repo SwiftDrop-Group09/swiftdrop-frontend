@@ -91,6 +91,19 @@ export interface ZonesCardData {
   supportedCities: string[];
 }
 
+export interface DeliveryTimeEstimateCardData {
+  pickupCity: string;
+  deliveryCity: string;
+  estimatedDuration: string;
+  estimatedDeliveryDate: string;
+  serviceSpeed: string;
+  cutoffTime: string;
+  minHours: number;
+  maxHours: number;
+  routeType: string;
+  summary: string;
+}
+
 // -------------------------------------------------------------
 // Role-Specific Card Interfaces
 // -------------------------------------------------------------
@@ -255,6 +268,7 @@ export interface AssistantCards {
   parcelList?: ParcelListCardData | null;
   quote?: QuoteCardData | null;
   zones?: ZonesCardData | null;
+  deliveryTime?: DeliveryTimeEstimateCardData | null;
   courierAssignments?: CourierAssignmentsCardData | null;
   courierWorkSummary?: CourierWorkSummaryCardData | null;
   courierDuty?: CourierDutyCardData | null;

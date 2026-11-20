@@ -33,6 +33,7 @@ import {
   CourierProtocolResultCard,
   CourierWorkloadResultCard,
   CourierWorkSummaryResultCard,
+  DeliveryTimeResultCard,
   DispatcherQueueResultCard,
   MerchantIntegrationResultCard,
   MerchantOrdersResultCard,
@@ -327,6 +328,7 @@ export function AssistantPage() {
                 msg.cards?.quote ||
                 msg.cards?.parcelList ||
                 msg.cards?.zones ||
+                msg.cards?.deliveryTime ||
                 msg.cards?.courierAssignments ||
                 msg.cards?.courierWorkSummary ||
                 msg.cards?.courierDuty ||
@@ -392,6 +394,11 @@ export function AssistantPage() {
                   {msg.cards?.zones && (
                     <div className="w-full max-w-[95%]">
                       <ZonesResultCard data={msg.cards.zones} />
+                    </div>
+                  )}
+                  {msg.cards?.deliveryTime && (
+                    <div className="w-full max-w-[95%]">
+                      <DeliveryTimeResultCard data={msg.cards.deliveryTime} />
                     </div>
                   )}
 

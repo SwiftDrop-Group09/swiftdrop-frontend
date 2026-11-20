@@ -416,4 +416,41 @@ describe('AI Delivery Assistant UI Components', () => {
       expect(screen.getByText(/Colombo Metro/i)).toBeInTheDocument();
     });
   });
+
+  it('renders Delivery Time transit SLA estimate card', async () => {
+    const mockTimeResponse: AssistantChatResponse = {
+      reply: 'Deliveries from Kandy to Moratuwa typically take 24–48 hours.',
+      mode: 'mcp-local-agent',
+      toolCalls: [],
+      cards: {
+        deliveryTime: {
+          pickupCity: 'Kandy',
+          deliveryCity: 'Moratuwa',
+          estimatedDuration: '24–48 hours (1–2 business days)',
+          estimatedDeliveryDate: 'Tomorrow by 2:00 PM',
+          serviceSpeed: 'Standard',
+          cutoffTime: 'Orders booked before 2:00 PM are dispatched on the same day.',
+          minHours: 24,
+          maxHours: 48,
+          routeType: 'Inter-Province Standard Route',
+          summary: 'Summary text',
+        },
+      },
+    };
+
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockTimeResponse);
+
+    renderWithProviders(<AssistantPage />, '/customer/assistant');
+
+    const input = screen.getByPlaceholderText(/Ask e.g./i);
+    await userEvent.type(input, 'How much time will it take to go from kandy to moratuwa');
+    await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Estimated Delivery Transit Time/i)).toBeInTheDocument();
+      expect(screen.getByText(/24–48 hours \(1–2 business days\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Inter-Province Standard Route/i)).toBeInTheDocument();
+      expect(screen.getByText(/Book This Delivery/i)).toBeInTheDocument();
+    });
+  });
 });
