@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import {
   ArrowLeft,
@@ -66,18 +66,18 @@ function saveRecentCode(code: string) {
 export function PublicTrackingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCode = searchParams.get('code') ?? '';
+  const [prevActiveCode, setPrevActiveCode] = useState(activeCode);
   const [inputCode, setInputCode] = useState(activeCode);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [recentCodes, setRecentCodes] = useState<string[]>([]);
+  const [recentCodes, setRecentCodes] = useState<string[]>(() =>
+    loadRecentCodes(),
+  );
 
-  useEffect(() => {
-    setRecentCodes(loadRecentCodes());
-  }, []);
-
-  useEffect(() => {
+  if (prevActiveCode !== activeCode) {
+    setPrevActiveCode(activeCode);
     setInputCode(activeCode);
-  }, [activeCode]);
+  }
 
   const { data, isLoading, isError, refetch, isFetching } = usePublicTracking(
     activeCode || null,
@@ -447,7 +447,7 @@ export function PublicTrackingPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleCopyLink}
+                  onClick={() => void handleCopyLink()}
                   className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
                   {copiedLink ? (
