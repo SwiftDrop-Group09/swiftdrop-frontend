@@ -100,11 +100,11 @@ describe('LandingPage (Home Page)', () => {
     expect(screen.getByText('Smart Dispatch')).toBeInTheDocument();
     expect(screen.getByText('AI Assistant')).toBeInTheDocument();
 
-    // Role workspaces section
-    expect(screen.getByText('Customer')).toBeInTheDocument();
-    expect(screen.getByText('Merchant')).toBeInTheDocument();
-    expect(screen.getByText('Dispatcher')).toBeInTheDocument();
-    expect(screen.getByText('Courier')).toBeInTheDocument();
+    // Verifies removed labels/badges do not exist
+    expect(
+      screen.queryByText('Smart Urban Logistics & Live Tracking'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Live Tracking Tool')).not.toBeInTheDocument();
   });
 
   it('shows sign-in and create account options for unauthenticated visitors', () => {

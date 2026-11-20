@@ -22,7 +22,6 @@ import { Input } from '~/shared/components/ui/input';
 import { Badge } from '~/shared/components/ui/badge';
 import { Separator } from '~/shared/components/ui/separator';
 import { useIdentity } from '~/features/identity/session';
-import { AssistantWidget } from '~/features/ai-assistant/assistant-widget';
 
 export function LandingPage() {
   const { user, restoring } = useIdentity();
@@ -68,12 +67,6 @@ export function LandingPage() {
               >
                 Features
               </a>
-              <a
-                href="#roles"
-                className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm px-1 py-0.5"
-              >
-                Workspaces
-              </a>
             </nav>
           </div>
 
@@ -110,18 +103,13 @@ export function LandingPage() {
       </header>
 
       {/* Main Content */}
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="flex-1 sm:pt- md:pt-10">
         {/* Hero Section */}
         <section className="relative overflow-hidden border-b border-border/40 bg-gradient-to-b from-muted/30 via-background to-background py-16 sm:py-24 lg:py-28">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid gap-12 lg:grid-cols-12 lg:gap-8 items-center">
               {/* Left Column: Headlines & CTA */}
               <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3.5 py-1 text-xs font-medium text-foreground">
-                  <Sparkles className="size-3.5 text-primary animate-pulse" />
-                  <span>Smart Urban Logistics & Live Tracking</span>
-                </div>
-
                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
                   Every parcel delivered on time,{' '}
                   <span className="text-[var(--brand-primary)]">
@@ -161,12 +149,6 @@ export function LandingPage() {
                       </Button>
                     </>
                   )}
-                  <Button size="lg" variant="ghost" asChild>
-                    <Link to="/track" className="gap-1.5">
-                      <Radio className="size-4 text-emerald-500 animate-pulse" />
-                      Public Tracking
-                    </Link>
-                  </Button>
                 </div>
 
                 {/* Trust stats / points */}
@@ -203,24 +185,17 @@ export function LandingPage() {
                 <Card className="border-border/80 shadow-xl bg-card">
                   <CardHeader className="space-y-1.5 pb-4">
                     <div className="flex items-center justify-between">
-                      <Badge
-                        variant="outline"
-                        className="gap-1.5 text-xs font-medium"
+                      <CardTitle
+                        role="heading"
+                        aria-level={2}
+                        className="text-xl font-bold"
                       >
-                        <Radio className="size-3 text-emerald-500 animate-pulse" />
-                        Live Tracking Tool
-                      </Badge>
+                        Track Your Delivery
+                      </CardTitle>
                       <span className="text-xs text-muted-foreground">
                         No login needed
                       </span>
                     </div>
-                    <CardTitle
-                      role="heading"
-                      aria-level={2}
-                      className="text-xl font-bold"
-                    >
-                      Track Your Delivery
-                    </CardTitle>
                     <CardDescription className="text-xs sm:text-sm">
                       Check parcel progress, milestones, and delivery estimates
                       in real time.
@@ -364,153 +339,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Roles and Workspaces Section */}
-        <section id="roles" className="py-16 sm:py-24">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center max-w-3xl mx-auto space-y-3">
-              <Badge
-                variant="outline"
-                className="text-xs uppercase tracking-wider font-semibold"
-              >
-                Unified Ecosystem
-              </Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
-                Tailored workspaces for every logistics role
-              </h2>
-              <p className="text-base text-muted-foreground">
-                Whether you are sending a parcel, operating an online store,
-                delivering packages, or managing a fleet.
-              </p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              {/* Customer */}
-              <div className="rounded-xl border border-border p-6 bg-card space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-md bg-muted flex items-center justify-center text-foreground font-semibold">
-                    C
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-base text-foreground">
-                      Customer
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Senders & Recipients
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Book on-demand deliveries, generate receipts, inspect active
-                  shipments, and view complete history.
-                </p>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-full text-xs"
-                  >
-                    <Link to="/customer/book">Book a Parcel</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Merchant */}
-              <div className="rounded-xl border border-border p-6 bg-card space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-md bg-muted flex items-center justify-center text-foreground font-semibold">
-                    M
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-base text-foreground">
-                      Merchant
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      E-commerce & Stores
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bulk order management, automated webhook integration, and
-                  commercial shipping rates.
-                </p>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-full text-xs"
-                  >
-                    <Link to="/merchant">Merchant Portal</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Dispatcher */}
-              <div className="rounded-xl border border-border p-6 bg-card space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-md bg-muted flex items-center justify-center text-foreground font-semibold">
-                    D
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-base text-foreground">
-                      Dispatcher
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Operations & Fleet
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Zone workload matrix, queue monitoring, parcel assignments,
-                  and courier capacity planning.
-                </p>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-full text-xs"
-                  >
-                    <Link to="/dispatch/workload">Dispatch Hub</Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Courier */}
-              <div className="rounded-xl border border-border p-6 bg-card space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-md bg-muted flex items-center justify-center text-foreground font-semibold">
-                    K
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-base text-foreground">
-                      Courier
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Delivery Drivers
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Mobile delivery manifest, route notes, digital customer
-                  signatures, and proof capture.
-                </p>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-full text-xs"
-                  >
-                    <Link to="/courier">Courier Manifest</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Banner */}
         <section className="border-t border-border/40 bg-muted/40 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center space-y-6">
@@ -589,9 +417,6 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* Floating AI Delivery Assistant */}
-      <AssistantWidget />
     </div>
   );
 }

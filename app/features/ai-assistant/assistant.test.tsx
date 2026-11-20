@@ -186,10 +186,10 @@ describe('AI Delivery Assistant UI Components', () => {
 
     renderWithProviders(
       <div>
-        <h1>Public Tracking Page</h1>
+        <h1>Workspace Page</h1>
         <AssistantWidget />
       </div>,
-      '/track',
+      '/dashboard',
     );
 
     const launcher = screen.getByRole('button', {
@@ -205,6 +205,20 @@ describe('AI Delivery Assistant UI Components', () => {
         screen.getByText(/Track parcels or estimate shipping rates/i),
       ).toBeInTheDocument();
     });
+  });
+
+  it('hides floating AssistantWidget on public routes like /track and /', () => {
+    renderWithProviders(
+      <div>
+        <h1>Public Tracking Page</h1>
+        <AssistantWidget />
+      </div>,
+      '/track',
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Open Delivery Assistant/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('hides floating AssistantWidget when on /customer/assistant route', () => {

@@ -37,7 +37,6 @@ import { Separator } from '~/shared/components/ui/separator';
 import { Skeleton } from '~/shared/components/ui/skeleton';
 import { DeliveryStepper, StatusBadge, formatDateTime } from './components';
 import { usePublicTracking } from './hooks';
-import { AssistantWidget } from '~/features/ai-assistant/assistant-widget';
 
 const RECENT_TRACKING_KEY = 'swiftdrop_recent_tracking';
 
@@ -589,9 +588,6 @@ export function PublicTrackingPage() {
           </div>
         )}
       </div>
-
-      {/* Floating AI Delivery Assistant */}
-      <AssistantWidget />
     </div>
   );
 }

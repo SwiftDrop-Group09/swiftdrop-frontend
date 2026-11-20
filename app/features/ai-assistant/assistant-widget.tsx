@@ -49,6 +49,16 @@ export function AssistantWidget() {
     location.pathname.startsWith('/customer/assistant') ||
     location.pathname.startsWith('/assistant');
 
+  // Hide floating launcher on public / open pages or when unauthenticated
+  const isPublicPage =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/track') ||
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register') ||
+    location.pathname.startsWith('/signup') ||
+    location.pathname === '/401' ||
+    location.pathname === '/403';
+
   // Keyboard shortcut: Alt+A to toggle assistant
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,7 +96,7 @@ export function AssistantWidget() {
     }
   }, [open]);
 
-  if (isDedicatedAssistantPage) {
+  if (isDedicatedAssistantPage || isPublicPage || !user) {
     return null;
   }
 
