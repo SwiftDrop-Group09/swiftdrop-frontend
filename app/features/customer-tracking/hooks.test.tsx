@@ -10,7 +10,10 @@ const identity = vi.hoisted(() => ({
   user: { id: 'owner', roles: ['Customer'] },
   restoring: false,
 }));
-vi.mock('~/features/identity/session', () => ({ useIdentity: () => identity }));
+vi.mock('~/features/identity/session', () => ({
+  useIdentity: () => identity,
+  useOptionalIdentity: () => identity,
+}));
 
 afterEach(() => {
   vi.restoreAllMocks();

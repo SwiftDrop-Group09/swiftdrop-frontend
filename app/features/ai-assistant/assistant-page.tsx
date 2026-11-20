@@ -23,7 +23,7 @@ import { Card, CardContent } from '~/shared/components/ui/card';
 import { Input } from '~/shared/components/ui/input';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { CustomerSectionHeader } from '~/features/customer-tracking/customer-presentation';
-import { useOptionalIdentity } from '~/features/identity/session';
+import { useIdentity } from '~/features/identity/session';
 import {
   AdminOverviewResultCard,
   AdminReportResultCard,
@@ -198,7 +198,7 @@ export function AssistantPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isSending, sendMessage, clearChat } = useAssistantChat();
-  const { user } = useOptionalIdentity();
+  const { user } = useIdentity();
   const role = user?.roles[0] ?? 'Guest';
   const starterPrompts = getStarterPrompts(role);
 

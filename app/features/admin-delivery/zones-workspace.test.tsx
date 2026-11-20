@@ -7,8 +7,8 @@ import ZonesPage from '~/portals/admin/zones';
 import PricingPage from '~/portals/admin/pricing';
 import { parsePostalCodes } from './zone-editor';
 const mocks = vi.hoisted(() => ({ request: vi.fn<typeof fetch>() }));
-vi.mock('~/features/identity/session', () => ({
-  useIdentity: () => ({
+vi.mock('~/features/identity/session', () => {
+  const getIdentity = () => ({
     restoring: false,
     user: {
       id: '00000000-0000-4000-8000-000000000001',
@@ -20,8 +20,12 @@ vi.mock('~/features/identity/session', () => ({
       address: null,
     },
     session: { api: { base: '/api' }, authenticatedRequest: mocks.request },
-  }),
-}));
+  });
+  return {
+    useIdentity: getIdentity,
+    useOptionalIdentity: getIdentity,
+  };
+});
 const zone = {
   id: '00000000-0000-4000-8000-000000000002',
   name: 'Colombo Central',

@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '~/shared/components/ui/sheet';
-import { useOptionalIdentity } from '~/features/identity/session';
+import { useIdentity } from '~/features/identity/session';
 import {
   AdminOverviewResultCard,
   AdminReportResultCard,
@@ -41,7 +41,7 @@ export function AssistantWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isSending, sendMessage, clearChat } = useAssistantChat();
-  const { user } = useOptionalIdentity();
+  const { user } = useIdentity();
   const role = user?.roles[0] ?? 'Guest';
 
   // Hide floating launcher on the dedicated full-page assistant route
