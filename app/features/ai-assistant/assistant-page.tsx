@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
+  BarChart3,
   Calculator,
   Clock,
+  Code2,
   CornerDownLeft,
+  Layers,
   Loader2,
   MapPin,
   Package,
   RotateCcw,
+  Shield,
+  ShieldCheck,
+  Sliders,
   Sparkles,
+  Truck,
 } from 'lucide-react';
 import { Badge } from '~/shared/components/ui/badge';
 import { Button } from '~/shared/components/ui/button';
@@ -16,49 +23,184 @@ import { Card, CardContent } from '~/shared/components/ui/card';
 import { Input } from '~/shared/components/ui/input';
 import { WorkspacePage } from '~/shared/components/workspace-page';
 import { CustomerSectionHeader } from '~/features/customer-tracking/customer-presentation';
+import { useOptionalIdentity } from '~/features/identity/session';
 import {
+  AdminOverviewResultCard,
+  AdminReportResultCard,
+  AdminTariffsResultCard,
+  CourierAssignmentsResultCard,
+  CourierDutyResultCard,
+  CourierProtocolResultCard,
+  CourierWorkloadResultCard,
+  CourierWorkSummaryResultCard,
+  DispatcherQueueResultCard,
+  MerchantIntegrationResultCard,
+  MerchantOrdersResultCard,
   ParcelListResultCard,
   QuoteResultCard,
   TrackingResultCard,
+  ZoneDispatchResultCard,
   ZonesResultCard,
 } from './assistant-cards';
 import { FormattedAssistantText } from './formatted-assistant-text';
 import { useAssistantChat } from './hooks';
 
-const STARTER_PROMPTS = [
-  {
-    title: 'Where is my parcel?',
-    description: 'Check status and milestone timeline for your shipments',
-    prompt: 'Where is my parcel?',
-    icon: Package,
-  },
-  {
-    title: 'Estimate delivery fee',
-    description: 'Calculate instant rates across Sri Lankan zones',
-    prompt: 'How much to send 2 kg from Colombo to Kandy?',
-    icon: Calculator,
-  },
-  {
-    title: 'Service zones & coverage',
-    description: 'See all supported cities and active delivery areas',
-    prompt: 'What delivery zones do you cover?',
-    icon: MapPin,
-  },
-  {
-    title: 'My recent deliveries',
-    description: 'View recent shipments in your customer account',
-    prompt: 'List my recent deliveries',
-    icon: Clock,
-  },
-];
+function getStarterPrompts(role: string) {
+  if (role === 'Courier') {
+    return [
+      {
+        title: 'Assigned deliveries',
+        description: 'Check today’s package dropoffs and manifest routes',
+        prompt: 'What are my assigned deliveries today?',
+        icon: Truck,
+      },
+      {
+        title: 'Shift work summary',
+        description: 'View active loads, completed runs, and overdue parcels',
+        prompt: 'What is my current work summary?',
+        icon: BarChart3,
+      },
+      {
+        title: 'Duty & vehicle status',
+        description: 'Inspect on-duty availability and max weight capacity',
+        prompt: 'What is my duty status?',
+        icon: ShieldCheck,
+      },
+      {
+        title: 'Delivery proof SOP',
+        description: 'Review signature, photo, and contactless dropoff rules',
+        prompt: 'How do I complete proof of delivery?',
+        icon: ShieldCheck,
+      },
+    ];
+  }
+
+  if (role === 'Dispatcher') {
+    return [
+      {
+        title: 'Unassigned parcel queue',
+        description: 'Inspect waiting parcels pending courier allocation',
+        prompt: 'How many unassigned parcels are waiting?',
+        icon: Layers,
+      },
+      {
+        title: 'Courier fleet workload',
+        description: 'Monitor courier capacity, duty states, and zone coverage',
+        prompt: 'Show courier workload across zones',
+        icon: Truck,
+      },
+      {
+        title: 'Zone dispatch summary',
+        description: 'Identify delivery bottlenecks and pickup density',
+        prompt: 'What is the zone summary for dispatch?',
+        icon: MapPin,
+      },
+      {
+        title: 'Service zones & coverage',
+        description: 'See all active delivery zones and operational boundaries',
+        prompt: 'What delivery zones do you cover?',
+        icon: MapPin,
+      },
+    ];
+  }
+
+  if (role === 'Merchant') {
+    return [
+      {
+        title: 'Commercial orders',
+        description: 'Track business shipments and order fulfillment statuses',
+        prompt: 'Show my recent merchant orders',
+        icon: Package,
+      },
+      {
+        title: 'API & webhook integration',
+        description: 'Documentation for REST endpoints and webhook events',
+        prompt: 'How do I integrate via API and webhooks?',
+        icon: Code2,
+      },
+      {
+        title: 'Estimate shipping quote',
+        description: 'Calculate commercial freight and parcel delivery rates',
+        prompt: 'How much to send 5 kg from Colombo to Kandy?',
+        icon: Calculator,
+      },
+      {
+        title: 'Service zones',
+        description: 'Review nationwide delivery coverage across Sri Lanka',
+        prompt: 'What delivery zones do you cover?',
+        icon: MapPin,
+      },
+    ];
+  }
+
+  if (role === 'Admin') {
+    return [
+      {
+        title: 'Delivery performance KPIs',
+        description: 'System volume, success rates, and 30-day trends',
+        prompt: 'Show delivery system reports and KPIs',
+        icon: BarChart3,
+      },
+      {
+        title: 'Pricing tariffs schedule',
+        description: 'Inspect active pricing tiers and per-kg weight bands',
+        prompt: 'What are the active pricing tiers?',
+        icon: Sliders,
+      },
+      {
+        title: 'Platform operational overview',
+        description: 'Daily volume, unassigned queue, and on-duty couriers',
+        prompt: 'Show system operational overview',
+        icon: Shield,
+      },
+      {
+        title: 'Unassigned dispatch queue',
+        description: 'Review pending packages awaiting courier allocation',
+        prompt: 'How many unassigned parcels are waiting?',
+        icon: Layers,
+      },
+    ];
+  }
+
+  // Customer & Default
+  return [
+    {
+      title: 'Where is my parcel?',
+      description: 'Check status and milestone timeline for your shipments',
+      prompt: 'Where is my parcel?',
+      icon: Package,
+    },
+    {
+      title: 'Estimate delivery fee',
+      description: 'Calculate instant rates across Sri Lankan zones',
+      prompt: 'How much to send 2 kg from Colombo to Kandy?',
+      icon: Calculator,
+    },
+    {
+      title: 'Service zones & coverage',
+      description: 'See all supported cities and active delivery areas',
+      prompt: 'What delivery zones do you cover?',
+      icon: MapPin,
+    },
+    {
+      title: 'My recent deliveries',
+      description: 'View recent shipments in your customer account',
+      prompt: 'List my recent deliveries',
+      icon: Clock,
+    },
+  ];
+}
 
 export function AssistantPage() {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, isSending, sendMessage, clearChat, isAuthenticated } =
+  const { messages, isSending, sendMessage, clearChat } =
     useAssistantChat();
+  const { user } = useOptionalIdentity();
+  const role = user?.roles[0] ?? 'Guest';
+  const starterPrompts = getStarterPrompts(role);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -99,11 +241,11 @@ export function AssistantPage() {
         <CustomerSectionHeader
           icon={Sparkles}
           title="Assistant Conversation"
-          description="Model Context Protocol (MCP) tool grounded delivery assistant for real-time tracking and quotes."
+          description="Model Context Protocol (MCP) tool grounded delivery assistant tailored for your role."
           action={
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-mono">
-                {isAuthenticated ? 'Authenticated Customer' : 'Public Guest'}
+                {role !== 'Guest' ? `Authenticated ${role}` : 'Public Guest'}
               </Badge>
             </div>
           }
@@ -122,17 +264,32 @@ export function AssistantPage() {
               </Badge>
               <div className="max-w-md space-y-1.5">
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                  How can I help you today?
+                  {role === 'Courier'
+                    ? 'SwiftDrop Courier Assistant'
+                    : role === 'Dispatcher'
+                      ? 'Dispatch Operations Assistant'
+                      : role === 'Merchant'
+                        ? 'Merchant Business Assistant'
+                        : role === 'Admin'
+                          ? 'Administration Assistant'
+                          : 'How can I help you today?'}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Choose a quick topic below or type your question to track
-                  parcels, calculate shipping fees, or check coverage.
+                  {role === 'Courier'
+                    ? 'Check today’s assigned dropoffs, review your shift performance summary, or inspect proof requirements.'
+                    : role === 'Dispatcher'
+                      ? 'Inspect the unassigned parcel queue, assess courier fleet workloads, or check zone density.'
+                      : role === 'Merchant'
+                        ? 'Track commercial business shipments, review REST API & webhook integration, or calculate commercial rates.'
+                        : role === 'Admin'
+                          ? 'Review system delivery KPIs, audit pricing tariffs, or inspect overall platform dispatch health.'
+                          : 'Choose a quick topic below or type your question to track parcels, calculate shipping fees, or check coverage.'}
                 </p>
               </div>
 
               {/* 2x2 Clickable Starter Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full text-left">
-                {STARTER_PROMPTS.map((item) => {
+                {starterPrompts.map((item) => {
                   const Icon = item.icon;
                   return (
                     <button
@@ -169,7 +326,19 @@ export function AssistantPage() {
                 msg.cards?.tracking ||
                 msg.cards?.quote ||
                 msg.cards?.parcelList ||
-                msg.cards?.zones,
+                msg.cards?.zones ||
+                msg.cards?.courierAssignments ||
+                msg.cards?.courierWorkSummary ||
+                msg.cards?.courierDuty ||
+                msg.cards?.courierProtocol ||
+                msg.cards?.dispatcherQueue ||
+                msg.cards?.courierWorkload ||
+                msg.cards?.zoneDispatch ||
+                msg.cards?.merchantOrders ||
+                msg.cards?.merchantIntegration ||
+                msg.cards?.adminReport ||
+                msg.cards?.adminTariffs ||
+                msg.cards?.adminOverview,
               );
 
               return (
@@ -225,6 +394,84 @@ export function AssistantPage() {
                       <ZonesResultCard data={msg.cards.zones} />
                     </div>
                   )}
+
+                  {/* Role-Specific Cards */}
+                  {msg.cards?.courierAssignments && (
+                    <div className="w-full max-w-[95%]">
+                      <CourierAssignmentsResultCard
+                        data={msg.cards.courierAssignments}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.courierWorkSummary && (
+                    <div className="w-full max-w-[95%]">
+                      <CourierWorkSummaryResultCard
+                        data={msg.cards.courierWorkSummary}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.courierDuty && (
+                    <div className="w-full max-w-[95%]">
+                      <CourierDutyResultCard data={msg.cards.courierDuty} />
+                    </div>
+                  )}
+                  {msg.cards?.courierProtocol && (
+                    <div className="w-full max-w-[95%]">
+                      <CourierProtocolResultCard
+                        data={msg.cards.courierProtocol}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.dispatcherQueue && (
+                    <div className="w-full max-w-[95%]">
+                      <DispatcherQueueResultCard
+                        data={msg.cards.dispatcherQueue}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.courierWorkload && (
+                    <div className="w-full max-w-[95%]">
+                      <CourierWorkloadResultCard
+                        data={msg.cards.courierWorkload}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.zoneDispatch && (
+                    <div className="w-full max-w-[95%]">
+                      <ZoneDispatchResultCard data={msg.cards.zoneDispatch} />
+                    </div>
+                  )}
+                  {msg.cards?.merchantOrders && (
+                    <div className="w-full max-w-[95%]">
+                      <MerchantOrdersResultCard
+                        data={msg.cards.merchantOrders}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.merchantIntegration && (
+                    <div className="w-full max-w-[95%]">
+                      <MerchantIntegrationResultCard
+                        data={msg.cards.merchantIntegration}
+                      />
+                    </div>
+                  )}
+                  {msg.cards?.adminReport && (
+                    <div className="w-full max-w-[95%]">
+                      <AdminReportResultCard data={msg.cards.adminReport} />
+                    </div>
+                  )}
+                  {msg.cards?.adminTariffs && (
+                    <div className="w-full max-w-[95%]">
+                      <AdminTariffsResultCard data={msg.cards.adminTariffs} />
+                    </div>
+                  )}
+                  {msg.cards?.adminOverview && (
+                    <div className="w-full max-w-[95%]">
+                      <AdminOverviewResultCard
+                        data={msg.cards.adminOverview}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -250,7 +497,17 @@ export function AssistantPage() {
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask e.g. 'Where is my parcel?' or 'How much to send 2 kg to Kandy?'..."
+              placeholder={
+                role === 'Courier'
+                  ? "Ask e.g. 'Assigned deliveries today?' or 'How to complete proof?'..."
+                  : role === 'Dispatcher'
+                    ? "Ask e.g. 'Unassigned parcels' or 'Courier workload across zones'..."
+                    : role === 'Merchant'
+                      ? "Ask e.g. 'Show my orders' or 'API integration and webhooks'..."
+                      : role === 'Admin'
+                        ? "Ask e.g. 'Delivery reports and KPIs' or 'Active pricing tariffs'..."
+                        : "Ask e.g. 'Where is my parcel?' or 'How much to send 2 kg to Kandy?'..."
+              }
               disabled={isSending}
               className="h-10 min-w-0 flex-1 bg-background"
             />

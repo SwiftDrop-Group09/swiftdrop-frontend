@@ -270,6 +270,28 @@ export function useIdentity() {
   return { ...snapshot, session };
 }
 
+export function useOptionalIdentity() {
+  const session = useContext(SessionContext);
+  const snapshot = useSyncExternalStore(
+    session ? session.subscribe : () => () => {},
+    session
+      ? session.getSnapshot
+      : () => ({
+          user: null,
+          restoring: false,
+          error: null,
+          logoutRequested: false,
+        }),
+    () => ({
+      user: null,
+      restoring: false,
+      error: null,
+      logoutRequested: false,
+    }),
+  );
+  return { ...snapshot, session };
+}
+
 export function SessionReady({ children }: { children: ReactNode }) {
   const { restoring } = useIdentity();
   return restoring ? <AppLoading /> : children;

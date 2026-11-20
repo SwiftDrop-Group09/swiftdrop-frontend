@@ -42,6 +42,7 @@ const navigation: readonly NavigationGroup[] = [
     label: 'Workspace',
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+      { label: 'AI Delivery Assistant', icon: Bot, to: '/customer/assistant' },
       // Customers apply before receiving a Merchant role.
       {
         label: 'Business registration',
@@ -57,7 +58,6 @@ const navigation: readonly NavigationGroup[] = [
     roles: ['Customer'],
     items: [
       { label: 'Book a delivery', icon: PackagePlus, to: '/customer/book' },
-      { label: 'AI Delivery Assistant', icon: Bot, to: '/customer/assistant' },
       { label: 'Track a delivery', icon: MapPin, to: '/customer/tracking' },
       { label: 'Delivery history', icon: History, to: '/customer/history' },
     ],
