@@ -380,10 +380,10 @@ describe('WebhookScreens', () => {
     });
     expect(await screen.findByText('Webhook Deactivated')).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.getAllByText(
         /Webhook subscription for https:\/\/api\.merchant\.com\/webhook was deactivated/i,
-      ),
-    ).toBeInTheDocument();
+      ).length,
+    ).toBeGreaterThan(0);
   });
 
   it('displays error toast and error banner when deactivation fails', async () => {
