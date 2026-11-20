@@ -45,9 +45,9 @@ export function AssistantWidget() {
   const role = user?.roles[0] ?? 'Guest';
 
   // Hide floating launcher on the dedicated full-page assistant route
-  const isDedicatedAssistantPage = location.pathname.startsWith(
-    '/customer/assistant',
-  );
+  const isDedicatedAssistantPage =
+    location.pathname.startsWith('/customer/assistant') ||
+    location.pathname.startsWith('/assistant');
 
   // Keyboard shortcut: Alt+A to toggle assistant
   useEffect(() => {

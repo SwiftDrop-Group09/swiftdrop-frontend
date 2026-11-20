@@ -9,7 +9,7 @@ export const routePermissions: readonly {
   path: string;
   roles?: readonly Role[];
 }[] = [
-  ...['/dashboard', '/profile'].map((path) => ({ path })),
+  ...['/dashboard', '/profile', '/customer/assistant', '/assistant'].map((path) => ({ path })),
   { path: '/merchant', roles: ['Customer', 'Merchant'] as const },
   ...[
     '/merchant/webhooks',
@@ -33,7 +33,6 @@ export const routePermissions: readonly {
   })),
   ...[
     'book',
-    'assistant',
     'tracking',
     'history',
     'receipts',

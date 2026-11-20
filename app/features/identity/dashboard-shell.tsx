@@ -210,6 +210,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       '/403': 'Access denied',
       '/customer/book': 'Book a delivery',
       '/customer/assistant': 'AI Delivery Assistant',
+      '/assistant': 'AI Delivery Assistant',
       '/customer/tracking': 'Track a delivery',
       '/customer/history': 'Delivery history',
       '/customer/receipts': 'Receipts',
