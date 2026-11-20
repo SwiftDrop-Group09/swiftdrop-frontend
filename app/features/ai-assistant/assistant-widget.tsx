@@ -321,9 +321,7 @@ export function AssistantWidget() {
                     )}
                     {msg.cards?.zoneDispatch && (
                       <div className="w-full max-w-[95%]">
-                        <ZoneDispatchResultCard
-                          data={msg.cards.zoneDispatch}
-                        />
+                        <ZoneDispatchResultCard data={msg.cards.zoneDispatch} />
                       </div>
                     )}
                     {msg.cards?.merchantOrders && (
@@ -347,9 +345,7 @@ export function AssistantWidget() {
                     )}
                     {msg.cards?.adminTariffs && (
                       <div className="w-full max-w-[95%]">
-                        <AdminTariffsResultCard
-                          data={msg.cards.adminTariffs}
-                        />
+                        <AdminTariffsResultCard data={msg.cards.adminTariffs} />
                       </div>
                     )}
                     {msg.cards?.adminOverview && (

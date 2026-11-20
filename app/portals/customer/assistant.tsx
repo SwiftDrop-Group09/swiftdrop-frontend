@@ -4,7 +4,9 @@ import { IdentityShell, Protected } from '~/features/identity/components';
 export default function CustomerAssistantPortal() {
   return (
     <IdentityShell>
-      <Protected roles={['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin']}>
+      <Protected
+        roles={['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin']}
+      >
         <AssistantPage />
       </Protected>
     </IdentityShell>

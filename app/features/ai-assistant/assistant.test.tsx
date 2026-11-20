@@ -268,7 +268,9 @@ describe('AI Delivery Assistant UI Components', () => {
     await waitFor(() => {
       expect(screen.getByText('SD-2026-9999')).toBeInTheDocument();
       expect(screen.getByText(/Alice Smith/i)).toBeInTheDocument();
-      expect(screen.getByText(/Courier Shift Work Summary/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Courier Shift Work Summary/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -310,7 +312,9 @@ describe('AI Delivery Assistant UI Components', () => {
       },
     };
 
-    vi.mocked(api.sendAssistantMessage).mockResolvedValue(mockDispatcherResponse);
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue(
+      mockDispatcherResponse,
+    );
 
     renderWithProviders(<AssistantPage />, '/customer/assistant');
 
@@ -364,7 +368,9 @@ describe('AI Delivery Assistant UI Components', () => {
 
     await waitFor(() => {
       expect(screen.getByText('SD-2026-5555')).toBeInTheDocument();
-      expect(screen.getByText(/API & Webhook Integration/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/API & Webhook Integration/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -411,7 +417,9 @@ describe('AI Delivery Assistant UI Components', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Delivery Performance KPIs/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Delivery Performance KPIs/i),
+      ).toBeInTheDocument();
       expect(screen.getByText(/Pricing Tariffs Schedule/i)).toBeInTheDocument();
       expect(screen.getByText(/Colombo Metro/i)).toBeInTheDocument();
     });
@@ -429,7 +437,8 @@ describe('AI Delivery Assistant UI Components', () => {
           estimatedDuration: '24–48 hours (1–2 business days)',
           estimatedDeliveryDate: 'Tomorrow by 2:00 PM',
           serviceSpeed: 'Standard',
-          cutoffTime: 'Orders booked before 2:00 PM are dispatched on the same day.',
+          cutoffTime:
+            'Orders booked before 2:00 PM are dispatched on the same day.',
           minHours: 24,
           maxHours: 48,
           routeType: 'Inter-Province Standard Route',
@@ -443,13 +452,22 @@ describe('AI Delivery Assistant UI Components', () => {
     renderWithProviders(<AssistantPage />, '/customer/assistant');
 
     const input = screen.getByPlaceholderText(/Ask e.g./i);
-    await userEvent.type(input, 'How much time will it take to go from kandy to moratuwa');
+    await userEvent.type(
+      input,
+      'How much time will it take to go from kandy to moratuwa',
+    );
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Estimated Delivery Transit Time/i)).toBeInTheDocument();
-      expect(screen.getByText(/24–48 hours \(1–2 business days\)/i)).toBeInTheDocument();
-      expect(screen.getByText(/Inter-Province Standard Route/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Estimated Delivery Transit Time/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/24–48 hours \(1–2 business days\)/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Inter-Province Standard Route/i),
+      ).toBeInTheDocument();
       expect(screen.getByText(/Book This Delivery/i)).toBeInTheDocument();
     });
   });

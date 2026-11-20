@@ -435,11 +435,17 @@ export function DeliveryTimeResultCard({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <div className="rounded-md border border-border/40 p-2.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground">Estimated Arrival</span>
-            <p className="font-medium text-foreground">{data.estimatedDeliveryDate}</p>
+            <span className="text-[11px] text-muted-foreground">
+              Estimated Arrival
+            </span>
+            <p className="font-medium text-foreground">
+              {data.estimatedDeliveryDate}
+            </p>
           </div>
           <div className="rounded-md border border-border/40 p-2.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground">Route Classification</span>
+            <span className="text-[11px] text-muted-foreground">
+              Route Classification
+            </span>
             <p className="font-medium text-foreground">{data.routeType}</p>
           </div>
         </div>
@@ -522,7 +528,12 @@ export function CourierAssignmentsResultCard({
                   </p>
                 )}
               </div>
-              <Button asChild size="sm" variant="secondary" className="h-7 text-xs">
+              <Button
+                asChild
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs"
+              >
                 <Link to="/courier">Open Manifest</Link>
               </Button>
             </div>
@@ -693,7 +704,12 @@ export function DispatcherQueueResultCard({
                   {p.pickupCity} → {p.deliveryCity} • {p.weightKg} kg ({p.size})
                 </p>
               </div>
-              <Button asChild size="sm" variant="secondary" className="h-7 text-xs">
+              <Button
+                asChild
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs"
+              >
                 <Link to="/dispatch/unassigned">Assign</Link>
               </Button>
             </div>
@@ -762,7 +778,11 @@ export function CourierWorkloadResultCard({
 // 12. Zone Dispatch Summary Card
 // -------------------------------------------------------------
 
-export function ZoneDispatchResultCard({ data }: { data: ZoneDispatchCardData }) {
+export function ZoneDispatchResultCard({
+  data,
+}: {
+  data: ZoneDispatchCardData;
+}) {
   return (
     <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs">
       <CardHeader className="bg-muted/30 p-3.5 pb-2 sm:p-4 sm:pb-3">
@@ -832,7 +852,12 @@ export function MerchantOrdersResultCard({
                   {o.weightKg} kg)
                 </p>
               </div>
-              <Button asChild size="sm" variant="secondary" className="h-7 text-xs">
+              <Button
+                asChild
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs"
+              >
                 <Link to="/merchant/orders">View</Link>
               </Button>
             </div>
@@ -873,7 +898,11 @@ export function MerchantIntegrationResultCard({
           </span>
           <div className="flex flex-wrap gap-1 mt-1">
             {data.webhookEvents.map((evt) => (
-              <Badge key={evt} variant="secondary" className="text-[10px] font-mono">
+              <Badge
+                key={evt}
+                variant="secondary"
+                className="text-[10px] font-mono"
+              >
                 {evt.split(' ')[0]}
               </Badge>
             ))}
@@ -944,7 +973,11 @@ export function AdminReportResultCard({ data }: { data: AdminReportCardData }) {
 // 16. Admin Pricing Tariffs Card
 // -------------------------------------------------------------
 
-export function AdminTariffsResultCard({ data }: { data: AdminTariffsCardData }) {
+export function AdminTariffsResultCard({
+  data,
+}: {
+  data: AdminTariffsCardData;
+}) {
   return (
     <Card className="my-2.5 overflow-hidden border-border/80 shadow-xs">
       <CardHeader className="bg-muted/30 p-3.5 pb-2 sm:p-4 sm:pb-3">

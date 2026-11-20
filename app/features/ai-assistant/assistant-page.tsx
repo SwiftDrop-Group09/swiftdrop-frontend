@@ -197,8 +197,7 @@ export function AssistantPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, isSending, sendMessage, clearChat } =
-    useAssistantChat();
+  const { messages, isSending, sendMessage, clearChat } = useAssistantChat();
   const { user } = useOptionalIdentity();
   const role = user?.roles[0] ?? 'Guest';
   const starterPrompts = getStarterPrompts(role);
@@ -474,9 +473,7 @@ export function AssistantPage() {
                   )}
                   {msg.cards?.adminOverview && (
                     <div className="w-full max-w-[95%]">
-                      <AdminOverviewResultCard
-                        data={msg.cards.adminOverview}
-                      />
+                      <AdminOverviewResultCard data={msg.cards.adminOverview} />
                     </div>
                   )}
                 </div>
