@@ -1,3 +1,4 @@
+import { AppLoading } from './shared/components/app-loading';
 import type { ReactNode } from 'react';
 import {
   isRouteErrorResponse,
@@ -9,17 +10,22 @@ import {
   useRouteError,
 } from 'react-router';
 import { AppProviders } from './providers';
+import { IdentityProvider, SessionReady } from './features/identity/session';
+import { RouteAccessBoundary } from './features/identity/route-access';
 import './styles/app.css';
+import { ThemeController } from './shared/theme';
+import { Toaster } from './shared/components/ui/toaster';
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <Meta />
         <Links />
+        <script src="/theme.js" />
       </head>
       <body>
         {children}
@@ -33,13 +39,21 @@ export function Layout({ children }: { children: ReactNode }) {
 export const meta = () => [{ title: 'SwiftDrop' }];
 
 export function HydrateFallback() {
-  return <p role="status">Loading…</p>;
+  return <AppLoading />;
 }
 
 export default function App() {
   return (
     <AppProviders>
-      <Outlet />
+      <ThemeController />
+      <IdentityProvider>
+        <SessionReady>
+          <RouteAccessBoundary>
+            <Outlet />
+          </RouteAccessBoundary>
+        </SessionReady>
+      </IdentityProvider>
+      <Toaster />
     </AppProviders>
   );
 }

@@ -1,5 +1,11 @@
 {
-  "include": ["app/**/*", ".react-router/types/**/*", "*.ts"],
+  "include": [
+    "app/**/*",
+    "api/**/*",
+    "test-harness/**/*",
+    ".react-router/types/**/*",
+    "*.ts"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "types": ["node", "vite/client", "vitest/globals"],
@@ -18,6 +24,7 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   }
 }

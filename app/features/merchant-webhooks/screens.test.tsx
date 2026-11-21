@@ -1,0 +1,421 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { IdentityApi } from '../identity/api';
+import { IdentityProvider, IdentitySession } from '../identity/session';
+import { csrf, customer, json, pair } from '../identity/test-fixtures';
+import { WebhookScreens } from './webhook-screens';
+import { Toaster } from '~/shared/components/ui/toaster';
+import type { BusinessResponse } from '../merchant/contracts';
+import type {
+  OneTimeWebhookResponse,
+  WebhookAttemptPageResponse,
+  WebhookPageResponse,
+} from './contracts';
+
+const mockMerchantUser = {
+  ...customer,
+  roles: ['Merchant'] as (
+    'Customer' | 'Courier' | 'Merchant' | 'Dispatcher' | 'Admin'
+  )[],
+};
+
+const mockApprovedBusiness: BusinessResponse = {
+  id: '99999999-9999-4999-8999-999999999999',
+  userId: mockMerchantUser.id,
+  businessName: 'Colombo Exports Ltd',
+  contactEmail: 'ops@colombo.test',
+  contactPhone: '+94 77 123 4567',
+  pickupAddress: '42 Main St, Colombo',
+  status: 'Approved',
+  rejectionReason: null,
+  registeredAt: '2026-11-05T10:00:00Z',
+  approvedAt: '2026-11-05T12:00:00Z',
+  approvedBy: 'aaaaaaaa-0000-4000-8000-aaaaaaaaaaaa',
+};
+
+const mockPendingBusiness: BusinessResponse = {
+  ...mockApprovedBusiness,
+  status: 'Pending',
+  approvedAt: null,
+  approvedBy: null,
+};
+
+const mockWebhooks: WebhookPageResponse = {
+  items: [
+    {
+      id: '11111111-1111-4111-8111-111111111111',
+      endpointUrl: 'https://api.merchant.com/webhook',
+      events: ['delivery.delivered', 'delivery.created'],
+      isActive: true,
+      secretVersion: 1,
+      createdAt: '2026-11-10T10:00:00Z',
+      updatedAt: '2026-11-10T10:00:00Z',
+    },
+  ],
+  totalCount: 1,
+  page: 1,
+  pageSize: 20,
+};
+
+const mockAttempts: WebhookAttemptPageResponse = {
+  items: [
+    {
+      id: '22222222-2222-4222-8222-222222222222',
+      jobId: '33333333-3333-4333-8333-333333333333',
+      attemptNumber: 1,
+      requestedAt: '2026-11-10T10:05:00Z',
+      responseStatusCode: 200,
+      durationMs: 42,
+      nextRetryAt: null,
+      failureReason: null,
+    },
+  ],
+  totalCount: 1,
+  page: 1,
+  pageSize: 20,
+};
+
+const originalFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
+
+type FetchHandler = (url: string, init?: RequestInit) => Response | undefined;
+
+function setupMount(currentUser = mockMerchantUser, handler?: FetchHandler) {
+  const fetcher = vi.fn<typeof fetch>((input, init) => {
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+
+    if (handler) {
+      const customRes = handler(url, init);
+      if (customRes) return Promise.resolve(customRes);
+    }
+
+    // Default Identity endpoints
+    if (url.endsWith('/auth/csrf')) return Promise.resolve(json(csrf));
+    if (url.endsWith('/auth/refresh'))
+      return Promise.resolve(json(pair(currentUser)));
+    if (url.endsWith('/users/me')) return Promise.resolve(json(currentUser));
+
+    // Default Merchant endpoints
+    if (url.endsWith('/v1/merchants/me')) {
+      return Promise.resolve(json(mockApprovedBusiness));
+    }
+
+    // Default Webhook endpoints
+    if (url.includes('/v1/merchant/webhooks') && url.includes('/attempts')) {
+      return Promise.resolve(json(mockAttempts));
+    }
+    if (url.includes('/v1/merchant/webhooks')) {
+      return Promise.resolve(json(mockWebhooks));
+    }
+
+    return Promise.resolve(json({ code: 'not_found' }, 404));
+  });
+
+  vi.stubGlobal('fetch', fetcher);
+
+  const api = new IdentityApi(fetcher);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const session = new IdentitySession(api, () => queryClient.clear());
+
+  const router = createMemoryRouter(
+    [{ path: '/merchant/webhooks', element: <WebhookScreens /> }],
+    { initialEntries: ['/merchant/webhooks'] },
+  );
+
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <IdentityProvider session={session}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </IdentityProvider>
+    </QueryClientProvider>,
+  );
+
+  return { view, fetcher, queryClient };
+}
+
+describe('WebhookScreens', () => {
+  it('renders business approval required banner when merchant is Pending', async () => {
+    setupMount(mockMerchantUser, (url) => {
+      if (url.endsWith('/v1/merchants/me')) {
+        return json(mockPendingBusiness);
+      }
+      return undefined;
+    });
+
+    expect(
+      await screen.findByText('Business Approval Required'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Register Webhook/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders active subscriptions table for approved merchant and can send test event', async () => {
+    const user = userEvent.setup();
+    let testTriggered = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/test') && init?.method === 'POST') {
+        testTriggered = true;
+        return json(
+          {
+            id: '88888888-8888-4888-8888-888888888888',
+            eventId: '77777777-7777-4777-8777-777777777777',
+            subscriptionId: mockWebhooks.items[0]!.id,
+            replayGeneration: 0,
+            status: 'Pending',
+            attemptCount: 0,
+            dueAt: '2026-11-10T12:00:00Z',
+            safeErrorCode: null,
+            createdAt: '2026-11-10T12:00:00Z',
+          },
+          202,
+        );
+      }
+      return undefined;
+    });
+
+    expect(
+      await screen.findByText('https://api.merchant.com/webhook'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('delivery.delivered')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+
+    const sendTestBtn = screen.getByRole('button', {
+      name: /Send Test Event/i,
+    });
+    await user.click(sendTestBtn);
+
+    expect(testTriggered).toBe(true);
+    expect(
+      await screen.findByText('Test Event Dispatched'),
+    ).toBeInTheDocument();
+  });
+
+  it('views attempts timeline when clicking View Attempts and can go back', async () => {
+    const user = userEvent.setup();
+    setupMount();
+
+    const viewAttemptsBtn = await screen.findByRole('button', {
+      name: /View Attempts/i,
+    });
+    await user.click(viewAttemptsBtn);
+
+    expect(
+      await screen.findByText('Delivery Attempts History'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('42 ms')).toBeInTheDocument();
+
+    const backBtn = screen.getByRole('button', {
+      name: /Back to Subscriptions/i,
+    });
+    await user.click(backBtn);
+
+    expect(await screen.findByText('Active Subscriptions')).toBeInTheDocument();
+  });
+
+  it('registers a new webhook and reveals one-time secret modal', async () => {
+    const user = userEvent.setup();
+    const createdSecret: OneTimeWebhookResponse = {
+      id: '55555555-5555-4555-8555-555555555555',
+      endpointUrl: 'https://newendpoint.com/webhook',
+      events: ['delivery.delivered'],
+      secret:
+        'abcdef9876543210abcdef9876543210abcdef9876543210abcdef9876543210',
+      secretVersion: 1,
+      createdAt: '2026-11-10T12:00:00Z',
+    };
+
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.endsWith('/v1/merchant/webhooks') && init?.method === 'POST') {
+        return json(createdSecret, 201);
+      }
+      return undefined;
+    });
+
+    const registerBtn = await screen.findByRole('button', {
+      name: /Register Webhook/i,
+    });
+    await user.click(registerBtn);
+
+    expect(
+      await screen.findByText('Register Webhook Endpoint'),
+    ).toBeInTheDocument();
+
+    const urlInput = screen.getByPlaceholderText(
+      'https://api.yourdomain.com/webhooks/swiftdrop',
+    );
+    await user.type(urlInput, 'https://newendpoint.com/webhook');
+
+    const eventCheckbox = screen.getByRole('checkbox', {
+      name: 'delivery.delivered',
+    });
+    const initiallyChecked =
+      eventCheckbox.getAttribute('aria-checked') === 'true';
+    await user.click(eventCheckbox);
+    expect(eventCheckbox).toHaveAttribute(
+      'aria-checked',
+      String(!initiallyChecked),
+    );
+    await user.click(eventCheckbox);
+    expect(eventCheckbox).toHaveAttribute(
+      'aria-checked',
+      String(initiallyChecked),
+    );
+
+    const submitBtn = screen.getByRole('button', { name: /^Register$/i });
+    await user.click(submitBtn);
+
+    expect(
+      await screen.findByText('Webhook Signing Secret Generated'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(createdSecret.secret)).toBeInTheDocument();
+
+    const closeBtn = screen.getByRole('button', {
+      name: /I have saved my secret/i,
+    });
+    await user.click(closeBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Webhook Signing Secret Generated'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('opens custom AlertDialog and does not use native confirm when clicking deactivate', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(globalThis, 'confirm');
+    setupMount();
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Deactivate Webhook Subscription?'),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/https:\/\/api\.merchant\.com\/webhook/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /^Cancel$/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: /^Deactivate Webhook$/i }),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('cancels deactivation when clicking Cancel in AlertDialog', async () => {
+    const user = userEvent.setup();
+    let deleteAttempted = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        deleteAttempted = true;
+        return json({ success: true });
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+
+    const cancelBtn = screen.getByRole('button', { name: /^Cancel$/i });
+    await user.click(cancelBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(deleteAttempted).toBe(false);
+  });
+
+  it('deactivates webhook subscription and displays success Toast notification upon confirmation', async () => {
+    const user = userEvent.setup();
+    let deleteCalled = false;
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        deleteCalled = true;
+        return json({ success: true });
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+
+    const confirmActionBtn = screen.getByRole('button', {
+      name: /^Deactivate Webhook$/i,
+    });
+    await user.click(confirmActionBtn);
+
+    expect(deleteCalled).toBe(true);
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText('Webhook Deactivated')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        /Webhook subscription for https:\/\/api\.merchant\.com\/webhook was deactivated/i,
+      ).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('displays error toast and error banner when deactivation fails', async () => {
+    const user = userEvent.setup();
+    setupMount(mockMerchantUser, (url, init) => {
+      if (url.includes('/v1/merchant/webhooks') && init?.method === 'DELETE') {
+        return json(
+          {
+            code: 'operation_failed',
+            detail: 'Server unable to deactivate subscription at this time.',
+          },
+          500,
+        );
+      }
+      return undefined;
+    });
+
+    const deactivateBtn = await screen.findByRole('button', {
+      name: /Deactivate webhook https:\/\/api\.merchant\.com\/webhook/i,
+    });
+    await user.click(deactivateBtn);
+
+    const confirmActionBtn = await screen.findByRole('button', {
+      name: /^Deactivate Webhook$/i,
+    });
+    await user.click(confirmActionBtn);
+
+    expect(await screen.findByText('Deactivation Failed')).toBeInTheDocument();
+    const errorDetails = screen.getAllByText(
+      'Server unable to deactivate subscription at this time.',
+    );
+    expect(errorDetails.length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText('Operation Failed')).toBeInTheDocument();
+  });
+});

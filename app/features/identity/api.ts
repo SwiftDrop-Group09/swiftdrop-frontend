@@ -1,0 +1,354 @@
+import { z } from 'zod';
+import {
+  auditSchema,
+  pageSchema,
+  profileSchema,
+  signInMethodsSchema,
+  tokenSchema,
+} from './contracts';
+import type { AdminInput, ProfileInput, Profile } from './contracts';
+
+export class IdentityError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status = 0,
+  ) {
+    super(messageFor(code, status));
+  }
+}
+export function messageFor(code: string, status = 0) {
+  switch (code) {
+    case 'invalid_credentials':
+      return 'Sign-in failed or your session expired. Check your credentials and try again.';
+    case 'account_link_required':
+      return 'Sign in with your local password, then link Google from your profile.';
+    case 'password_already_set':
+      return 'Password sign-in is already enabled. Refresh your sign-in methods.';
+    case 'google_identity_conflict':
+      return 'This Google account is connected to another SwiftDrop account.';
+    case 'account_link_rejected':
+      return 'Choose the Google account with the same verified email as your SwiftDrop account.';
+    case 'registration_conflict':
+      return 'Registration could not be completed. Try signing in to your existing account.';
+    case 'last_active_admin':
+      return 'At least one active Admin must remain.';
+    case 'account_conflict':
+      return 'The account change conflicts with existing information. Reload the user list and review the account.';
+    case 'not_found':
+      return 'The account could not be found. Reload the user list.';
+    case 'csrf_rejected':
+      return 'Browser verification failed. Reload this page and try again.';
+    case 'forbidden':
+      return 'You do not have permission to perform this action.';
+    case 'session_changed':
+      return 'Your session changed. Please sign in again.';
+    case 'invalid_input':
+    case 'validation':
+      return 'Check the supplied information and try again.';
+    case 'google_unavailable':
+      return 'Google sign-in is unavailable. Please try again later.';
+    case 'google_sdk_unavailable':
+      return 'Google sign-in could not load. Check your connection or browser privacy settings, then try again.';
+    case 'audit_unavailable':
+    case 'identity_unavailable':
+    case 'service_unavailable':
+      return 'Account services are temporarily unavailable. Please try again later.';
+    case 'network_error':
+      return 'Unable to reach SwiftDrop. Check your connection and try again.';
+    case 'request_timeout':
+      return 'The request timed out. Please try again.';
+    case 'invalid_response':
+      return 'SwiftDrop returned an unexpected response. Please try again later.';
+    case 'logout_unconfirmed':
+      return 'Signed out on this page. Server logout could not be confirmed; close shared browser windows and try again when connected.';
+    default:
+      if (status === 429)
+        return 'Too many attempts. Please wait before trying again.';
+      if (status === 408 || status === 504)
+        return 'The request timed out. Please try again.';
+      if (status >= 500)
+        return 'Account services are temporarily unavailable. Please try again later.';
+      return 'The request could not be completed. Please try again.';
+  }
+}
+export async function responseFailure(response: Response) {
+  let code =
+    response.status === 403
+      ? 'forbidden'
+      : response.status === 401
+        ? 'invalid_credentials'
+        : 'request_failed';
+  try {
+    const value: unknown = await response.json();
+    const parsed = z.object({ code: z.string() }).safeParse(value);
+    if (parsed.success) code = parsed.data.code;
+  } catch {
+    /* Raw server responses and transport errors must not reach the UI. */
+  }
+  return new IdentityError(code, response.status);
+}
+
+export class IdentityApi {
+  private csrfToken: string | null = null;
+  private bootstrapFlight: Promise<{
+    csrfToken: string;
+    googleNonce: string;
+  }> | null = null;
+  readonly base: string;
+  constructor(
+    private readonly fetcher: typeof fetch = (...args) => fetch(...args),
+    base = '/api',
+  ) {
+    // Browser sessions deliberately use the public same-origin gateway.
+    if (!base.startsWith('/') || base.startsWith('//') || /[?#\\]/.test(base))
+      throw new Error('Use a same-origin API path.');
+    this.base = base.replace(/\/$/, '');
+  }
+  bootstrap(freshNonce = false) {
+    if (freshNonce && this.bootstrapFlight) return this.bootstrapFlight;
+    this.bootstrapFlight ??= this.send('/v1/auth/csrf')
+      .then(async (response) => {
+        try {
+          const value = z
+            .object({
+              csrfToken: z.string().min(1),
+              googleNonce: z.string().min(1),
+            })
+            .parse(await response.json());
+          this.csrfToken = value.csrfToken;
+          return value;
+        } catch {
+          throw new IdentityError('invalid_response');
+        }
+      })
+      .finally(() => {
+        this.bootstrapFlight = null;
+      });
+    return this.bootstrapFlight;
+  }
+  async send(
+    path: string,
+    method = 'GET',
+    body?: unknown,
+    accessToken?: string,
+  ) {
+    const serialized = body === undefined ? undefined : JSON.stringify(body);
+    if (serialized && new TextEncoder().encode(serialized).length > 16384)
+      throw new IdentityError('invalid_input');
+    if (method !== 'GET' && !this.csrfToken) await this.bootstrap();
+    let response: Response;
+    try {
+      response = await this.fetcher(this.base + path, {
+        method,
+        credentials: 'include',
+        cache: 'no-store',
+        redirect: 'error',
+        signal: AbortSignal.timeout(20_000),
+        headers: {
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(method !== 'GET' ? { 'X-CSRF-Token': this.csrfToken! } : {}),
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        ...(serialized !== undefined ? { body: serialized } : {}),
+      });
+    } catch (cause) {
+      throw new IdentityError(
+        cause instanceof DOMException && cause.name === 'TimeoutError'
+          ? 'request_timeout'
+          : 'network_error',
+      );
+    }
+    if (!response.ok) throw await responseFailure(response);
+    return response;
+  }
+  async login(email: string, password: string) {
+    return tokenSchema.parse(
+      await (
+        await this.send('/v1/auth/login', 'POST', { email, password })
+      ).json(),
+    );
+  }
+  async register(email: string, password: string, fullName: string) {
+    return profileSchema.parse(
+      await (
+        await this.send('/v1/auth/register', 'POST', {
+          email,
+          password,
+          fullName,
+        })
+      ).json(),
+    );
+  }
+  async refresh() {
+    return tokenSchema.parse(
+      await (await this.send('/v1/auth/refresh', 'POST', {})).json(),
+    );
+  }
+  async logout(token: string) {
+    await this.send('/v1/auth/logout', 'POST', {}, token);
+  }
+  async google(idToken: string) {
+    return tokenSchema.parse(
+      await (await this.send('/v1/auth/google', 'POST', { idToken })).json(),
+    );
+  }
+  async link(token: string, idToken: string, currentPassword: string) {
+    return profileSchema.parse(
+      await (
+        await this.send(
+          '/v1/auth/google/link',
+          'POST',
+          { idToken, currentPassword },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async profile(token: string) {
+    return profileSchema.parse(
+      await (await this.send('/v1/users/me', 'GET', undefined, token)).json(),
+    );
+  }
+  async signInMethods(token: string) {
+    return signInMethodsSchema.parse(
+      await (
+        await this.send('/v1/auth/methods', 'GET', undefined, token)
+      ).json(),
+    );
+  }
+  async addPassword(token: string, idToken: string, password: string) {
+    return signInMethodsSchema.parse(
+      await (
+        await this.send(
+          '/v1/auth/password',
+          'POST',
+          { idToken, password },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async updateProfile(
+    token: string,
+    { fullName, phoneNumber, address }: ProfileInput,
+  ) {
+    return profileSchema.parse(
+      await (
+        await this.send(
+          '/v1/users/me',
+          'PUT',
+          { fullName, phoneNumber, address },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async users(
+    token: string,
+    page: number,
+    filters: {
+      role?: Profile['roles'][number];
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const query = new URLSearchParams({ page: String(page), pageSize: '20' });
+    if (filters.role) query.set('role', filters.role);
+    if (filters.search) query.set('search', filters.search);
+    if (filters.status) query.set('status', filters.status);
+    try {
+      return pageSchema(profileSchema).parse(
+        await (
+          await this.send(`/v1/users?${query}`, 'GET', undefined, token)
+        ).json(),
+      );
+    } catch (error) {
+      if (
+        error instanceof IdentityError &&
+        error.status === 400 &&
+        ((filters.role &&
+          ['Customer', 'Courier', 'Merchant', 'Dispatcher', 'Admin'].includes(
+            filters.role,
+          )) ||
+          filters.status ||
+          filters.search) &&
+        (filters.search?.length ?? 0) <= 200 &&
+        (!filters.status || ['active', 'inactive'].includes(filters.status))
+      )
+        throw new Error(
+          'The account service rejected supported filters. Restart the backend development services to load the updated user-list API.',
+          { cause: error },
+        );
+      throw error;
+    }
+  }
+  async createUser(
+    token: string,
+    {
+      email,
+      fullName,
+      isActive,
+      password,
+      role = 'Customer',
+    }: AdminInput & { password: string; role?: Profile['roles'][number] },
+  ) {
+    return profileSchema.parse(
+      await (
+        await this.send(
+          '/v1/users',
+          'POST',
+          { email, fullName, isActive, password, role },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async updateUser(
+    token: string,
+    id: string,
+    { email, fullName, isActive }: AdminInput,
+  ) {
+    return profileSchema.parse(
+      await (
+        await this.send(
+          `/v1/users/${encodeURIComponent(id)}`,
+          'PUT',
+          { email, fullName, isActive },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async setRoles(token: string, id: string, roles: string[]) {
+    return profileSchema.parse(
+      await (
+        await this.send(
+          `/v1/users/${encodeURIComponent(id)}/roles`,
+          'PUT',
+          { roles },
+          token,
+        )
+      ).json(),
+    );
+  }
+  async deactivate(token: string, id: string) {
+    await this.send(
+      `/v1/users/${encodeURIComponent(id)}`,
+      'DELETE',
+      undefined,
+      token,
+    );
+  }
+  async audit(token: string, page: number) {
+    return pageSchema(auditSchema).parse(
+      await (
+        await this.send(
+          `/v1/audit-logs?page=${page}&pageSize=20`,
+          'GET',
+          undefined,
+          token,
+        )
+      ).json(),
+    );
+  }
+}

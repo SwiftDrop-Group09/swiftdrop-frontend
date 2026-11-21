@@ -1,8 +1,7 @@
 # Contributing
 
-This repository currently contains setup only. Add screens and business features
-when their implementation is requested; keep the blank starting point free of
-sample products, mock accounts, and speculative workflows.
+This repository includes the Identity screens and shared shadcn/ui components.
+Preserve existing authentication, validation and API behavior when changing UI.
 
 Use Node from `.nvmrc`, npm, and the single root lockfile. Install with `npm ci`.
 See [README.md](README.md) for commands, configuration, and source boundaries.
@@ -12,14 +11,24 @@ See [README.md](README.md) for commands, configuration, and source boundaries.
 - Put domain logic, endpoint functions, validation, and Query hooks in features.
   Put general components, native-fetch transport, and utilities in shared code.
   Portals must not import other portals; shared code must not depend on portals.
+- Use only shadcn/ui from `app/shared/components/ui` for application controls and
+  surfaces. Use Tailwind utilities for layout and semantic theme tokens from
+  `app/styles/app.css`. Do not add custom CSS, component stylesheets, CSS modules,
+  CSS-in-JS or inline feature styling. Keep the global stylesheet limited to the
+  Tailwind/shadcn theme and base setup. Existing legacy CSS must be replaced with
+  shadcn/Tailwind equivalents when editing its component. Google Identity Services
+  renders its sign-in control directly; use SDK appearance options and Tailwind
+  host utilities, preserving the ID-token/nonce flow. See [AGENTS.md](AGENTS.md)
+  for the repository-wide UI rules.
 - Keep one application build. Use `~/` for source imports. Retain strict types,
   type-aware linting, framework route splitting, and SPA-safe initial rendering.
 - Obtain DTOs, permissions, authentication, and state transitions from the owning
   backend contract. Keep backend business rules authoritative.
 - Use TanStack Query for server data and mutations, with scoped query keys and
   invalidation. Clear private cached data when implementing session changes.
-- Add focused behavior tests as features are implemented. The shared DOM testing
-  setup and one infrastructure test are already present.
+- Add focused behavior tests for changed interactions, including keyboard use,
+  confirmation and controlled form state. jsdom's ResizeObserver stub supports
+  Radix measurement; browser checks still establish real layout behavior.
 - Never commit secrets, local environment files, dependencies, or generated
   output. Commit the lockfile when dependencies change.
 

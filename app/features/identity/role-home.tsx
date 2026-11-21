@@ -1,0 +1,118 @@
+import { Link } from 'react-router';
+import { lazy, Suspense } from 'react';
+import { WorkspaceLoading } from '~/shared/components/workspace-state';
+import { WorkspacePage } from '~/shared/components/workspace-page';
+import { Button } from '~/shared/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '~/shared/components/ui/card';
+import { useIdentity } from './session';
+import { getWorkspaceNavigation } from './workspace-navigation';
+
+const AdminDashboard = lazy(
+  () => import('~/features/admin-dashboard/admin-dashboard'),
+);
+
+const CourierDashboard = lazy(() => import('~/features/courier/dashboard'));
+const DispatcherDashboard = lazy(() => import('~/features/dispatch/dashboard'));
+const MerchantDashboardWorkspace = lazy(() =>
+  import('~/features/merchant-orders/dashboard-page').then((m) => ({
+    default: m.MerchantDashboardWorkspace,
+  })),
+);
+
+export function RoleHome() {
+  const { user } = useIdentity();
+  if (user?.roles.length === 1 && user.roles[0] === 'Dispatcher')
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading dispatch dashboard…" />
+          </WorkspacePage>
+        }
+      >
+        <DispatcherDashboard key={user.id} />
+      </Suspense>
+    );
+  if (user?.roles[0] === 'Courier')
+    return (
+      <Suspense
+        fallback={<WorkspaceLoading label="Loading your day's work..." />}
+      >
+        <CourierDashboard />
+      </Suspense>
+    );
+  if (user?.roles.length === 1 && user.roles[0] === 'Admin') {
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading admin dashboard..." />
+          </WorkspacePage>
+        }
+      >
+        <AdminDashboard />
+      </Suspense>
+    );
+  }
+  if (user?.roles.length === 1 && user.roles[0] === 'Merchant') {
+    return (
+      <Suspense
+        fallback={
+          <WorkspacePage title="Dashboard">
+            <WorkspaceLoading label="Loading merchant dashboard…" />
+          </WorkspacePage>
+        }
+      >
+        <MerchantDashboardWorkspace />
+      </Suspense>
+    );
+  }
+  const groups = getWorkspaceNavigation(user!.roles).filter(
+    (group) => group.id !== 'workspace',
+  );
+  return (
+    <WorkspacePage
+      title="Dashboard"
+      description="Open your workspace to manage the tasks available to your account."
+    >
+      <div
+        aria-label="Dashboard workspace"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
+        {groups.map((group) => (
+          <Card key={group.id}>
+            <CardHeader>
+              <CardTitle>{group.label}</CardTitle>
+              <CardDescription>
+                Your available tools and workflows.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {group.items
+                .filter((item) => item.to)
+                .map(({ label, to, icon: Icon }) => (
+                  <Button
+                    key={label}
+                    asChild
+                    variant="outline"
+                    className="justify-start"
+                  >
+                    <Link to={to!} aria-label={`Open ${label}`}>
+                      <Icon aria-hidden="true" />
+                      {label}
+                    </Link>
+                  </Button>
+                ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </WorkspacePage>
+  );
+}
