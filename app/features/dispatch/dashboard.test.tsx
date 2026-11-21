@@ -108,7 +108,7 @@ function mount(
       return Promise.resolve(json(parcels));
     if (url.pathname.endsWith('/couriers/workload'))
       return Promise.resolve(
-        json({ items: fleet, totalCount: 37, page: 1, pageSize: 20 }),
+        json({ items: fleet, totalCount: 37, page: 1, pageSize: 10 }),
       );
     if (url.pathname.endsWith('/users/courier-directory'))
       return Promise.resolve(
@@ -230,7 +230,7 @@ describe('Dispatcher operations dashboard', () => {
     ).toBe('');
     expect(
       urls.find((url) => url.pathname.endsWith('/couriers/workload'))?.search,
-    ).toBe('?page=1&pageSize=20');
+    ).toBe('?page=1&pageSize=10');
     expect(
       urls
         .find((url) => url.pathname.endsWith('/courier-directory'))
@@ -267,7 +267,7 @@ describe('Dispatcher operations dashboard', () => {
       if (url.pathname.endsWith('/parcels'))
         return json({ ...parcels, items: [], totalCount: 0 });
       if (url.pathname.endsWith('/workload'))
-        return json({ items: [], totalCount: 0, page: 1, pageSize: 20 });
+        return json({ items: [], totalCount: 0, page: 1, pageSize: 10 });
     });
     await screen.findByText('No delivery zones configured');
     await screen.findByText('No courier profiles');

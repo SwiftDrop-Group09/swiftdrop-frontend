@@ -34,10 +34,10 @@ const assignments = Array.from({ length: 21 }, (_, i) => ({
 const fleetPage = (params: URLSearchParams, count = couriers.length) => {
   const page = Number(params.get('page'));
   return json({
-    items: couriers.slice(0, count).slice((page - 1) * 20, page * 20),
+    items: couriers.slice(0, count).slice((page - 1) * 10, page * 10),
     totalCount: count,
     page,
-    pageSize: 20,
+    pageSize: 10,
   });
 };
 const assignmentPage = (
@@ -48,10 +48,10 @@ const assignmentPage = (
   const page = Number(params.get('page'));
   return json({
     courierId,
-    items: assignments.slice(0, count).slice((page - 1) * 20, page * 20),
+    items: assignments.slice(0, count).slice((page - 1) * 10, page * 10),
     totalCount: count,
     page,
-    pageSize: 20,
+    pageSize: 10,
   });
 };
 
@@ -195,7 +195,7 @@ describe('Dispatcher workload', () => {
   it('shows real inactive/off-duty/zero and over-capacity rows without claiming availability', async () => {
     const view = mount();
     await loaded();
-    expect(await screen.findAllByText('Colombo')).toHaveLength(19);
+    expect(await screen.findAllByText('Colombo')).toHaveLength(9);
     expect(screen.getByText('Inactive')).toBeInTheDocument();
     expect(screen.getAllByText('Off duty')).toHaveLength(2);
     expect(screen.getByText('No zones')).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe('Dispatcher workload', () => {
       screen.getByText(/overdue and future service dates/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Available')).not.toBeInTheDocument();
-    expect(view.fleet.mock.calls[0]![0].toString()).toBe('page=1&pageSize=20');
+    expect(view.fleet.mock.calls[0]![0].toString()).toBe('page=1&pageSize=10');
     expect(view.parcels).not.toHaveBeenCalled();
     expect(await screen.findByText('Kasun Silva 1')).toBeInTheDocument();
     expect(screen.getByText('COU-0001')).toBeInTheDocument();
@@ -256,8 +256,27 @@ describe('Dispatcher workload', () => {
     );
     await view.user.click(pagination.getByRole('button', { name: 'Next' }));
     await screen.findByRole('button', {
+      name: 'View active parcels for COU-0011',
+    });
+    expect(
+      screen.getAllByRole('button', { name: /^View active parcels for/ }),
+    ).toHaveLength(10);
+    await view.user.click(
+      within(
+        screen.getByRole('navigation', { name: 'Courier pages' }),
+      ).getByRole('button', { name: 'Next' }),
+    );
+    await screen.findByRole('button', {
       name: 'View active parcels for COU-0021',
     });
+    expect(
+      screen.getAllByRole('button', { name: /^View active parcels for/ }),
+    ).toHaveLength(1);
+    expect(
+      within(
+        screen.getByRole('navigation', { name: 'Courier pages' }),
+      ).getByRole('button', { name: 'Next' }),
+    ).toBeDisabled();
     count = 1;
     await view.user.click(screen.getByRole('button', { name: 'Refresh' }));
     await loaded();
@@ -272,13 +291,13 @@ describe('Dispatcher workload', () => {
     const trigger = await loaded();
     const dialog = await openAssignments(view.user);
     expect(within(dialog).getByText('2026-10-01')).toBeInTheDocument();
-    expect(within(dialog).getAllByText('2026-12-01')).toHaveLength(19);
+    expect(within(dialog).getAllByText('2026-12-01')).toHaveLength(9);
     expect(
       within(dialog).getByRole('link', { name: 'View details for WORK-1' }),
     ).toHaveAttribute('href', `/dispatch/parcels/${id(100)}`);
     await view.user.click(within(dialog).getByRole('button', { name: 'Next' }));
     await within(dialog).findByRole('link', {
-      name: 'View details for WORK-21',
+      name: 'View details for WORK-11',
     });
     await view.user.keyboard('{Escape}');
     await waitFor(() => expect(trigger).toHaveFocus());
@@ -357,7 +376,7 @@ describe('Dispatcher workload', () => {
     });
     await loaded();
     await screen.findByText('Zone names unavailable');
-    expect(screen.getAllByText(id(99))).toHaveLength(19);
+    expect(screen.getAllByText(id(99))).toHaveLength(9);
     fail = false;
     await view.user.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findAllByText('Recovered zone');
@@ -396,7 +415,7 @@ describe('Dispatcher workload', () => {
     const dialog = await openAssignments(view.user);
     await view.user.click(within(dialog).getByRole('button', { name: 'Next' }));
     await within(dialog).findByRole('link', {
-      name: 'View details for WORK-21',
+      name: 'View details for WORK-11',
     });
     count = 1;
     await view.user.click(

@@ -126,7 +126,7 @@ function mount({
           ],
           totalCount: 1,
           page: 1,
-          pageSize: 20,
+          pageSize: 10,
         }).replace('"parcelVersion":2', `"parcelVersion":${optionsVersion}`),
       );
     if (url.pathname.endsWith('/deliveries/assign')) {

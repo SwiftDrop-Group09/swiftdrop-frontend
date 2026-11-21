@@ -9,7 +9,7 @@ import {
 } from './workload-api';
 
 const courierId = '00000000-0000-4000-8000-000000000010';
-const page = { items: [], page: 1, pageSize: 20, totalCount: 0 };
+const page = { items: [], page: 1, pageSize: 10, totalCount: 0 };
 
 describe('Dispatch workload transport', () => {
   it('resolves only requested courier names and rejects unrelated directory entries', async () => {
@@ -45,13 +45,13 @@ describe('Dispatch workload transport', () => {
     await listCourierWorkload(request, '/api', 2, signal);
     expect(request).toHaveBeenNthCalledWith(
       1,
-      '/api/v1/couriers/workload?page=2&pageSize=20',
+      '/api/v1/couriers/workload?page=2&pageSize=10',
       { cache: 'no-store', signal },
     );
     await listDispatchAssignments(request, '/api', courierId, 3, signal);
     expect(request).toHaveBeenNthCalledWith(
       2,
-      `/api/v1/couriers/${courierId}/assignments?page=3&pageSize=20`,
+      `/api/v1/couriers/${courierId}/assignments?page=3&pageSize=10`,
       { cache: 'no-store', signal },
     );
   });

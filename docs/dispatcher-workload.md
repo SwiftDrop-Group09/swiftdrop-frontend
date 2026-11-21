@@ -22,7 +22,7 @@ View active parcels opens a paginated dialog using the new operations-authorized
 parcel status, service date and assignment time, and links to existing Dispatcher
 parcel details. Calendar service dates remain unchanged by browser timezone;
 assignment timestamps use the browser's date/time presentation. Each list uses
-independent 20-row pages. Closing/reopening the dialog resets its page. Shrinking
+independent 10-row pages. Closing/reopening the dialog resets its page. Shrinking
 results correct to the last valid page.
 
 The Delivery backend handoff is `swiftdrop-backend/docs/dispatcher-workload.md`.
@@ -30,7 +30,7 @@ Roll out those reads before this UI. The response's `active` flag and per-courie
 projection were selected for this milestone and require the central proposed
 REST/route catalog's owning contract review. No response/endpoint is fabricated
 by the frontend. Initial assignment is now implemented from the queue; see
-[assignment integration](dispatcher-assignment.md). Reassignment remains pending.
+[assignment integration](dispatcher-assignment.md). Pre-pickup reassignment is available from eligible Assigned parcel details.
 
 ## Data and access states
 

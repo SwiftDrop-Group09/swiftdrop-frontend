@@ -31,7 +31,7 @@ const options = {
   items: [candidate],
   totalCount: 1,
   page: 1,
-  pageSize: 20,
+  pageSize: 10,
 };
 const receipt = {
   id: parcelId,
@@ -117,7 +117,7 @@ function mount({
             ],
         totalCount: assigned ? 0 : 1,
         page: 1,
-        pageSize: 20,
+        pageSize: 10,
       });
     return json({ code: 'not_found' }, 404);
   });

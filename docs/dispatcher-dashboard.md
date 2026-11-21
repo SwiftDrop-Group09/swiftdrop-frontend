@@ -79,7 +79,7 @@ Admin's existing dashboard and its Dispatcher tool access are preserved.
 - Zone summary: `['delivery-zone-summary', userId]`, undated.
 - Parcel preview: `['customer-parcels', userId, true,
 { status: 'Created', page: 1, pageSize: 5 }]`, using the existing operations mode.
-- Fleet preview: `['dispatch-workload', userId, 1]`, using the existing 20-row page.
+- Fleet preview: `['dispatch-workload', userId, 1]`, using the existing 10-row page.
 - Names: the existing user-scoped `courier-directory` key for displayed IDs.
 
 The shared QueryClient keeps private results in memory and uses existing
