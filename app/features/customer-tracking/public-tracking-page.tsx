@@ -79,9 +79,8 @@ export function PublicTrackingPage() {
     setInputCode(activeCode);
   }
 
-  const { data, isLoading, isError, refetch, isFetching } = usePublicTracking(
-    activeCode || null,
-  );
+  const { data, isLoading, isError, refetch, isFetching, connectionState } =
+    usePublicTracking(activeCode || null);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -144,7 +143,7 @@ export function PublicTrackingPage() {
     <div className="min-h-screen bg-muted/20 px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-3xl space-y-6">
         {/* Top Navigation */}
-        <header className="flex items-center justify-between">
+        <header className="flex flex-wrap items-center justify-between gap-2">
           <Link
             to="/"
             className="flex items-center gap-2 font-bold tracking-tight rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -362,7 +361,13 @@ export function PublicTrackingPage() {
                   {!isTerminal && (
                     <Badge variant="outline" className="gap-1.5 text-xs">
                       <Radio className="size-3 animate-pulse text-emerald-600" />
-                      Auto-refreshing (4s)
+                      <span role="status">
+                        {connectionState === 'live'
+                          ? 'Live updates connected'
+                          : connectionState === 'polling'
+                            ? 'Live updates unavailable. Checking every 4s.'
+                            : 'Connecting to live updates'}
+                      </span>
                     </Badge>
                   )}
                   {isTerminal && (

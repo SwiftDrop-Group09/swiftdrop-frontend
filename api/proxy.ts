@@ -36,6 +36,7 @@ async function handler(request: Request): Promise<Response> {
     headers,
     body: hasBody ? await request.arrayBuffer() : undefined,
     redirect: 'manual',
+    signal: request.signal,
   });
 
   const out = new Headers(upstream.headers);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -27,6 +27,7 @@ vi.mock('./api', async () => {
   return {
     ...actual,
     getPublicTracking: vi.fn(),
+    subscribePublicTracking: vi.fn(),
   };
 });
 
@@ -63,7 +64,10 @@ function renderPublicTrackingPage(initialPath = '/track') {
 
 describe('PublicTrackingPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(api.subscribePublicTracking).mockImplementation(
+      () => new Promise(() => {}),
+    );
     localStorage.clear();
   });
 
@@ -184,4 +188,62 @@ describe('PublicTrackingPage', () => {
       screen.getByRole('button', { name: /try another number/i }),
     ).toBeInTheDocument();
   });
+
+  it('falls back to REST, reconnects with the current timeline and aborts on unmount', async () => {
+    const trackingNumber = 'TRK-LIVE-1';
+    const initial: PublicTrackingSummary = {
+      trackingNumber,
+      status: 'Created',
+      originCity: 'Colombo',
+      destinationCity: 'Kandy',
+      lastUpdatedAt: '2026-10-16T08:00:00Z',
+      timeline: [
+        {
+          status: 'Created',
+          timestamp: '2026-10-16T08:00:00Z',
+          label: 'Booked',
+        },
+      ],
+    };
+    const lastUpdatedAt = '2026-10-16T09:00:00Z';
+    const updated: PublicTrackingSummary = {
+      ...initial,
+      status: 'InTransit',
+      lastUpdatedAt,
+      timeline: [
+        ...initial.timeline,
+        {
+          status: 'InTransit',
+          timestamp: lastUpdatedAt,
+          label: 'Parcel collected',
+        },
+      ],
+    };
+    vi.mocked(api.getPublicTracking)
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValue(updated);
+    const subscribe = vi.mocked(api.subscribePublicTracking);
+    subscribe.mockRejectedValueOnce(new Error('stream unavailable'));
+    const view = renderPublicTrackingPage('/track?code=' + trackingNumber);
+    expect(await screen.findByText(/checking every 4s/i)).toBeVisible();
+    await waitFor(() => expect(subscribe).toHaveBeenCalledTimes(2), {
+      timeout: 6000,
+    });
+    const [, , signal, receive] = subscribe.mock.calls[1]!;
+    act(() => {
+      receive({ trackingNumber, status: 'InTransit', lastUpdatedAt });
+      receive({ trackingNumber, status: 'InTransit', lastUpdatedAt });
+      receive({
+        trackingNumber,
+        status: 'Created',
+        lastUpdatedAt: initial.lastUpdatedAt,
+      });
+    });
+    expect(await screen.findByText('Parcel collected')).toBeVisible();
+    expect(screen.getAllByText('Parcel collected')).toHaveLength(1);
+    expect(screen.getByText('Live updates connected')).toBeVisible();
+    expect(api.getPublicTracking).toHaveBeenCalledTimes(2);
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+  }, 9000);
 });

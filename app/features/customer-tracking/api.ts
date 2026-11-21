@@ -1,3 +1,4 @@
+import { PARCEL_STATUSES } from './contracts';
 import type { AuthenticatedRequest } from '~/features/identity/contracts';
 import type {
   CustomerDeliverySummary,
@@ -106,7 +107,7 @@ export async function getPublicTracking(
 ): Promise<PublicTrackingSummary> {
   const response = await fetch(
     `${apiBase}/v1/parcels/track/${encodeURIComponent(trackingNumber.trim())}`,
-    { signal, cache: 'no-store' },
+    { signal, cache: 'no-store', credentials: 'omit' },
   );
   if (!response.ok) throw await readError(response);
   return (await response.json()) as PublicTrackingSummary;
@@ -215,9 +216,9 @@ export async function fetchParcelProofImageUrl(
   return URL.createObjectURL(blob);
 }
 
-export async function parseSseStream(
+async function readSnapshotFrames(
   body: ReadableStream<Uint8Array>,
-  onSnapshot: (snapshot: ParcelEventSnapshot) => void,
+  onFrame: (raw: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const reader = body.getReader();
@@ -236,18 +237,7 @@ export async function parseSseStream(
     const currentEvent = eventName;
     eventName = 'message';
     if (currentEvent === 'snapshot' || currentEvent === 'message') {
-      try {
-        const parsed = JSON.parse(raw) as ParcelEventSnapshot;
-        if (
-          parsed &&
-          typeof parsed.id === 'string' &&
-          typeof parsed.version === 'number'
-        ) {
-          onSnapshot(parsed);
-        }
-      } catch {
-        // Ignore malformed frames
-      }
+      onFrame(raw);
     }
   };
 
@@ -274,6 +264,82 @@ export async function parseSseStream(
   } finally {
     await reader.cancel().catch(() => {});
   }
+}
+
+function parseSnapshot(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+export function parseSseStream(
+  body: ReadableStream<Uint8Array>,
+  onSnapshot: (snapshot: ParcelEventSnapshot) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return readSnapshotFrames(
+    body,
+    (raw) => {
+      const snapshot = parseSnapshot(raw) as ParcelEventSnapshot | null;
+      if (
+        typeof snapshot?.id === 'string' &&
+        typeof snapshot.version === 'number'
+      ) {
+        onSnapshot(snapshot);
+      }
+    },
+    signal,
+  );
+}
+
+export type PublicTrackingSnapshot = Pick<
+  PublicTrackingSummary,
+  'trackingNumber' | 'status' | 'lastUpdatedAt'
+>;
+
+export async function subscribePublicTracking(
+  apiBase: string,
+  trackingNumber: string,
+  signal: AbortSignal,
+  onSnapshot: (snapshot: PublicTrackingSnapshot) => void,
+): Promise<void> {
+  const response = await fetch(
+    `${apiBase}/v1/parcels/track/${encodeURIComponent(trackingNumber.trim())}/events`,
+    {
+      signal,
+      cache: 'no-store',
+      credentials: 'omit',
+      headers: { Accept: 'text/event-stream' },
+    },
+  );
+  if (!response.ok) throw await readError(response);
+  if (
+    !response.body ||
+    !/^text\/event-stream(?:;|$)/i.test(
+      response.headers.get('content-type') ?? '',
+    )
+  ) {
+    await response.body?.cancel();
+    throw new Error('Tracking stream is unavailable.');
+  }
+  await readSnapshotFrames(
+    response.body,
+    (raw) => {
+      const snapshot = parseSnapshot(raw) as PublicTrackingSnapshot | null;
+      if (
+        typeof snapshot?.trackingNumber === 'string' &&
+        PARCEL_STATUSES.includes(snapshot.status) &&
+        typeof snapshot.lastUpdatedAt === 'string' &&
+        Number.isFinite(Date.parse(snapshot.lastUpdatedAt))
+      ) {
+        const { trackingNumber, status, lastUpdatedAt } = snapshot;
+        onSnapshot({ trackingNumber, status, lastUpdatedAt });
+      }
+    },
+    signal,
+  );
 }
 
 export async function subscribeParcelEvents(
