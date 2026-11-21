@@ -16,6 +16,7 @@ async function handler(request: Request): Promise<Response> {
   }
 
   const url = new URL(request.url);
+  url.searchParams.delete('path');
   const base = target.replace(/\/+$/, '');
 
   const headers = new Headers(request.headers);
