@@ -1,3 +1,4 @@
+import { DISPATCH_PAGE_SIZE } from './pagination';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -137,7 +138,9 @@ export function AssignmentDialog({
   if (selection && !selected) setSelection(undefined);
   const validReason =
     !reassign || (reason.trim().length >= 1 && reason.trim().length <= 500);
-  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / 20)) : 1;
+  const totalPages = data
+    ? Math.max(1, Math.ceil(data.totalCount / DISPATCH_PAGE_SIZE))
+    : 1;
   if (options.isSuccess && page > totalPages) setPage(totalPages);
   const locked = busy || Boolean(attempt);
   const denied = error && [401, 403, 404].includes(error.status);

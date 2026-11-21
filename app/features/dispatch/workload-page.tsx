@@ -1,3 +1,4 @@
+import { DISPATCH_PAGE_SIZE } from './pagination';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ import {
   useCourierDirectory,
 } from './workload-hooks';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DISPATCH_PAGE_SIZE;
 
 // Feature pagination composes the shared controls; each read owns its page state.
 function WorkloadPagination({

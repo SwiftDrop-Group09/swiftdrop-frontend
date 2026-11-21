@@ -1,3 +1,4 @@
+import { DISPATCH_PAGE_SIZE } from './pagination';
 import { z } from 'zod';
 import type { AuthenticatedRequest } from '~/features/identity/contracts';
 
@@ -91,7 +92,7 @@ export function listCourierWorkload(
 ) {
   return read(
     request,
-    `${apiBase}/v1/couriers/workload?page=${page}&pageSize=20`,
+    `${apiBase}/v1/couriers/workload?page=${page}&pageSize=${DISPATCH_PAGE_SIZE}`,
     workloadPageSchema,
     signal,
   );
@@ -126,7 +127,7 @@ export async function listDispatchAssignments(
 ) {
   const result = await read(
     request,
-    `${apiBase}/v1/couriers/${encodeURIComponent(courierId)}/assignments?page=${page}&pageSize=20`,
+    `${apiBase}/v1/couriers/${encodeURIComponent(courierId)}/assignments?page=${page}&pageSize=${DISPATCH_PAGE_SIZE}`,
     dispatchAssignmentsSchema,
     signal,
   );

@@ -1,3 +1,4 @@
+import { DISPATCH_PAGE_SIZE } from './pagination';
 import { z } from 'zod';
 import type { AuthenticatedRequest } from '~/features/identity/contracts';
 import { IdentityError } from '~/features/identity/api';
@@ -207,7 +208,10 @@ export async function getAssignmentOptions(
   signal?: AbortSignal,
   reassign = false,
 ) {
-  const query = new URLSearchParams({ page: String(page), pageSize: '20' });
+  const query = new URLSearchParams({
+    page: String(page),
+    pageSize: String(DISPATCH_PAGE_SIZE),
+  });
   if (serviceDate) query.set('serviceDate', serviceDate);
   if (reassign) query.set('reassign', 'true');
   const response = await request(
@@ -220,7 +224,7 @@ export async function getAssignmentOptions(
     parsed.data.parcelId !== parcelId ||
     parsed.data.reassign !== reassign ||
     parsed.data.page !== page ||
-    parsed.data.pageSize !== 20 ||
+    parsed.data.pageSize !== DISPATCH_PAGE_SIZE ||
     (serviceDate && parsed.data.serviceDate !== serviceDate)
   )
     throw new AssignmentError('invalid_response', response.status);
