@@ -5,6 +5,7 @@ import {
   getPublicTracking,
   listCustomerParcels,
   parseSseStream,
+  subscribePublicTracking,
 } from './api';
 import type { ParcelEventSnapshot } from './contracts';
 
@@ -107,6 +108,43 @@ describe('customer-tracking api', () => {
       expect.objectContaining({ cache: 'no-store' }),
     );
     fetchSpy.mockRestore();
+  });
+
+  it('projects valid public stream frames onto the public contract', async () => {
+    const snapshot = {
+      trackingNumber: 'TRK-PUB-1',
+      status: 'InTransit',
+      lastUpdatedAt: '2026-10-16T10:00:00Z',
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          'event: snapshot\ndata: ' +
+            JSON.stringify({ ...snapshot, recipientAddress: 'private' }) +
+            '\n\n' +
+            'event: snapshot\ndata: ' +
+            JSON.stringify({ ...snapshot, status: 'invalid' }) +
+            '\n\n',
+          { headers: { 'Content-Type': 'text/event-stream; charset=utf-8' } },
+        ),
+      );
+    try {
+      const onSnapshot = vi.fn();
+      const { signal } = new AbortController();
+      await subscribePublicTracking('/api', ' TRK-PUB-1 ', signal, onSnapshot);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/v1/parcels/track/TRK-PUB-1/events',
+        expect.objectContaining({
+          credentials: 'omit',
+          signal,
+          headers: { Accept: 'text/event-stream' },
+        }),
+      );
+      expect(onSnapshot.mock.calls).toEqual([[snapshot]]);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('triggers receipt pdf download with custom or fallback filename', async () => {

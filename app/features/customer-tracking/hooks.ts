@@ -10,6 +10,7 @@ import {
   getPublicTracking,
   listCustomerParcels,
   subscribeParcelEvents,
+  subscribePublicTracking,
 } from './api';
 import type {
   CustomerParcelPage,
@@ -21,6 +22,7 @@ import type {
   ProofOfDeliveryInfo,
   PublicTrackingSummary,
 } from './contracts';
+import { isTerminal } from './navigation';
 
 export function useCustomerSummary() {
   const { session, user, restoring } = useIdentity();
@@ -103,26 +105,105 @@ export function usePublicTracking(
   pollIntervalMs = 4000,
 ) {
   const { session } = useIdentity();
-  return useQuery<PublicTrackingSummary>({
+  const apiBase = session.api.base;
+  const queryClient = useQueryClient();
+  const [connection, setConnection] = useState<{
+    trackingNumber: string;
+    state: LiveConnectionState;
+  }>();
+  const connectionState =
+    connection?.trackingNumber === trackingNumber
+      ? connection.state
+      : 'connecting';
+  const query = useQuery<PublicTrackingSummary>({
     queryKey: ['public-tracking', trackingNumber],
     enabled: Boolean(trackingNumber?.trim()),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (
-        !status ||
-        status === 'Delivered' ||
-        status === 'Failed' ||
-        status === 'Cancelled'
-      ) {
-        return false;
-      }
-      return pollIntervalMs;
+    refetchInterval: (tracking) => {
+      const status = tracking.state.data?.status;
+      return connectionState === 'polling' && status && !isTerminal(status)
+        ? pollIntervalMs
+        : false;
     },
     refetchIntervalInBackground: false,
     queryFn: ({ signal }) =>
-      getPublicTracking(session.api.base, trackingNumber!, signal),
+      getPublicTracking(apiBase, trackingNumber!, signal),
     retry: false,
   });
+  const canonicalNumber = query.data?.trackingNumber;
+  const active = Boolean(query.data && !isTerminal(query.data.status));
+
+  useEffect(() => {
+    if (!active || !trackingNumber || !canonicalNumber) return;
+
+    const queryKey = ['public-tracking', trackingNumber];
+    let disposed = false;
+    let controller: AbortController;
+    let deadline: ReturnType<typeof setTimeout>;
+    let reconnect: ReturnType<typeof setTimeout>;
+
+    const connect = async () => {
+      controller = new AbortController();
+      const stream = controller;
+      let lastSnapshotAt = -Infinity;
+      deadline = setTimeout(() => stream.abort(), 8000);
+      try {
+        await subscribePublicTracking(
+          apiBase,
+          trackingNumber,
+          stream.signal,
+          (snapshot) => {
+            if (
+              disposed ||
+              stream.signal.aborted ||
+              snapshot.trackingNumber !== canonicalNumber
+            )
+              return;
+            clearTimeout(deadline);
+            // Delivery sends a reconciliation snapshot every 30 seconds.
+            deadline = setTimeout(() => stream.abort(), 40000);
+            setConnection({ trackingNumber, state: 'live' });
+            const updatedAt = Date.parse(snapshot.lastUpdatedAt);
+            if (updatedAt <= lastSnapshotAt) return;
+            lastSnapshotAt = updatedAt;
+            const cached =
+              queryClient.getQueryData<PublicTrackingSummary>(queryKey);
+            if (
+              !cached ||
+              updatedAt > Date.parse(cached.lastUpdatedAt) ||
+              (updatedAt === Date.parse(cached.lastUpdatedAt) &&
+                snapshot.status !== cached.status)
+            ) {
+              void queryClient.invalidateQueries({ queryKey, exact: true });
+            }
+          },
+        );
+      } catch {
+        // The REST query continues updating while the stream reconnects.
+      } finally {
+        clearTimeout(deadline);
+      }
+      if (disposed) return;
+      setConnection({ trackingNumber, state: 'polling' });
+      reconnect = setTimeout(() => void connect(), pollIntervalMs);
+    };
+
+    void connect();
+    return () => {
+      disposed = true;
+      clearTimeout(deadline);
+      clearTimeout(reconnect);
+      controller.abort();
+    };
+  }, [
+    active,
+    apiBase,
+    canonicalNumber,
+    pollIntervalMs,
+    queryClient,
+    trackingNumber,
+  ]);
+
+  return { ...query, connectionState: active ? connectionState : 'closed' };
 }
 
 export function useParcelReceipt(
